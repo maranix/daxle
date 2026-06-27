@@ -14,6 +14,7 @@
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
 /// - [Pipeline] and [AsyncPipeline]: For composing deferred pipelines of operations.
 /// - [Unit]: A type representing the absence of a meaningful value.
+/// - **Record Extensions**: Zip utility extensions on 2-tuples and 3-tuples containing [Option], [Either], or [TaskEither].
 ///
 /// ---
 ///
@@ -143,3 +144,4 @@ export 'src/unit.dart';
 export 'src/pipeline.dart';
 export 'src/task_either.dart';
 export 'src/either.dart';
+export 'src/record_extensions.dart';

@@ -159,7 +159,22 @@ Either<String, Unit> saveRecord(String data) {
 }
 ```
 
+### 6. Record Extensions
+Zip utility extensions on Dart 3 `Record` tuples of size 2 and 3 containing [Option], [Either], or [TaskEither]. This combines multiple instances into a single instance containing a record of values.
+
+```dart
+// Zips Option 2-tuple: Option<(int, String)>
+final Option<(int, String)> opt = (Option.some(1), Option.some('a')).zipped();
+
+// Zips Either 3-tuple: Either<String, (int, String, bool)>
+final Either<String, (int, String, bool)> either = (Right(1), Right('a'), Right(true)).zipped();
+
+// Zips TaskEither 2-tuple concurrently: TaskEither<String, (User, Order)>
+final TaskEither<String, (User, Order)> task = (getUser(1), getOrder(101)).zipped();
+```
+
 ---
+
 
 ## Contributing
 
