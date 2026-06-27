@@ -1,123 +1,47 @@
 import 'package:daxle/daxle.dart';
 
-// Represents potential validation errors
-sealed class ValidationError {
-  final String message;
-  const ValidationError(this.message);
+// --- Option ---
+// Standard Dart: Null checks and manual tryParse
+int? getPortStandard(Map<String, String> config) {
+  final val = config['port'];
+  if (val == null) return null;
+  return int.tryParse(val);
 }
 
-class InvalidEmail extends ValidationError {
-  const InvalidEmail() : super('Email format is invalid.');
+// Daxle: Composable, fluent chaining
+Option<int> getPort(Map<String, String> config) {
+  return Option.fromNullable(
+    config['port'],
+  ).flatMap((p) => .fromNullable(int.tryParse(p)));
 }
 
-class PasswordTooShort extends ValidationError {
-  const PasswordTooShort() : super('Password must be at least 8 characters.');
+// --- Either ---
+// Standard Dart: throws runtime exceptions requiring try-catch callers
+int divideStandard(int a, int b) {
+  if (b == 0) throw ArgumentError('Cannot divide by zero');
+  return a ~/ b;
 }
 
-class UsernameEmpty extends ValidationError {
-  const UsernameEmpty() : super('Username cannot be empty.');
-}
-
-// User domain model
-class User {
-  final String username;
-  final String email;
-  final Option<String> phoneNumber; // Optional phone number
-
-  const User({
-    required this.username,
-    required this.email,
-    required this.phoneNumber,
-  });
-
-  @override
-  String toString() =>
-      'User(username: $username, email: $email, phone: ${phoneNumber.getOrElse("N/A")})';
-}
-
-// Input validation service
-class RegistrationValidator {
-  Either<ValidationError, String> validateUsername(String username) {
-    if (username.trim().isEmpty) {
-      return const .left(UsernameEmpty());
-    }
-    return .right(username.trim());
-  }
-
-  Either<ValidationError, String> validateEmail(String email) {
-    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
-    if (!emailRegex.hasMatch(email)) {
-      return const .left(InvalidEmail());
-    }
-    return .right(email.trim());
-  }
-
-  Either<ValidationError, String> validatePassword(String password) {
-    if (password.length < 8) {
-      return const .left(PasswordTooShort());
-    }
-    return .right(password);
-  }
-
-  // Composes validations to create a User
-  Either<ValidationError, User> registerUser({
-    required String username,
-    required String email,
-    required String password,
-    String? phoneNumber, // Nullable raw input
-  }) {
-    // Validate email
-    return validateEmail(email).flatMap((validEmail) {
-      // Validate password
-      return validatePassword(password).flatMap((_) {
-        // Validate username
-        return validateUsername(username).map((validUsername) {
-          // Construct User with safe Option.fromNullable phone number
-          return User(
-            username: validUsername,
-            email: validEmail,
-            phoneNumber: .fromNullable(phoneNumber),
-          );
-        });
-      });
-    });
-  }
+// Daxle: failures represented explicitly as values
+Either<String, int> divide(int a, int b) {
+  if (b == 0) return const .left('Cannot divide by zero');
+  return .right(a ~/ b);
 }
 
 void runOptionEitherValidationDemo() {
-  print('=== Scenario 1: Option & Either User Input Validation ===');
-  final validator = RegistrationValidator();
+  print('--- 1. Option & Either Demo ---');
+  final config = {'host': 'localhost', 'port': '8080'};
 
-  // Test Case A: A successful registration
-  print('\nAttempting to register user Alice...');
-  final successRegistration = validator.registerUser(
-    username: 'Alice',
-    email: 'alice@example.com',
-    password: 'securePassword123',
-    phoneNumber: '+1234567890',
-  );
+  // Retrieve port using Option
+  final port = getPort(config);
+  final activePort = port.getOrElse(80);
+  print('Active Port: $activePort');
 
-  successRegistration.fold(
-    (error) => print('  Registration Failed: ${error.message}'),
-    (user) => print('  Registration Successful! Created: $user'),
-  );
-
-  // Test Case B: Fails due to password length
-  print('\nAttempting to register user Bob...');
-  final failedRegistration = validator.registerUser(
-    username: 'Bob',
-    email: 'bob@example.com',
-    password: 'short', // Too short!
-    phoneNumber: null,
-  );
-
-  // Pattern matching on the validation outcome
-  final message = switch (failedRegistration) {
-    Left(value: final error) =>
-      '  Validation failed with error: ${error.message}',
-    Right(value: final user) => '  Successfully registered: ${user.username}',
+  // Handle divide using Either
+  final result = divide(10, 0);
+  final message = switch (result) {
+    Left(value: final err) => 'Division failed: $err',
+    Right(value: final val) => 'Result: $val',
   };
   print(message);
-
-  print('\n--------------------------------------------------');
 }
