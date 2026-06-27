@@ -30,7 +30,7 @@ The primary goal of this workspace is to develop and maintain robust tools that 
    ```
 4. To run the examples:
    ```bash
-   dart run packages/daxle/example/daxle_example.dart
+    dart run packages/daxle/example/main.dart
    ```
 
 ---
