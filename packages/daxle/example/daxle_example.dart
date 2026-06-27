@@ -9,7 +9,7 @@ void main() async {
   print('--- 1. Option Examples ---');
   final Option<int> someValue = .some(42);
   final Option<int> noValue = .none();
-  final Option<int> fromNullable = .of(null);
+  final Option<int> fromNullable = .fromNullable(null);
 
   print('someValue isSome: ${someValue.isSome}'); // true
   print('noValue isNone: ${noValue.isNone}'); // true

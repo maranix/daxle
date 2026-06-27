@@ -19,10 +19,10 @@ void main() {
       expect(opt.toNullable(), isNull);
     });
 
-    test('Option.of maps null to None and non-null to Some', () {
-      expect(Option.of(null).isNone, isTrue);
-      expect(Option.of(42).isSome, isTrue);
-      expect(Option.of(42).getOrElse(0), equals(42));
+    test('Option.fromNullable maps null to None and non-null to Some', () {
+      expect(Option.fromNullable(null).isNone, isTrue);
+      expect(Option.fromNullable(42).isSome, isTrue);
+      expect(Option.fromNullable(42).getOrElse(0), equals(42));
     });
 
     test('map transforms Some and leaves None unchanged', () {

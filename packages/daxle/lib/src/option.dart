@@ -14,7 +14,8 @@ sealed class Option<T> {
   /// Creates an [Option] from a nullable [value].
   ///
   /// Returns [Some] if the value is not null, otherwise [None].
-  factory Option.of(T? value) => value != null ? Some(value) : None<T>();
+  factory Option.fromNullable(T? value) =>
+      value != null ? Some(value) : None<T>();
 
   /// Returns `true` if this is a [Some] instance.
   bool get isSome => this is Some<T>;
