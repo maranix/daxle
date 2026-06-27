@@ -28,9 +28,9 @@ The primary goal of this workspace is to develop and maintain robust tools that 
    cd packages/daxle
    dart test
    ```
-4. To run the examples:
+4. To run an example file:
    ```bash
-    dart run packages/daxle/example/main.dart
+   dart run packages/daxle/example/option_example.dart
    ```
 
 ---

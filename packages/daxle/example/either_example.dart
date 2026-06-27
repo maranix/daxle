@@ -12,8 +12,8 @@ Either<String, int> divide(int a, int b) {
   return .right(a ~/ b);
 }
 
-void runEitherDemo() {
-  print('\n--- 2. Either Demo ---');
+void main() {
+  print('--- Either Demo ---');
 
   // Handle divide using Either
   final result = divide(10, 0);

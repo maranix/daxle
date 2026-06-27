@@ -14,8 +14,8 @@ Option<int> getPort(Map<String, String> config) {
   ).flatMap((p) => .fromNullable(int.tryParse(p)));
 }
 
-void runOptionDemo() {
-  print('--- 1. Option Demo ---');
+void main() {
+  print('--- Option Demo ---');
   final config = {'host': 'localhost', 'port': '8080'};
 
   // Retrieve port using Option

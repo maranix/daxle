@@ -38,8 +38,8 @@ TaskEither<String, List<String>> getPermissions(int id) {
   });
 }
 
-Future<void> runTaskEitherNetworkDemo() async {
-  print('\n--- 3. TaskEither (Async) Demo ---');
+void main() async {
+  print('--- TaskEither (Async) Demo ---');
 
   // Case A: Successful retrieval
   final successResult = await getPermissions(1).run();
