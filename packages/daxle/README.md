@@ -95,7 +95,10 @@ void main() {
 ```
 
 ### 3. `TaskEither<L, R>`
-Wraps a lazy asynchronous computation (`Future<Either<L, R>>`) to handle failing asynchronous tasks safely without throwing exceptions.
+Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>`:
+*   **Lazy Execution**: Futures run immediately upon creation. `TaskEither` is a blueprint that only runs when `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
+*   **Exception Guarding**: Standard futures can throw unhandled exceptions. `TaskEither.fromFuture` catches runtime exceptions automatically and channels them into a safe `Left(L)`.
+*   **Linear Chaining**: Allows chaining dependent async operations via `flatMap` without nesting `await` and `fold` blocks.
 
 ```dart
 import 'package:daxle/daxle.dart';

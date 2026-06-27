@@ -84,8 +84,18 @@
 /// ## `TaskEither<L, R>`
 ///
 /// The [TaskEither] type represents a lazy, asynchronous computation that can fail.
-/// It wraps a function returning a `Future<Either<L, R>>`, allowing safe chaining
-/// of asynchronous computations.
+/// It wraps a function returning a `Future<Either<L, R>>`, providing significant
+/// advantages over a raw `Future<Either<L, R>>`:
+///
+/// 1. **Lazy Execution**: Futures are eager and execute immediately upon creation.
+///    [TaskEither] is lazy (a blueprint); it is only executed when `.run()` is called,
+///    making operations like fallback retries (via `.orElse`) trivial to construct.
+/// 2. **Exception Guarding**: Standard futures can throw unhandled exceptions
+///    (e.g., connection timeouts) before returning an `Either`. `TaskEither.fromFuture`
+///    automatically catches exceptions and wraps them in a [Left] error.
+/// 3. **Monadic Chaining**: Composing multiple dependent async operations with raw
+///    futures results in deeply nested `await` and `fold` blocks. [TaskEither] allows
+///    flat, linear composition via `flatMap`.
 ///
 /// ### Example:
 ///
@@ -100,6 +110,7 @@
 /// }
 ///
 /// void main() async {
+///   // Chained execution without nested await statements:
 ///   final result = await fetchUserData(42)
 ///       .map((data) => '$data (Authenticated)')
 ///       .run();
