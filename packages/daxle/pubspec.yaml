@@ -13,14 +13,13 @@ topics:
   - fp
 
 environment:
-  sdk: ^3.10.0
+  sdk: ^3.11.0
 
 resolution: workspace
 
 dependencies:
-  equatable: ^2.0.8
-  meta: ^1.17.0
+  meta: ^1.18.3
 
 dev_dependencies:
-  lints: ^6.0.0
-  test: ^1.25.6
+  lints: ^6.1.0
+  test: ^1.31.2
