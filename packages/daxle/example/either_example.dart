@@ -8,7 +8,7 @@ int divideStandard(int a, int b) {
 
 // Daxle: failures represented explicitly as values (using Either.cond)
 Either<String, int> divide(int a, int b) {
-  return Either.cond(b != 0, a ~/ b, 'Cannot divide by zero');
+  return .cond(b != 0, a ~/ b, 'Cannot divide by zero');
 }
 
 void main() {

@@ -86,7 +86,7 @@ void main() {
   final result = divide(10, 2);
 
   // Construct based on boolean condition:
-  final resultCond = Either.cond(true, 5, 'Cannot divide by zero');
+  final resultCond = .cond(true, 5, 'Cannot divide by zero');
 
   // Check state
   if (result.isRight) {
@@ -185,10 +185,10 @@ These extensions allow you to zip, map, flatMap, and filter values directly on t
 
 ```dart
 // 1. Zipping: Option<(int, String)>
-final Option<(int, String)> opt = (Option.some(1), Option.some('a')).zipped();
+final Option<(int, String)> opt = (.some(1), .some('a')).zipped();
 
 // 2. Mapping: Either<String, int>
-final Either<String, int> either = (Right(10), Right(20)).map((a, b) => a + b);
+final Either<String, int> either = (.right(10), .right(20)).map((a, b) => a + b);
 
 // 3. FlatMapping concurrently: TaskEither<String, Order>
 final TaskEither<String, Order> task = (getUser(1), getProfile(1))

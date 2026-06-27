@@ -27,11 +27,11 @@ Future<List<String>> getPermissionsStandard(int id) async {
 
 // Daxle: Declarative, lazy pipeline mapping errors to a safe Left
 TaskEither<String, List<String>> getPermissions(int id) {
-  return TaskEither.fromFuture(
+  return .fromFuture(
     () => fetchUserRole(id),
     (err, _) => 'Failed to fetch user role: $err',
   ).flatMap((role) {
-    return TaskEither.fromFuture(
+    return .fromFuture(
       () => fetchRolePermissions(role),
       (err, _) => 'Failed to fetch role permissions: $err',
     );
@@ -46,7 +46,7 @@ void main() async {
   // Case B: Fail and recover with default values using orElse
   final failTask = getPermissions(99).orElse((err) {
     print('  [Fallback] Error occurred: $err. Returning guest permissions.');
-    return TaskEither.right(['read']);
+    return .right(['read']);
   });
 
   final finalResult = await failTask.run();

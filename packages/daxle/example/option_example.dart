@@ -12,8 +12,8 @@ int? getPortStandard(Map<String, String> config) {
 
 // Daxle: Composable, predicate, and filter logic
 Option<int> getPort(Map<String, String> config) {
-  return Option.fromNullable(config['port'])
-      .flatMap((p) => Option.fromNullable(int.tryParse(p)))
+  return .fromNullable(config['port'])
+      .flatMap((p) => .fromNullable(int.tryParse(p)))
       .filter((p) => p >= 1024 && p <= 65535);
 }
 

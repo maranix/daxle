@@ -42,7 +42,7 @@
 ///   print('User: $userName'); // Prints: User: Alice
 ///
 ///   // Construct using predicate:
-///   final validAge = Option.fromPredicate(20, (a) => a >= 18); // Some(20)
+///   final validAge = .fromPredicate(20, (a) => a >= 18); // Some(20)
 ///
 ///   // Filter values conditionally:
 ///   final filtered = validAge.filter((a) => a > 30); // None
@@ -80,7 +80,7 @@
 ///   final result = parseNumber('123');
 ///
 ///   // Construct using boolean condition:
-///   final auth = Either.cond(true, 'Authorized User', 'Access Denied');
+///   final auth = .cond(true, 'Authorized User', 'Access Denied');
 ///
 ///   result.fold(
 ///     (error) => print('Error: $error'),
