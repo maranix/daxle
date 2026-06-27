@@ -17,6 +17,10 @@ sealed class Option<T> {
   factory Option.fromNullable(T? value) =>
       value != null ? Some(value) : None<T>();
 
+  /// Creates an [Option] wrapping [value] in [Some] if it matches [predicate], otherwise returning [None].
+  factory Option.fromPredicate(T value, bool Function(T value) predicate) =>
+      predicate(value) ? Some(value) : None<T>();
+
   /// Returns `true` if this is a [Some] instance.
   bool get isSome => this is Some<T>;
 
@@ -53,6 +57,11 @@ sealed class Option<T> {
 
   /// Converts this [Option] to a nullable type.
   T? toNullable() => fold(() => null, (v) => v);
+
+  /// Filters this [Option], returning [Some] if the value matches [predicate], otherwise returning [None].
+  Option<T> filter(bool Function(T value) predicate) {
+    return fold(() => None<T>(), (v) => predicate(v) ? this : None<T>());
+  }
 }
 
 /// Represents the presence of a value of type [T].

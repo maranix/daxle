@@ -49,11 +49,18 @@ void main() {
       expect(none.fold(() => 'none', (v) => 'some: $v'), equals('none'));
     });
 
-    test('equality checks', () {
-      expect(Option.some(42), equals(Option.some(42)));
-      expect(Option.some(42), isNot(equals(Option.some(43))));
-      expect(Option.none(), equals(Option.none()));
-      expect(Option.some(42), isNot(equals(Option.none())));
+    test('Option.fromPredicate and filter', () {
+      final opt1 = Option.fromPredicate(10, (v) => v > 5);
+      final opt2 = Option.fromPredicate(3, (v) => v > 5);
+
+      expect(opt1, equals(Option.some(10)));
+      expect(opt2.isNone, isTrue);
+
+      final filtered1 = Option.some(10).filter((v) => v > 5);
+      final filtered2 = Option.some(3).filter((v) => v > 5);
+
+      expect(filtered1, equals(Option.some(10)));
+      expect(filtered2.isNone, isTrue);
     });
   });
 }

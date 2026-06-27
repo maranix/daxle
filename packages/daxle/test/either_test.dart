@@ -62,5 +62,13 @@ void main() {
       expect(leftVal, equals(const Left<String, int>('error')));
       expect(rightVal, equals(const Right<String, int>(42)));
     });
+
+    test('Either.cond factory constructor', () {
+      final Either<String, int> condTrue = Either.cond(true, 42, 'error');
+      final Either<String, int> condFalse = Either.cond(false, 42, 'error');
+
+      expect(condTrue, equals(const Right<String, int>(42)));
+      expect(condFalse, equals(const Left<String, int>('error')));
+    });
   });
 }

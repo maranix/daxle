@@ -14,6 +14,12 @@ sealed class Either<L, R> {
   /// Creates a [Right] instance of [Either].
   const factory Either.right(R value) = Right<L, R>;
 
+  /// Creates an [Either] based on a boolean [condition].
+  ///
+  /// Returns [Right] with [right] if true, otherwise [Left] with [left].
+  factory Either.cond(bool condition, R right, L left) =>
+      condition ? Right<L, R>(right) : Left<L, R>(left);
+
   /// Returns `true` if this is a [Left] instance.
   bool get isLeft => this is Left<L, R>;
 
