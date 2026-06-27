@@ -21,6 +21,27 @@ void main() {
       expect((opt1, opt2, opt3).zipped(), equals(Option.some((1, 'a', true))));
       expect((opt1, opt2, optNone).zipped().isNone, isTrue);
     });
+
+    test('Option tuple map, flatMap, and filter', () {
+      final Option<int> opt1 = Option.some(10);
+      final Option<int> opt2 = Option.some(20);
+
+      // map
+      final mapped = (opt1, opt2).map((a, b) => a + b);
+      expect(mapped, equals(Option.some(30)));
+
+      // flatMap
+      final flatMapped = (opt1, opt2).flatMap((a, b) => Option.some(a * b));
+      expect(flatMapped, equals(Option.some(200)));
+
+      // filter success
+      final filteredSuccess = (opt1, opt2).filter((a, b) => a + b > 15);
+      expect(filteredSuccess, equals(Option.some((10, 20))));
+
+      // filter failure
+      final filteredFail = (opt1, opt2).filter((a, b) => a + b > 50);
+      expect(filteredFail.isNone, isTrue);
+    });
   });
 
   group('Either Record Extensions', () {
@@ -54,6 +75,17 @@ void main() {
         equals(const Left<String, (int, String, int)>('error')),
       );
     });
+
+    test('Either tuple map and flatMap', () {
+      final Either<String, int> e1 = Right(10);
+      final Either<String, int> e2 = Right(20);
+
+      final mapped = (e1, e2).map((a, b) => a + b);
+      expect(mapped, equals(const Right<String, int>(30)));
+
+      final flatMapped = (e1, e2).flatMap((a, b) => Right<String, int>(a * b));
+      expect(flatMapped, equals(const Right<String, int>(200)));
+    });
   });
 
   group('TaskEither Record Extensions', () {
@@ -83,6 +115,20 @@ void main() {
         equals(const Right<String, (int, String, bool)>((1, 'a', true))),
       );
       expect(fail, equals(const Left<String, (int, String, int)>('error')));
+    });
+
+    test('TaskEither tuple map and flatMap', () async {
+      final t1 = TaskEither<String, int>.right(10);
+      final t2 = TaskEither<String, int>.right(20);
+
+      final mapped = await (t1, t2).map((a, b) => a + b).run();
+      expect(mapped, equals(const Right<String, int>(30)));
+
+      final flatMapped = await (
+        t1,
+        t2,
+      ).flatMap((a, b) => TaskEither.right(a * b)).run();
+      expect(flatMapped, equals(const Right<String, int>(200)));
     });
   });
 }
