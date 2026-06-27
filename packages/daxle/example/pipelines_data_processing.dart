@@ -36,7 +36,7 @@ Future<int> queryPendingTasks() async {
 }
 
 Future<void> runPipelinesDemo() async {
-  print('\n--- 3. Pipelines Demo ---');
+  print('\n--- 4. Pipelines Demo ---');
 
   // Sync Pipeline processing
   print('Running sync pipeline:');
