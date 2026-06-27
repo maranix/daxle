@@ -8,7 +8,7 @@ issues: https://github.com/maranix/daxle/issues?q=state%3Aopen%20label%3Adaxle
 topics:
   - functional
   - option
-  - result
+  - pipeline
   - either
   - fp
 
