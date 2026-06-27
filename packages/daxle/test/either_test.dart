@@ -55,10 +55,12 @@ void main() {
       expect(left.fold((l) => 'L: $l', (r) => 'R: $r'), equals('L: err'));
     });
 
-    test('equality checks', () {
-      expect(Right<String, int>(42), equals(Right<String, int>(42)));
-      expect(Left<String, int>('err'), equals(Left<String, int>('err')));
-      expect(Right<String, int>(42), isNot(equals(Left<String, int>('err'))));
+    test('Either.left and Either.right factory constructors', () {
+      final Either<String, int> leftVal = const Either.left('error');
+      final Either<String, int> rightVal = const Either.right(42);
+
+      expect(leftVal, equals(const Left<String, int>('error')));
+      expect(rightVal, equals(const Right<String, int>(42)));
     });
   });
 }

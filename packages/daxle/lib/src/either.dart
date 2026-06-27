@@ -8,6 +8,12 @@ import 'package:meta/meta.dart';
 sealed class Either<L, R> {
   const Either();
 
+  /// Creates a [Left] instance of [Either].
+  const factory Either.left(L value) = Left<L, R>;
+
+  /// Creates a [Right] instance of [Either].
+  const factory Either.right(R value) = Right<L, R>;
+
   /// Returns `true` if this is a [Left] instance.
   bool get isLeft => this is Left<L, R>;
 

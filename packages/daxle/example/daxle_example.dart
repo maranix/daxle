@@ -38,9 +38,9 @@ void main() async {
   print('--- 2. Either Examples ---');
   Either<String, int> divide(int a, int b) {
     if (b == 0) {
-      return const Left('Division by zero error');
+      return const Either.left('Division by zero error');
     }
-    return Right(a ~/ b);
+    return Either.right(a ~/ b);
   }
 
   final successResult = divide(10, 2);
