@@ -14,7 +14,7 @@
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
 /// - [Pipeline] and [AsyncPipeline]: For composing deferred pipelines of operations.
 /// - [Unit]: A type representing the absence of a meaningful value.
-/// - **Record Extensions**: Zip utility extensions on 2-tuples and 3-tuples containing [Option], [Either], or [TaskEither].
+/// - **Record Extensions**: Functional mapping, flatMapping, filtering, and zipping extensions on 2-tuples, 3-tuples, 4-tuples, and 5-tuples containing [Option], [Either], or [TaskEither].
 ///
 /// ---
 ///

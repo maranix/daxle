@@ -168,17 +168,24 @@ Either<String, Unit> saveRecord(String data) {
 ```
 
 ### 6. Record Extensions
-Zip utility extensions on Dart 3 `Record` tuples of size 2 and 3 containing [Option], [Either], or [TaskEither]. This combines multiple instances into a single instance containing a record of values.
+Provides built-in utility extensions on Dart 3 `Record` tuples of size 2, 3, 4, and 5 containing [Option], [Either], or [TaskEither]. 
+
+These extensions allow you to zip, map, flatMap, and filter values directly on the tuples:
+*   **`.zipped()`**: Combines multiple instances into a single instance containing a record of values (concurrently runs [TaskEither] tasks).
+*   **`.map()`**: Transforms the zipped record of values when all are successful.
+*   **`.flatMap()`**: Chains a new computation when all are successful.
+*   **`.filter()`** (Option only): Retains the record only if it satisfies a predicate.
 
 ```dart
-// Zips Option 2-tuple: Option<(int, String)>
+// 1. Zipping: Option<(int, String)>
 final Option<(int, String)> opt = (Option.some(1), Option.some('a')).zipped();
 
-// Zips Either 3-tuple: Either<String, (int, String, bool)>
-final Either<String, (int, String, bool)> either = (Right(1), Right('a'), Right(true)).zipped();
+// 2. Mapping: Either<String, int>
+final Either<String, int> either = (Right(10), Right(20)).map((a, b) => a + b);
 
-// Zips TaskEither 2-tuple concurrently: TaskEither<String, (User, Order)>
-final TaskEither<String, (User, Order)> task = (getUser(1), getOrder(101)).zipped();
+// 3. FlatMapping concurrently: TaskEither<String, Order>
+final TaskEither<String, Order> task = (getUser(1), getProfile(1))
+    .flatMap((user, profile) => createOrder(user, profile));
 ```
 
 ---
