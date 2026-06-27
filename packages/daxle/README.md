@@ -48,9 +48,9 @@ An alternative to nullable values (`T?`). Represents either the presence of a va
 import 'package:daxle/daxle.dart';
 
 void main() {
-  final Option<int> someValue = Option.some(42);
-  final Option<int> noValue = Option.none();
-  final Option<int> fromNull = Option.of(null); // Resolves to None
+  final Option<int> someValue = .some(42);
+  final Option<int> noValue = .none();
+  final Option<int> fromNull = .of(null); // Resolves to None
 
   // Transform with map or flatMap
   final mapped = someValue.map((v) => 'The answer is $v'); 
@@ -74,8 +74,8 @@ Represents a value of one of two possible types. By convention, `Right` is succe
 import 'package:daxle/daxle.dart';
 
 Either<String, int> divide(int a, int b) {
-  if (b == 0) return const Left('Cannot divide by zero');
-  return Right(a ~/ b);
+  if (b == 0) return const .left('Cannot divide by zero');
+  return .right(a ~/ b);
 }
 
 void main() {
@@ -101,7 +101,7 @@ Wraps a lazy asynchronous computation (`Future<Either<L, R>>`) to handle failing
 import 'package:daxle/daxle.dart';
 
 TaskEither<String, String> fetchUser(int id) {
-  return TaskEither.fromFuture(
+  return .fromFuture(
     () async => 'User #$id Profile Data',
     (err, stack) => 'Network Error: $err',
   );
@@ -152,9 +152,9 @@ import 'package:daxle/daxle.dart';
 Either<String, Unit> saveRecord(String data) {
   try {
     // Save logic...
-    return const Right(unit);
+    return const .right(unit);
   } catch (e) {
-    return Left('Failed to save: $e');
+    return .left('Failed to save: $e');
   }
 }
 ```

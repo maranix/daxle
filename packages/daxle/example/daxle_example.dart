@@ -7,9 +7,9 @@ void main() async {
   // 1. Option<T> - Safe Handling of Optional Values
   // ---------------------------------------------------------------------------
   print('--- 1. Option Examples ---');
-  final Option<int> someValue = Option.some(42);
-  final Option<int> noValue = Option.none();
-  final Option<int> fromNullable = Option.of(null);
+  final Option<int> someValue = .some(42);
+  final Option<int> noValue = .none();
+  final Option<int> fromNullable = .of(null);
 
   print('someValue isSome: ${someValue.isSome}'); // true
   print('noValue isNone: ${noValue.isNone}'); // true
@@ -38,9 +38,9 @@ void main() async {
   print('--- 2. Either Examples ---');
   Either<String, int> divide(int a, int b) {
     if (b == 0) {
-      return const Either.left('Division by zero error');
+      return const .left('Division by zero error');
     }
-    return Either.right(a ~/ b);
+    return .right(a ~/ b);
   }
 
   final successResult = divide(10, 2);
@@ -85,7 +85,7 @@ void main() async {
 
   // Wrap a Future with TaskEither.fromFuture to catch and map errors
   TaskEither<String, String> getUserTask(int id) {
-    return TaskEither.fromFuture(
+    return .fromFuture(
       () => fetchUserData(id),
       (error, stackTrace) => 'Failed to fetch user: $error',
     );

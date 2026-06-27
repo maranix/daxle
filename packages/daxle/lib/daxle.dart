@@ -30,9 +30,9 @@
 ///
 /// Option<String> findUser(String id) {
 ///   if (id == '123') {
-///     return Option.some('Alice');
+///     return .some('Alice');
 ///   }
-///   return Option.none();
+///   return .none();
 /// }
 ///
 /// void main() {
@@ -64,9 +64,9 @@
 /// Either<String, int> parseNumber(String text) {
 ///   final val = int.tryParse(text);
 ///   if (val == null) {
-///     return const Left('Invalid number format');
+///     return const .left('Invalid number format');
 ///   }
-///   return Right(val);
+///   return .right(val);
 /// }
 ///
 /// void main() {
@@ -92,7 +92,7 @@
 /// import 'package:daxle/daxle.dart';
 ///
 /// TaskEither<String, String> fetchUserData(int userId) {
-///   return TaskEither.fromFuture(
+///   return .fromFuture(
 ///     () async => 'User Profile #$userId',
 ///     (error, stack) => 'Network failure: $error',
 ///   );
