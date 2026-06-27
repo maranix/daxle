@@ -42,6 +42,26 @@ void main() {
       final filteredFail = (opt1, opt2).filter((a, b) => a + b > 50);
       expect(filteredFail.isNone, isTrue);
     });
+
+    test('Option 4-tuple and 5-tuple operations', () {
+      final Option<int> o1 = Option.some(1);
+      final Option<int> o2 = Option.some(2);
+      final Option<int> o3 = Option.some(3);
+      final Option<int> o4 = Option.some(4);
+      final Option<int> o5 = Option.some(5);
+
+      final Option<(int, int, int, int)> zipped4 = (o1, o2, o3, o4).zipped();
+      expect(zipped4, equals(Option.some((1, 2, 3, 4))));
+
+      final mapped5 = (
+        o1,
+        o2,
+        o3,
+        o4,
+        o5,
+      ).map((a, b, c, d, e) => a + b + c + d + e);
+      expect(mapped5, equals(Option.some(15)));
+    });
   });
 
   group('Either Record Extensions', () {
@@ -86,6 +106,29 @@ void main() {
       final flatMapped = (e1, e2).flatMap((a, b) => Right<String, int>(a * b));
       expect(flatMapped, equals(const Right<String, int>(200)));
     });
+
+    test('Either 4-tuple and 5-tuple operations', () {
+      final Either<String, int> e1 = Right(1);
+      final Either<String, int> e2 = Right(2);
+      final Either<String, int> e3 = Right(3);
+      final Either<String, int> e4 = Right(4);
+      final Either<String, int> e5 = Right(5);
+
+      final zipped4 = (e1, e2, e3, e4).zipped();
+      expect(
+        zipped4,
+        equals(const Right<String, (int, int, int, int)>((1, 2, 3, 4))),
+      );
+
+      final mapped5 = (
+        e1,
+        e2,
+        e3,
+        e4,
+        e5,
+      ).map((a, b, c, d, e) => a + b + c + d + e);
+      expect(mapped5, equals(const Right<String, int>(15)));
+    });
   });
 
   group('TaskEither Record Extensions', () {
@@ -129,6 +172,29 @@ void main() {
         t2,
       ).flatMap((a, b) => TaskEither.right(a * b)).run();
       expect(flatMapped, equals(const Right<String, int>(200)));
+    });
+
+    test('TaskEither 4-tuple and 5-tuple operations', () async {
+      final t1 = TaskEither<String, int>.right(1);
+      final t2 = TaskEither<String, int>.right(2);
+      final t3 = TaskEither<String, int>.right(3);
+      final t4 = TaskEither<String, int>.right(4);
+      final t5 = TaskEither<String, int>.right(5);
+
+      final zipped4 = await (t1, t2, t3, t4).zipped().run();
+      expect(
+        zipped4,
+        equals(const Right<String, (int, int, int, int)>((1, 2, 3, 4))),
+      );
+
+      final mapped5 = await (
+        t1,
+        t2,
+        t3,
+        t4,
+        t5,
+      ).map((a, b, c, d, e) => a + b + c + d + e).run();
+      expect(mapped5, equals(const Right<String, int>(15)));
     });
   });
 }
