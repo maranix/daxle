@@ -1,158 +1,170 @@
 # daxle
 
-`daxle` is the core library of the [daxle ecosystem](https://github.com/maranix/daxle). It provides a set of functional programming constructs inspired by languages like Rust and Haskell. It is designed to enhance the robustness and clarity of Dart & Flutter applications by offering explicit, type-safe mechanisms for handling fallible operations and optional values.
+[![Pub Version](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle)
+[![Pub Points](https://img.shields.io/pub/points/daxle.svg)](https://pub.dev/packages/daxle)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-This approach promotes safer error management and reduces the reliance on traditional mechanisms such as throwing exceptions or using `null`.
+A lightweight, type-safe functional programming toolkit for Dart. Designed to replace unsafe patterns (like throwing exceptions or abusing `null`) with explicit, declarative types and pipelines.
 
-## Core Concepts
+Inspired by functional features in Rust, Haskell, and Scala.
 
-The library provides three core data types to handle common programming scenarios in a more predictable and functional way.
+---
 
-*   **Option<T>**: A container for an optional value. An instance of `Option` is either `Some`, containing a value, or `None`, indicating the absence of a value. It provides a strong encouragement at compile-time to handle the absence of a value explicitly, offering an alternative to using `null`.
+## What's New in v2.0 🚀
 
-*   **Result<T, E>**: A type that represents the outcome of an operation that can either succeed (`Ok`) or fail (`Err`). `T` is the type of the success value, and `E` is the type of the error. It is designed for functions that can fail, compelling the developer to handle both outcomes explicitly. This makes error handling more robust and significantly reduces the risk of runtime crashes from unhandled exceptions.
+Version 2.0 represents a complete API redesign to leverage modern Dart features (such as **sealed classes**, **pattern matching**, and **records**).
 
-*   **Either<L, R>**: A generic type that can hold a value of one of two distinct types: `Left` or `Right`. By convention, `Right` is used to represent a success or expected value, while `Left` is used for a failure or alternative value. It is similar to `Result` but more general.
+*   **Removed types**: `Result<T, E>` and `Lazy<T>` have been removed to stream-line error handling and composition.
+*   **Sealed Option & Either**: `Option` and `Either` are now sealed classes. You can utilize compile-time exhaustive switch-matching.
+*   **Added TaskEither**: Introduces lazy, asynchronous computations that can fail (`Future<Either<L, R>>`), ensuring safe and composable async logic.
+*   **Added Pipelines**: `Pipeline` (synchronous) and `AsyncPipeline` (asynchronous) provide type-safe deferred operation chaining, logging/observability taps, error recovery, and concurrent execution.
+*   **Added Unit**: Represents the absence of a value, allowing type-safe generic returns.
 
-*   **Lazy<T>**: A type that represents a lazily evaluated value. The computation is performed only when the value is first accessed, and the result is memoized for subsequent accesses. It supports both synchronous and asynchronous operations.
+---
 
 ## Installation
 
-To add `daxle` to your project, add the following dependency in your `pubspec.yaml` file:
+Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^1.1.0
+  daxle: ^2.0.0
 ```
 
-Then, run `dart pub get` or `flutter pub get`.
+Then, run:
 
-## Usage
+```bash
+dart pub get
+```
 
-Import the library to start using the functional types.
+---
+
+## Core Types
+
+### 1. `Option<T>`
+An alternative to nullable values (`T?`). Represents either the presence of a value (`Some`) or the absence of a value (`None`).
 
 ```dart
 import 'package:daxle/daxle.dart';
-```
 
-### Option
-
-Use `Option` to handle values that might be absent without resorting to `null`.
-
-```dart
 void main() {
-  final config = {'host': '127.0.0.1', 'port': '8080'};
+  final Option<int> someValue = Option.some(42);
+  final Option<int> noValue = Option.none();
+  final Option<int> fromNull = Option.of(null); // Resolves to None
 
-  // Tries to find 'port' in the config map.
-  Option<String> portOption = config.containsKey('port')
-      ? .some(config['port']!)
-      : .none();
+  // Transform with map or flatMap
+  final mapped = someValue.map((v) => 'The answer is $v'); 
+  print(mapped); // Some(The answer is 42)
 
-  // Use flatMap to handle a potential parsing failure.
-  Option<int> portNumber = portOption.flatMap((p) =>
-    Option.from(() => int.parse(p))
-  );
+  // Retrieve values safely
+  final int val = noValue.getOrElse(0); // Returns 0
 
-  // Use getOrElse to provide a default value.
-  int finalPort = portNumber.getOrElse(() => 80);
-
-  print('Port: $finalPort'); // Prints: Port: 8080
-
-  // ---
-
-  // Tries to find 'user', which is absent.
-  Option<String> userOption = config.containsKey('user')
-      ? .some(config['user']!)
-      : .none();
-
-  print('User: ${userOption.getOrElse(() => 'guest')}'); // Prints: User: guest
+  // Exhaustive pattern matching (enforced at compile-time!)
+  final message = switch (someValue) {
+    Some(value: final v) => 'Found: $v',
+    None() => 'Nothing here',
+  };
 }
 ```
 
-### Result
-
-Use `Result` to handle functions that can succeed or fail, making error handling explicit.
+### 2. `Either<L, R>`
+Represents a value of one of two possible types. By convention, `Right` is success/expected and `Left` is error/failure.
 
 ```dart
+import 'package:daxle/daxle.dart';
+
+Either<String, int> divide(int a, int b) {
+  if (b == 0) return const Left('Cannot divide by zero');
+  return Right(a ~/ b);
+}
+
 void main() {
-  Result<int, String> divide(int a, int b) {
-    if (b == 0) {
-      return .err('Cannot divide by zero');
-    } else {
-      return .ok(a ~/ b);
-    }
+  final result = divide(10, 2);
+
+  // Check state
+  if (result.isRight) {
+    print('Successful division!');
   }
 
-  Result<int, String> success = divide(10, 2);
-
-  // Map over a successful result
-  final squared = success.map((value) => value * value);
-  print('Squared value: ${squared.unwrap()}'); // Prints: Squared value: 25
-
-  Result<int, String> failure = divide(10, 0);
-
-  // Handle both success and failure cases using fold
-  String message = failure.fold(
-    onOk: (value) => 'Result is $value',
-    onErr: (error, _) => 'Error: $error',
+  // Fold to extract values safely
+  final message = result.fold(
+    (leftError) => 'Failure: $leftError',
+    (rightVal) => 'Result: $rightVal',
   );
-
-  print(message); // Prints: Error: Cannot divide by zero
 }
 ```
 
-### Either
-
-Use `Either` to represent a value that can be one of two distinct types.
+### 3. `TaskEither<L, R>`
+Wraps a lazy asynchronous computation (`Future<Either<L, R>>`) to handle failing asynchronous tasks safely without throwing exceptions.
 
 ```dart
-void main() {
-  // A function that returns one of two types
-  Either<String, int> parseInput(String input) {
-    return int.tryParse(input) != null
-        ? .right(int.parse(input))
-        : .left('Input is not a number');
+import 'package:daxle/daxle.dart';
+
+TaskEither<String, String> fetchUser(int id) {
+  return TaskEither.fromFuture(
+    () async => 'User #$id Profile Data',
+    (err, stack) => 'Network Error: $err',
+  );
+}
+
+void main() async {
+  final task = fetchUser(42)
+      .map((profile) => '$profile (Verified)');
+
+  final Either<String, String> result = await task.run();
+}
+```
+
+### 4. `Pipeline<T>` & `AsyncPipeline<T>`
+Deferred, type-safe pipelines to chain operations sequentially. Supports logging (`tap`), error translation (`mapError`), fallback recovery (`recover`/`recoverWith`), cleanup (`finalize`), and concurrent combinations (`zip`).
+
+```dart
+import 'package:daxle/daxle.dart';
+
+void main() async {
+  // 1. Synchronous Pipeline
+  final syncVal = Pipeline(() => 10)
+      .pipe((x) => x * 2)
+      .tap((x) => print('Stage: $x')) // Observational side-effect
+      .recover((err, stack) => -1)    // Recovers if any error occurred
+      .run();                         // Pipeline evaluates lazily here
+
+  // 2. Asynchronous Pipeline
+  final asyncVal = await AsyncPipeline(() => Future.value(100))
+      .pipe((x) async => x + 50)
+      .run();
+
+  // 3. Concurrent pipelines execution
+  final p1 = AsyncPipeline(() => Future.value(10));
+  final p2 = AsyncPipeline(() => Future.value(20));
+
+  final zipped = p1.zip(p2, (a, b) => a + b);
+  final sum = await zipped.run(); // Concurrently waits and combines: 30
+}
+```
+
+### 5. `Unit`
+A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
+
+```dart
+import 'package:daxle/daxle.dart';
+
+Either<String, Unit> saveRecord(String data) {
+  try {
+    // Save logic...
+    return const Right(unit);
+  } catch (e) {
+    return Left('Failed to save: $e');
   }
-
-  Either<String, int> numericInput = parseInput('123');
-  Either<String, int> textInput = parseInput('abc');
-
-  // Handle the 'Right' case
-  numericInput.fold(
-    (error) => print('This is not called.'),
-    (number) => print('Parsed number: $number'), // Prints: Parsed number: 123
-  );
-
-  // Handle the 'Left' case
-  textInput.fold(
-    (error) => print(error), // Prints: Input is not a number
-    (number) => print('This is not called.'),
-  );
 }
 ```
 
-### Lazy
-
-Use `Lazy` to defer expensive computations until they are needed.
-
-```dart
-void main() {
-  final lazyValue = Lazy(() {
-    print("Computing...");
-    return 42;
-  });
-
-  print("Before access");
-  print(lazyValue.value); // Prints "Computing..." then "42"
-  print(lazyValue.value); // Prints "42" (no "Computing...")
-}
-```
+---
 
 ## Contributing
 
-This package is part of the `daxle` monorepo. Please see the root repository for general contribution guidelines.
-
+Contributions are welcome! This package is part of the `daxle` monorepo workspace. Please see the root repository for workspace contribution guidelines.
 
 ## License
 
-`daxle` is released under the MIT License. See the [LICENSE](LICENSE) for more information.
+`daxle` is released under the [MIT License](LICENSE).

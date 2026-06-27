@@ -1,4 +1,28 @@
+## 2.0.0 (2026-06-27)
+
+- **BREAKING CHANGES / API REWRITE**:
+  - Removed `Result<T, E>` type. Use `Either<L, R>` or `TaskEither<L, R>` for representing fallible operations.
+  - Removed `Lazy<T>` type. Use deferred pipelines or standard closures.
+  - Redesigned `Option<T>` as a sealed class with direct subclasses `Some<T>` and `None<T>`. This allows full compile-time exhaustive pattern matching.
+  - Redesigned `Either<L, R>` as a sealed class with direct subclasses `Left<L, R>` and `Right<L, R>` for compile-time exhaustive pattern matching.
+  - Changed `Option.getOrElse` to take an eager default value `T` instead of a resolver callback.
+  - Changed `Either.getOrElse` to take a resolver callback `R Function(L left)` instead of an eager default value.
+
+- **NEW FEATURES**:
+  - Added `TaskEither<L, R>` type to represent lazy, asynchronous computations that can fail (`Future<Either<L, R>>`), supporting monadic chaining (`map`, `flatMap`, `orElse`, `fold`).
+  - Added `Pipeline<T>` and `AsyncPipeline<T>` classes to build deferred, type-safe operation chains.
+    - Supports observational side-effects (`tap`).
+    - Supports recovery from errors (`recover` and `recoverWith`).
+    - Supports error mapping (`mapError`).
+    - Supports cleanup logic (`finalize` / `finally` equivalent).
+    - Supports folding success and failure states.
+    - Supports concurrent combination of asynchronous pipelines (`zip`).
+  - Added `Unit` type and `unit` constant to represent the absence of a meaningful value.
+
+---
+
 ## 1.1.0
+
 - Introduced `Lazy` type for lazy evaluation and memoization of values.
 - Supported transforming `Lazy` to `Result`, `Option`, and `Either`.
 
