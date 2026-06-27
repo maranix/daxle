@@ -41,6 +41,12 @@
 ///   final userName = user.getOrElse('Guest');
 ///   print('User: $userName'); // Prints: User: Alice
 ///
+///   // Construct using predicate:
+///   final validAge = Option.fromPredicate(20, (a) => a >= 18); // Some(20)
+///
+///   // Filter values conditionally:
+///   final filtered = validAge.filter((a) => a > 30); // None
+///
 ///   // Pattern matching:
 ///   final message = switch (user) {
 ///     Some(value: final name) => 'Hello, $name',
@@ -72,6 +78,10 @@
 ///
 /// void main() {
 ///   final result = parseNumber('123');
+///
+///   // Construct using boolean condition:
+///   final auth = Either.cond(true, 'Authorized User', 'Access Denied');
+///
 ///   result.fold(
 ///     (error) => print('Error: $error'),
 ///     (value) => print('Value: $value'), // Prints: Value: 123

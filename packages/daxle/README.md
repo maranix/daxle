@@ -51,6 +51,10 @@ void main() {
   final Option<int> someValue = .some(42);
   final Option<int> noValue = .none();
   final Option<int> fromNull = .fromNullable(null); // Resolves to None
+  final Option<int> fromPred = .fromPredicate(10, (v) => v > 5); // Some(10)
+
+  // Filter option value:
+  final filtered = someValue.filter((v) => v > 100); // None
 
   // Transform with map or flatMap
   final mapped = someValue.map((v) => 'The answer is $v'); 
@@ -80,6 +84,9 @@ Either<String, int> divide(int a, int b) {
 
 void main() {
   final result = divide(10, 2);
+
+  // Construct based on boolean condition:
+  final resultCond = Either.cond(true, 5, 'Cannot divide by zero');
 
   // Check state
   if (result.isRight) {

@@ -18,7 +18,8 @@
     - Supports folding success and failure states.
     - Supports concurrent combination of asynchronous pipelines (`zip`).
   - Added `Unit` type and `unit` constant to represent the absence of a meaningful value.
-  - Added `zipped()` extension methods on Dart 3 `Record` tuples of size 2 and 3 containing `Option`, `Either`, or `TaskEither` values (runs `TaskEither` tasks concurrently).
+  - Added `zipped()`, `map()`, `flatMap()`, and `filter()` extension methods on Dart 3 `Record` tuples of size 2, 3, 4, and 5 containing `Option`, `Either`, or `TaskEither` values (runs `TaskEither` tasks concurrently).
+  - Added `Option.fromPredicate` and `Either.cond` factory constructors, and `Option.filter` method for clean, explicit conditional evaluation.
 
 ---
 
