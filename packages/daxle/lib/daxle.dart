@@ -85,39 +85,42 @@
 ///
 /// The [TaskEither] type represents a lazy, asynchronous computation that can fail.
 /// It wraps a function returning a `Future<Either<L, R>>`, providing significant
-/// advantages over a raw `Future<Either<L, R>>`:
+/// advantages over a raw `Future<Either<L, R>>` and standard [AsyncPipeline]s:
 ///
-/// 1. **Lazy Execution**: Futures are eager and execute immediately upon creation.
-///    [TaskEither] is lazy (a blueprint); it is only executed when `.run()` is called,
-///    making operations like fallback retries (via `.orElse`) trivial to construct.
-/// 2. **Exception Guarding**: Standard futures can throw unhandled exceptions
-///    (e.g., connection timeouts) before returning an `Either`. `TaskEither.fromFuture`
-///    automatically catches exceptions and wraps them in a [Left] error.
-/// 3. **Monadic Chaining**: Composing multiple dependent async operations with raw
-///    futures results in deeply nested `await` and `fold` blocks. [TaskEither] allows
-///    flat, linear composition via `flatMap`.
+/// 1. **Lazy Execution**: Futures are eager and execute immediately. Like [AsyncPipeline],
+///    [TaskEither] is lazy and only runs when `.run()` is called, allowing easy retries
+///    and fallbacks (via `.orElse`).
+/// 2. **Monadic Error Short-Circuiting**: Unlike [AsyncPipeline] (which relies on standard
+///    exceptions propagating until caught by `recover`), [TaskEither] embeds the [Either]
+///    state at each step. Any step resolving to a [Left] short-circuits the pipeline,
+///    bypassing subsequent steps without throwing raw runtime exceptions.
+/// 3. **Automatic Exception Guarding**: `TaskEither.fromFuture` catches runtime exceptions
+///    and maps them automatically to a [Left] value.
 ///
 /// ### Example:
 ///
 /// ```dart
 /// import 'package:daxle/daxle.dart';
 ///
-/// TaskEither<String, String> fetchUserData(int userId) {
-///   return .fromFuture(
-///     () async => 'User Profile #$userId',
-///     (error, stack) => 'Network failure: $error',
-///   );
-/// }
+/// TaskEither<String, String> fetchUser(int id) => .fromFuture(
+///   () async => 'User #$id',
+///   (err, _) => 'User not found',
+/// );
+///
+/// TaskEither<String, String> fetchConfig(String role) => .fromFuture(
+///   () async => 'Config for $role',
+///   (err, _) => 'Config not found',
+/// );
 ///
 /// void main() async {
-///   // Chained execution without nested await statements:
-///   final result = await fetchUserData(42)
-///       .map((data) => '$data (Authenticated)')
+///   // Chain dependent async computations without nested awaits or try-catch blocks:
+///   final result = await fetchUser(42)
+///       .flatMap((user) => fetchConfig(user))
 ///       .run();
 ///
 ///   result.fold(
 ///     (error) => print('Failed: $error'),
-///     (profile) => print('Success: $profile'),
+///     (config) => print('Success: $config'),
 ///   );
 /// }
 /// ```

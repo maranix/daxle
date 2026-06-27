@@ -95,24 +95,29 @@ void main() {
 ```
 
 ### 3. `TaskEither<L, R>`
-Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>`:
-*   **Lazy Execution**: Futures run immediately upon creation. `TaskEither` is a blueprint that only runs when `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
-*   **Exception Guarding**: Standard futures can throw unhandled exceptions. `TaskEither.fromFuture` catches runtime exceptions automatically and channels them into a safe `Left(L)`.
+Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>` and [AsyncPipeline]:
+*   **Lazy Execution**: Both `TaskEither` and [AsyncPipeline] are lazy blueprints. They do not run until `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
+*   **Monadic Error Short-Circuiting**: Unlike [AsyncPipeline] (which relies on standard exceptions propagating until caught by `recover`), `TaskEither` embeds the `Either` state at each step. If a step resolves to a `Left`, subsequent steps are short-circuited.
 *   **Linear Chaining**: Allows chaining dependent async operations via `flatMap` without nesting `await` and `fold` blocks.
+*   **Exception Guarding**: Automatically catches runtime exceptions and maps them to a safe `Left(L)`.
 
 ```dart
 import 'package:daxle/daxle.dart';
 
-TaskEither<String, String> fetchUser(int id) {
-  return .fromFuture(
-    () async => 'User #$id Profile Data',
-    (err, stack) => 'Network Error: $err',
-  );
-}
+TaskEither<String, String> fetchUser(int id) => .fromFuture(
+  () async => 'User #$id',
+  (err, _) => 'User not found',
+);
+
+TaskEither<String, String> fetchConfig(String role) => .fromFuture(
+  () async => 'Config for $role',
+  (err, _) => 'Config not found',
+);
 
 void main() async {
+  // Chain dependent async computations flatly:
   final task = fetchUser(42)
-      .map((profile) => '$profile (Verified)');
+      .flatMap((user) => fetchConfig(user));
 
   final Either<String, String> result = await task.run();
 }
