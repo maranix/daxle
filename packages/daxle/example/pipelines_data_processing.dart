@@ -36,8 +36,6 @@ Future<int> queryPendingTasks() async {
 }
 
 void main() async {
-  print('--- Pipelines Demo ---');
-
   // Sync Pipeline processing
   print('Running sync pipeline:');
   final result = processRawLog('LOG-102, 100.0').run();

@@ -39,8 +39,6 @@ TaskEither<String, List<String>> getPermissions(int id) {
 }
 
 void main() async {
-  print('--- TaskEither (Async) Demo ---');
-
   // Case A: Successful retrieval
   final successResult = await getPermissions(1).run();
   print('Permissions for User #1: $successResult');

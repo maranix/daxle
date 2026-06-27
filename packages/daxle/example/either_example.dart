@@ -13,8 +13,6 @@ Either<String, int> divide(int a, int b) {
 }
 
 void main() {
-  print('--- Either Demo ---');
-
   // Handle divide using Either
   final result = divide(10, 0);
   final message = switch (result) {

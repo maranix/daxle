@@ -15,7 +15,6 @@ Option<int> getPort(Map<String, String> config) {
 }
 
 void main() {
-  print('--- Option Demo ---');
   final config = {'host': 'localhost', 'port': '8080'};
 
   // Retrieve port using Option
