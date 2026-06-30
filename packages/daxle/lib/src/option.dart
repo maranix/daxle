@@ -50,18 +50,29 @@ sealed class Option<T> {
     return fold(() => None<B>(), (v) => f(v));
   }
 
+  /// Returns the value if this is a [Some], otherwise throws [StateError].
+  T get() => switch (this) {
+    Some(:final value) => value,
+    None() => throw StateError('Cannot retrieve value from a None instance'),
+  };
+
   /// Returns the value if this is a [Some], otherwise returns [dflt].
-  T getOrElse(T dflt) {
-    return fold(() => dflt, (v) => v);
-  }
+  T getOrElse(T dflt) => switch (this) {
+    Some(:final value) => value,
+    None() => dflt,
+  };
 
   /// Converts this [Option] to a nullable type.
-  T? toNullable() => fold(() => null, (v) => v);
+  T? toNullable() => switch (this) {
+    Some(:final value) => value,
+    None() => null,
+  };
 
   /// Filters this [Option], returning [Some] if the value matches [predicate], otherwise returning [None].
-  Option<T> filter(bool Function(T value) predicate) {
-    return fold(() => None<T>(), (v) => predicate(v) ? this : None<T>());
-  }
+  Option<T> filter(bool Function(T value) predicate) => switch (this) {
+    Some(:final value) => predicate(value) ? this : None<T>(),
+    None() => None<T>(),
+  };
 }
 
 /// Represents the presence of a value of type [T].
