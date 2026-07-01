@@ -193,11 +193,11 @@
 /// ```
 library;
 
-export 'src/option.dart';
-export 'src/unit.dart';
-export 'src/pipeline.dart';
-export 'src/task_either.dart';
-export 'src/either.dart';
-export 'src/record_extensions.dart';
-export 'src/result.dart';
+export 'src/types/option.dart';
+export 'src/types/unit.dart';
+export 'src/pipeline/pipeline.dart';
+export 'src/types/task_either.dart';
+export 'src/types/either.dart';
+export 'src/extensions/record_extensions.dart';
+export 'src/types/result.dart';
 

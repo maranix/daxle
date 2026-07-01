@@ -1,5 +1,5 @@
-import 'package:daxle/src/either.dart';
-import 'package:daxle/src/option.dart';
+import 'package:daxle/src/types/either.dart';
+import 'package:daxle/src/types/option.dart';
 import 'package:meta/meta.dart';
 
 /// {@template result}

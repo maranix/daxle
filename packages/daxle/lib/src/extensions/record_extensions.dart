@@ -1,6 +1,6 @@
-import 'option.dart';
-import 'either.dart';
-import 'task_either.dart';
+import '../types/option.dart';
+import '../types/either.dart';
+import '../types/task_either.dart';
 
 // =============================================================================
 // OPTION RECORD EXTENSIONS (2, 3, 4, 5)
