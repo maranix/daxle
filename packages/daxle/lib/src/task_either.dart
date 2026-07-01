@@ -1,16 +1,20 @@
 import 'either.dart';
 
+/// {@template task_either}
 /// Represents an asynchronous computation that can fail.
 ///
 /// It wraps a lazy [Future] (a function returning a [Future<Either<L, R>>])
 /// allowing safe, declarative chaining of async operations.
+/// {@endtemplate}
 class TaskEither<L, R> {
   final Future<Either<L, R>> Function() _run;
 
-  /// Creates a [TaskEither] wrapping the lazy [run] function.
+  /// {@macro task_either}
   const TaskEither(this._run);
 
+  /// {@template task_either_from_either}
   /// Creates a [TaskEither] that immediately returns the provided [either].
+  /// {@endtemplate}
   factory TaskEither.fromEither(Either<L, R> either) =>
       TaskEither(() => Future.value(either));
 
@@ -32,11 +36,15 @@ class TaskEither<L, R> {
     });
   }
 
+  /// {@template task_either_left}
   /// Creates a [TaskEither] that resolves to a [Left] with the given [left] value.
+  /// {@endtemplate}
   factory TaskEither.left(L left) =>
       TaskEither(() => Future.value(Left<L, R>(left)));
 
+  /// {@template task_either_right}
   /// Creates a [TaskEither] that resolves to a [Right] with the given [right] value.
+  /// {@endtemplate}
   factory TaskEither.right(R right) =>
       TaskEither(() => Future.value(Right<L, R>(right)));
 

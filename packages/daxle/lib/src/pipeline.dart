@@ -37,6 +37,7 @@ Future<T> _runGuardedAsync<T>(
   }
 }
 
+/// {@template pipeline}
 /// Represents a deferred, type-safe synchronous pipeline of operations.
 ///
 /// A [Pipeline] allows chaining multiple synchronous operations together in a
@@ -50,6 +51,7 @@ Future<T> _runGuardedAsync<T>(
 ///     .pipe((x) => 'Value: $x')
 ///     .run(); // Returns 'Value: 10'
 /// ```
+/// {@endtemplate}
 class Pipeline<T> {
   final T Function() _compute;
   final void Function(Object error, StackTrace stackTrace)? _onPipeError;
@@ -263,6 +265,7 @@ class Pipeline<T> {
   }
 }
 
+/// {@template async_pipeline}
 /// Represents a deferred, type-safe asynchronous pipeline of operations.
 ///
 /// An [AsyncPipeline] allows linear composition of asynchronous and synchronous
@@ -276,6 +279,7 @@ class Pipeline<T> {
 ///     .pipe((x) => x + 10)
 ///     .run(); // Resolves to 20
 /// ```
+/// {@endtemplate}
 class AsyncPipeline<T> {
   final Future<T> Function() _compute;
   final void Function(Object error, StackTrace stackTrace)? _onPipeError;

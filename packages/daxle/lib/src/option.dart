@@ -1,14 +1,40 @@
 import 'package:meta/meta.dart';
 
+/// {@template option}
 /// Represents a value of one of two types: a value of type [T] or no value.
 ///
 /// [Option] is an alternative to using nullable types (`T?`) that allows for
 /// fluent chaining of operations.
+/// {@endtemplate}
 @immutable
 sealed class Option<T> {
+  /// {@macro option}
   const Option();
 
+  /// {@template option_some}
+  /// Creates an [Option] containing a value of type [T].
+  ///
+  /// This is equivalent to constructing a `Some(value)`.
+  ///
+  /// Example:
+  /// ```dart
+  /// Option<int> x = Option.some(5); // Some(5)
+  /// print(x.isSome); // true
+  /// ```
+  /// {@endtemplate}
   const factory Option.some(T value) = Some<T>;
+
+  /// {@template option_none}
+  /// Creates an [Option] representing the absence of a value.
+  ///
+  /// This is equivalent to constructing a `None()`.
+  ///
+  /// Example:
+  /// ```dart
+  /// Option<int> y = Option.none(); // None
+  /// print(y.isNone); // true
+  /// ```
+  /// {@endtemplate}
   const factory Option.none() = None<T>;
 
   /// Creates an [Option] from a nullable [value].
@@ -75,10 +101,13 @@ sealed class Option<T> {
   };
 }
 
+/// {@template some}
 /// Represents the presence of a value of type [T].
+/// {@endtemplate}
 final class Some<T> extends Option<T> {
   final T value;
 
+  /// {@macro some}
   const Some(this.value);
 
   @override
@@ -92,8 +121,11 @@ final class Some<T> extends Option<T> {
   String toString() => 'Some($value)';
 }
 
+/// {@template none}
 /// Represents the absence of a value.
+/// {@endtemplate}
 final class None<T> extends Option<T> {
+  /// {@macro none}
   const None();
 
   @override

@@ -1,17 +1,40 @@
 import 'package:meta/meta.dart';
 
+/// {@template either}
 /// Represents a value of one of two possible types.
 ///
 /// An instance of [Either] is either an instance of [Left] or [Right].
 /// By convention, [Left] is used for failure/error and [Right] is used for success.
+/// {@endtemplate}
 @immutable
 sealed class Either<L, R> {
+  /// {@macro either}
   const Either();
 
+  /// {@template either_left}
   /// Creates a [Left] instance of [Either].
+  ///
+  /// This is equivalent to constructing a `Left(value)`.
+  ///
+  /// Example:
+  /// ```dart
+  /// Either<String, int> x = Either.left('error'); // Left('error')
+  /// print(x.isLeft); // true
+  /// ```
+  /// {@endtemplate}
   const factory Either.left(L value) = Left<L, R>;
 
+  /// {@template either_right}
   /// Creates a [Right] instance of [Either].
+  ///
+  /// This is equivalent to constructing a `Right(value)`.
+  ///
+  /// Example:
+  /// ```dart
+  /// Either<String, int> y = Either.right(42); // Right(42)
+  /// print(y.isRight); // true
+  /// ```
+  /// {@endtemplate}
   const factory Either.right(R value) = Right<L, R>;
 
   /// Creates an [Either] based on a boolean [condition].
@@ -62,10 +85,13 @@ sealed class Either<L, R> {
   }
 }
 
+/// {@template left}
 /// Represents the Left side of [Either], usually holding an error/failure value.
+/// {@endtemplate}
 final class Left<L, R> extends Either<L, R> {
   final L value;
 
+  /// {@macro left}
   const Left(this.value);
 
   @override
@@ -79,10 +105,13 @@ final class Left<L, R> extends Either<L, R> {
   String toString() => 'Left($value)';
 }
 
+/// {@template right}
 /// Represents the Right side of [Either], usually holding a success value.
+/// {@endtemplate}
 final class Right<L, R> extends Either<L, R> {
   final R value;
 
+  /// {@macro right}
   const Right(this.value);
 
   @override

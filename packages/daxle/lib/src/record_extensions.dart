@@ -8,22 +8,30 @@ import 'task_either.dart';
 
 /// Extension methods for Dart [Record] tuples of size 2 containing [Option]s.
 extension OptionRecord2Extension<A, B> on (Option<A>, Option<B>) {
-  /// Zips both options into a single option containing a record of values.
+  /// {@template option_record_zipped}
+  /// Zips the options in this record into a single [Option] containing a record of values.
+  /// {@endtemplate}
   Option<(A, B)> zipped() {
     return $1.flatMap((a) => $2.map((b) => (a, b)));
   }
 
-  /// Transforms the zipped record of values using function [f] if both options are [Some].
+  /// {@template option_record_map}
+  /// Transforms the zipped record of values using function [f] if all options in the record are [Some].
+  /// {@endtemplate}
   Option<R> map<R>(R Function(A a, B b) f) {
     return zipped().map((t) => f(t.$1, t.$2));
   }
 
-  /// Chains a new [Option] computation using function [f] if both options are [Some].
+  /// {@template option_record_flat_map}
+  /// Chains a new [Option] computation using function [f] if all options in the record are [Some].
+  /// {@endtemplate}
   Option<R> flatMap<R>(Option<R> Function(A a, B b) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2));
   }
 
-  /// Filters the zipped record if both are [Some], retaining it only if [predicate] returns true.
+  /// {@template option_record_filter}
+  /// Filters the zipped record if all options in the record are [Some], retaining it only if [predicate] returns true.
+  /// {@endtemplate}
   Option<(A, B)> filter(bool Function(A a, B b) predicate) {
     return zipped().flatMap(
       (t) => predicate(t.$1, t.$2) ? Option.some(t) : const Option.none(),
@@ -33,22 +41,22 @@ extension OptionRecord2Extension<A, B> on (Option<A>, Option<B>) {
 
 /// Extension methods for Dart [Record] tuples of size 3 containing [Option]s.
 extension OptionRecord3Extension<A, B, C> on (Option<A>, Option<B>, Option<C>) {
-  /// Zips all three options into a single option containing a record of values.
+  /// {@macro option_record_zipped}
   Option<(A, B, C)> zipped() {
     return $1.flatMap((a) => $2.flatMap((b) => $3.map((c) => (a, b, c))));
   }
 
-  /// Transforms the zipped record of values using function [f] if all options are [Some].
+  /// {@macro option_record_map}
   Option<R> map<R>(R Function(A a, B b, C c) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3));
   }
 
-  /// Chains a new [Option] computation using function [f] if all options are [Some].
+  /// {@macro option_record_flat_map}
   Option<R> flatMap<R>(Option<R> Function(A a, B b, C c) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3));
   }
 
-  /// Filters the zipped record if all are [Some], retaining it only if [predicate] returns true.
+  /// {@macro option_record_filter}
   Option<(A, B, C)> filter(bool Function(A a, B b, C c) predicate) {
     return zipped().flatMap(
       (t) => predicate(t.$1, t.$2, t.$3) ? Option.some(t) : const Option.none(),
@@ -59,24 +67,24 @@ extension OptionRecord3Extension<A, B, C> on (Option<A>, Option<B>, Option<C>) {
 /// Extension methods for Dart [Record] tuples of size 4 containing [Option]s.
 extension OptionRecord4Extension<A, B, C, D>
     on (Option<A>, Option<B>, Option<C>, Option<D>) {
-  /// Zips all four options into a single option containing a record of values.
+  /// {@macro option_record_zipped}
   Option<(A, B, C, D)> zipped() {
     return $1.flatMap(
       (a) => $2.flatMap((b) => $3.flatMap((c) => $4.map((d) => (a, b, c, d)))),
     );
   }
 
-  /// Transforms the zipped record of values using function [f] if all options are [Some].
+  /// {@macro option_record_map}
   Option<R> map<R>(R Function(A a, B b, C c, D d) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3, t.$4));
   }
 
-  /// Chains a new [Option] computation using function [f] if all options are [Some].
+  /// {@macro option_record_flat_map}
   Option<R> flatMap<R>(Option<R> Function(A a, B b, C c, D d) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3, t.$4));
   }
 
-  /// Filters the zipped record if all are [Some], retaining it only if [predicate] returns true.
+  /// {@macro option_record_filter}
   Option<(A, B, C, D)> filter(bool Function(A a, B b, C c, D d) predicate) {
     return zipped().flatMap(
       (t) => predicate(t.$1, t.$2, t.$3, t.$4)
@@ -89,7 +97,7 @@ extension OptionRecord4Extension<A, B, C, D>
 /// Extension methods for Dart [Record] tuples of size 5 containing [Option]s.
 extension OptionRecord5Extension<A, B, C, D, E>
     on (Option<A>, Option<B>, Option<C>, Option<D>, Option<E>) {
-  /// Zips all five options into a single option containing a record of values.
+  /// {@macro option_record_zipped}
   Option<(A, B, C, D, E)> zipped() {
     return $1.flatMap(
       (a) => $2.flatMap(
@@ -100,17 +108,17 @@ extension OptionRecord5Extension<A, B, C, D, E>
     );
   }
 
-  /// Transforms the zipped record of values using function [f] if all options are [Some].
+  /// {@macro option_record_map}
   Option<R> map<R>(R Function(A a, B b, C c, D d, E e) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3, t.$4, t.$5));
   }
 
-  /// Chains a new [Option] computation using function [f] if all options are [Some].
+  /// {@macro option_record_flat_map}
   Option<R> flatMap<R>(Option<R> Function(A a, B b, C c, D d, E e) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3, t.$4, t.$5));
   }
 
-  /// Filters the zipped record if all are [Some], retaining it only if [predicate] returns true.
+  /// {@macro option_record_filter}
   Option<(A, B, C, D, E)> filter(
     bool Function(A a, B b, C c, D d, E e) predicate,
   ) {
@@ -128,17 +136,23 @@ extension OptionRecord5Extension<A, B, C, D, E>
 
 /// Extension methods for Dart [Record] tuples of size 2 containing [Either]s.
 extension EitherRecord2Extension<L, A, B> on (Either<L, A>, Either<L, B>) {
-  /// Zips both eithers into a single either containing a record of values.
+  /// {@template either_record_zipped}
+  /// Zips the eithers in this record into a single [Either] containing a record of values.
+  /// {@endtemplate}
   Either<L, (A, B)> zipped() {
     return $1.flatMap((a) => $2.map((b) => (a, b)));
   }
 
-  /// Transforms the zipped record of values using function [f] if both eithers are [Right].
+  /// {@template either_record_map}
+  /// Transforms the zipped record of values using function [f] if all eithers in the record are [Right].
+  /// {@endtemplate}
   Either<L, R> map<R>(R Function(A a, B b) f) {
     return zipped().map((t) => f(t.$1, t.$2));
   }
 
-  /// Chains a new [Either] computation using function [f] if both eithers are [Right].
+  /// {@template either_record_flat_map}
+  /// Chains a new [Either] computation using function [f] if all eithers in the record are [Right].
+  /// {@endtemplate}
   Either<L, R> flatMap<R>(Either<L, R> Function(A a, B b) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2));
   }
@@ -147,17 +161,17 @@ extension EitherRecord2Extension<L, A, B> on (Either<L, A>, Either<L, B>) {
 /// Extension methods for Dart [Record] tuples of size 3 containing [Either]s.
 extension EitherRecord3Extension<L, A, B, C>
     on (Either<L, A>, Either<L, B>, Either<L, C>) {
-  /// Zips all three eithers into a single either containing a record of values.
+  /// {@macro either_record_zipped}
   Either<L, (A, B, C)> zipped() {
     return $1.flatMap((a) => $2.flatMap((b) => $3.map((c) => (a, b, c))));
   }
 
-  /// Transforms the zipped record of values using function [f] if all eithers are [Right].
+  /// {@macro either_record_map}
   Either<L, R> map<R>(R Function(A a, B b, C c) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3));
   }
 
-  /// Chains a new [Either] computation using function [f] if all eithers are [Right].
+  /// {@macro either_record_flat_map}
   Either<L, R> flatMap<R>(Either<L, R> Function(A a, B b, C c) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3));
   }
@@ -166,19 +180,19 @@ extension EitherRecord3Extension<L, A, B, C>
 /// Extension methods for Dart [Record] tuples of size 4 containing [Either]s.
 extension EitherRecord4Extension<L, A, B, C, D>
     on (Either<L, A>, Either<L, B>, Either<L, C>, Either<L, D>) {
-  /// Zips all four eithers into a single either containing a record of values.
+  /// {@macro either_record_zipped}
   Either<L, (A, B, C, D)> zipped() {
     return $1.flatMap(
       (a) => $2.flatMap((b) => $3.flatMap((c) => $4.map((d) => (a, b, c, d)))),
     );
   }
 
-  /// Transforms the zipped record of values using function [f] if all eithers are [Right].
+  /// {@macro either_record_map}
   Either<L, R> map<R>(R Function(A a, B b, C c, D d) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3, t.$4));
   }
 
-  /// Chains a new [Either] computation using function [f] if all eithers are [Right].
+  /// {@macro either_record_flat_map}
   Either<L, R> flatMap<R>(Either<L, R> Function(A a, B b, C c, D d) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3, t.$4));
   }
@@ -187,7 +201,7 @@ extension EitherRecord4Extension<L, A, B, C, D>
 /// Extension methods for Dart [Record] tuples of size 5 containing [Either]s.
 extension EitherRecord5Extension<L, A, B, C, D, E>
     on (Either<L, A>, Either<L, B>, Either<L, C>, Either<L, D>, Either<L, E>) {
-  /// Zips all five eithers into a single either containing a record of values.
+  /// {@macro either_record_zipped}
   Either<L, (A, B, C, D, E)> zipped() {
     return $1.flatMap(
       (a) => $2.flatMap(
@@ -198,12 +212,12 @@ extension EitherRecord5Extension<L, A, B, C, D, E>
     );
   }
 
-  /// Transforms the zipped record of values using function [f] if all eithers are [Right].
+  /// {@macro either_record_map}
   Either<L, R> map<R>(R Function(A a, B b, C c, D d, E e) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3, t.$4, t.$5));
   }
 
-  /// Chains a new [Either] computation using function [f] if all eithers are [Right].
+  /// {@macro either_record_flat_map}
   Either<L, R> flatMap<R>(Either<L, R> Function(A a, B b, C c, D d, E e) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3, t.$4, t.$5));
   }
@@ -216,7 +230,9 @@ extension EitherRecord5Extension<L, A, B, C, D, E>
 /// Extension methods for Dart [Record] tuples of size 2 containing [TaskEither]s.
 extension TaskEitherRecord2Extension<L, A, B>
     on (TaskEither<L, A>, TaskEither<L, B>) {
-  /// Runs both async computations concurrently and zips their outcomes.
+  /// {@template task_either_record_zipped}
+  /// Runs all async computations in this record concurrently and zips their outcomes.
+  /// {@endtemplate}
   TaskEither<L, (A, B)> zipped() {
     return TaskEither(() async {
       final (resA, resB) = await ($1.run(), $2.run()).wait;
@@ -224,12 +240,16 @@ extension TaskEitherRecord2Extension<L, A, B>
     });
   }
 
-  /// Runs both async computations concurrently, transforming their success values using [f].
+  /// {@template task_either_record_map}
+  /// Runs all async computations in this record concurrently, transforming their success values using [f].
+  /// {@endtemplate}
   TaskEither<L, R> map<R>(R Function(A a, B b) f) {
     return zipped().map((t) => f(t.$1, t.$2));
   }
 
-  /// Runs both async computations concurrently, chaining a new task using [f].
+  /// {@template task_either_record_flat_map}
+  /// Runs all async computations in this record concurrently, chaining a new task using [f].
+  /// {@endtemplate}
   TaskEither<L, R> flatMap<R>(TaskEither<L, R> Function(A a, B b) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2));
   }
@@ -238,7 +258,7 @@ extension TaskEitherRecord2Extension<L, A, B>
 /// Extension methods for Dart [Record] tuples of size 3 containing [TaskEither]s.
 extension TaskEitherRecord3Extension<L, A, B, C>
     on (TaskEither<L, A>, TaskEither<L, B>, TaskEither<L, C>) {
-  /// Runs all three async computations concurrently and zips their outcomes.
+  /// {@macro task_either_record_zipped}
   TaskEither<L, (A, B, C)> zipped() {
     return TaskEither(() async {
       final (resA, resB, resC) = await ($1.run(), $2.run(), $3.run()).wait;
@@ -248,12 +268,12 @@ extension TaskEitherRecord3Extension<L, A, B, C>
     });
   }
 
-  /// Runs all three async computations concurrently, transforming their success values using [f].
+  /// {@macro task_either_record_map}
   TaskEither<L, R> map<R>(R Function(A a, B b, C c) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3));
   }
 
-  /// Runs all three async computations concurrently, chaining a new task using [f].
+  /// {@macro task_either_record_flat_map}
   TaskEither<L, R> flatMap<R>(TaskEither<L, R> Function(A a, B b, C c) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3));
   }
@@ -268,7 +288,7 @@ extension TaskEitherRecord4Extension<L, A, B, C, D>
           TaskEither<L, C>,
           TaskEither<L, D>,
         ) {
-  /// Runs all four async computations concurrently and zips their outcomes.
+  /// {@macro task_either_record_zipped}
   TaskEither<L, (A, B, C, D)> zipped() {
     return TaskEither(() async {
       final (resA, resB, resC, resD) = await (
@@ -285,12 +305,12 @@ extension TaskEitherRecord4Extension<L, A, B, C, D>
     });
   }
 
-  /// Runs all four async computations concurrently, transforming their success values using [f].
+  /// {@macro task_either_record_map}
   TaskEither<L, R> map<R>(R Function(A a, B b, C c, D d) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3, t.$4));
   }
 
-  /// Runs all four async computations concurrently, chaining a new task using [f].
+  /// {@macro task_either_record_flat_map}
   TaskEither<L, R> flatMap<R>(TaskEither<L, R> Function(A a, B b, C c, D d) f) {
     return zipped().flatMap((t) => f(t.$1, t.$2, t.$3, t.$4));
   }
@@ -306,7 +326,7 @@ extension TaskEitherRecord5Extension<L, A, B, C, D, E>
           TaskEither<L, D>,
           TaskEither<L, E>,
         ) {
-  /// Runs all five async computations concurrently and zips their outcomes.
+  /// {@macro task_either_record_zipped}
   TaskEither<L, (A, B, C, D, E)> zipped() {
     return TaskEither(() async {
       final (resA, resB, resC, resD, resE) = await (
@@ -326,12 +346,12 @@ extension TaskEitherRecord5Extension<L, A, B, C, D, E>
     });
   }
 
-  /// Runs all five async computations concurrently, transforming their success values using [f].
+  /// {@macro task_either_record_map}
   TaskEither<L, R> map<R>(R Function(A a, B b, C c, D d, E e) f) {
     return zipped().map((t) => f(t.$1, t.$2, t.$3, t.$4, t.$5));
   }
 
-  /// Runs all five async computations concurrently, chaining a new task using [f].
+  /// {@macro task_either_record_flat_map}
   TaskEither<L, R> flatMap<R>(
     TaskEither<L, R> Function(A a, B b, C c, D d, E e) f,
   ) {
