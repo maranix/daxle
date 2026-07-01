@@ -346,8 +346,7 @@ final class Err<T, E> extends Result<T, E> {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Err<T, E> && other.error == error);
+      identical(this, other) || (other is Err<T, E> && other.error == error);
 
   @override
   int get hashCode => error.hashCode;

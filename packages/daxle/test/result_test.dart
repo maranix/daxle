@@ -35,7 +35,10 @@ void main() {
 
       expect(resSuccess, equals(const Ok<int, String>(42)));
       expect(resFailure.isErr, isTrue);
-      expect(resFailure.fold(onOk: (v) => '', onErr: (e, st) => e), equals('Exception: err'));
+      expect(
+        resFailure.fold(onOk: (v) => '', onErr: (e, st) => e),
+        equals('Exception: err'),
+      );
     });
 
     test('Result.fromAsync catches errors asynchronously', () async {
@@ -65,23 +68,38 @@ void main() {
       final Result<int, String> err = const Result.err('oops');
 
       expect(ok.flatMap((v) => Ok(v * 2)), equals(const Ok<int, String>(20)));
-      expect(err.flatMap((v) => Ok(v * 2)), equals(const Err<int, String>('oops')));
+      expect(
+        err.flatMap((v) => Ok(v * 2)),
+        equals(const Err<int, String>('oops')),
+      );
     });
 
     test('fold projects values', () {
       final Result<int, String> ok = const Result.ok(42);
       final Result<int, String> err = const Result.err('oops');
 
-      expect(ok.fold(onOk: (v) => 'S: $v', onErr: (e, st) => 'F: $e'), equals('S: 42'));
-      expect(err.fold(onOk: (v) => 'S: $v', onErr: (e, st) => 'F: $e'), equals('F: oops'));
+      expect(
+        ok.fold(onOk: (v) => 'S: $v', onErr: (e, st) => 'F: $e'),
+        equals('S: 42'),
+      );
+      expect(
+        err.fold(onOk: (v) => 'S: $v', onErr: (e, st) => 'F: $e'),
+        equals('F: oops'),
+      );
     });
 
     test('orElse fallback', () {
       final Result<int, String> ok = const Result.ok(10);
       final Result<int, String> err = const Result.err('oops');
 
-      expect(ok.orElse((e, st) => const Ok(42)), equals(const Ok<int, String>(10)));
-      expect(err.orElse((e, st) => const Ok(42)), equals(const Ok<int, String>(42)));
+      expect(
+        ok.orElse((e, st) => const Ok(42)),
+        equals(const Ok<int, String>(10)),
+      );
+      expect(
+        err.orElse((e, st) => const Ok(42)),
+        equals(const Ok<int, String>(42)),
+      );
     });
 
     test('toOption and toEither conversions', () {
@@ -102,10 +120,19 @@ void main() {
       Future<int> asyncError() async => throw 'oops';
 
       expect(syncSuccess.result<String>(), equals(const Ok<int, String>(42)));
-      expect(syncError.result<String>(), equals(const Err<int, String>('oops')));
+      expect(
+        syncError.result<String>(),
+        equals(const Err<int, String>('oops')),
+      );
 
-      expect(await asyncSuccess.result<String>(), equals(const Ok<int, String>(42)));
-      expect(await asyncError.result<String>(), equals(const Err<int, String>('oops')));
+      expect(
+        await asyncSuccess.result<String>(),
+        equals(const Ok<int, String>(42)),
+      );
+      expect(
+        await asyncError.result<String>(),
+        equals(const Err<int, String>('oops')),
+      );
     });
   });
 }

@@ -111,7 +111,7 @@
 ///
 /// void main() {
 ///   final result = divide(10, 2);
-///   
+///
 ///   result.fold(
 ///     onOk: (value) => print('Success: $value'), // Prints: Success: 5
 ///     onErr: (error, _) => print('Failure: $error'),
@@ -200,4 +200,3 @@ export 'src/types/task_either.dart';
 export 'src/types/either.dart';
 export 'src/extensions/record_extensions.dart';
 export 'src/types/result.dart';
-
