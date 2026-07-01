@@ -7,10 +7,11 @@
 /// This approach promotes safer error management and reduces the reliance on
 /// traditional mechanisms such as throwing exceptions or using `null`.
 ///
-/// This library exports five core concepts/types:
+/// This library exports six core concepts/types:
 ///
 /// - [Option]: For values that may or may not be present (replacing nullable `T?`).
 /// - [Either]: For values that can be one of two distinct types (typically Left for error, Right for success).
+/// - [Result]: For values representing the result of an operation that can succeed ([Ok]) or fail ([Err]).
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
 /// - [Pipeline] and [AsyncPipeline]: For composing deferred pipelines of operations.
 /// - [Unit]: A type representing the absence of a meaningful value.
@@ -85,6 +86,35 @@
 ///   result.fold(
 ///     (error) => print('Error: $error'),
 ///     (value) => print('Value: $value'), // Prints: Value: 123
+///   );
+/// }
+/// ```
+///
+/// ---
+///
+/// ## `Result<T, E>`
+///
+/// The [Result] type represents the result of an operation that can succeed ([Ok])
+/// or fail ([Err]). It is similar to [Either] but specifically tailored for representing
+/// success or failure, featuring additional convenience operations like `unwrap`, `expect`,
+/// and `mapErr`.
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// Result<int, String> divide(int a, int b) {
+///   if (b == 0) return const .err('Cannot divide by zero');
+///   return .ok(a ~/ b);
+/// }
+///
+/// void main() {
+///   final result = divide(10, 2);
+///   
+///   result.fold(
+///     onOk: (value) => print('Success: $value'), // Prints: Success: 5
+///     onErr: (error, _) => print('Failure: $error'),
 ///   );
 /// }
 /// ```
@@ -169,3 +199,5 @@ export 'src/pipeline.dart';
 export 'src/task_either.dart';
 export 'src/either.dart';
 export 'src/record_extensions.dart';
+export 'src/result.dart';
+

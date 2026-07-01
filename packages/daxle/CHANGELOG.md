@@ -1,10 +1,8 @@
 ## 2.0.0 (2026-06-27)
 
 - **BREAKING CHANGES / API REWRITE**:
-  - Removed `Result<T, E>` type. Use `Either<L, R>` or `TaskEither<L, R>` for representing fallible operations.
   - Removed `Lazy<T>` type. Use deferred pipelines or standard closures.
-  - Redesigned `Option<T>` as a sealed class with direct subclasses `Some<T>` and `None<T>`. This allows full compile-time exhaustive pattern matching.
-  - Redesigned `Either<L, R>` as a sealed class with direct subclasses `Left<L, R>` and `Right<L, R>` for compile-time exhaustive pattern matching.
+  - Redesigned `Option<T>`, `Either<L, R>`, and `Result<T, E>` as sealed classes with direct subclasses (`Some`/`None`, `Left`/`Right`, `Ok`/`Err`) for full compile-time exhaustive pattern matching.
   - Changed `Option.getOrElse` to take an eager default value `T` instead of a resolver callback.
   - Changed `Either.getOrElse` to take a resolver callback `R Function(L left)` instead of an eager default value.
 
@@ -20,6 +18,7 @@
   - Added `Unit` type and `unit` constant to represent the absence of a meaningful value.
   - Added `zipped()`, `map()`, `flatMap()`, and `filter()` extension methods on Dart 3 `Record` tuples of size 2, 3, 4, and 5 containing `Option`, `Either`, or `TaskEither` values (runs `TaskEither` tasks concurrently).
   - Added `Option.fromPredicate` and `Either.cond` factory constructors, and `Option.filter` method for clean, explicit conditional evaluation.
+  - Re-introduced `Result<T, E>` with `Ok` and `Err` variants, featuring `.result()` extension methods on both synchronous and asynchronous functions to capture exceptions cleanly into `Result` types.
 
 ---
 

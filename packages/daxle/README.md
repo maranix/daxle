@@ -14,8 +14,8 @@ Inspired by functional features in Rust, Haskell, and Scala.
 
 Version 2.0 represents a complete API redesign to leverage modern Dart features (such as **sealed classes**, **pattern matching**, and **records**).
 
-*   **Removed types**: `Result<T, E>` and `Lazy<T>` have been removed to stream-line error handling and composition.
-*   **Sealed Option & Either**: `Option` and `Either` are now sealed classes. You can utilize compile-time exhaustive switch-matching.
+*   **Removed types**: `Lazy<T>` has been removed to stream-line composition.
+*   **Sealed Option, Either & Result**: `Option`, `Either`, and `Result` are now sealed classes. You can utilize compile-time exhaustive switch-matching.
 *   **Added TaskEither**: Introduces lazy, asynchronous computations that can fail (`Future<Either<L, R>>`), ensuring safe and composable async logic.
 *   **Added Pipelines**: `Pipeline` (synchronous) and `AsyncPipeline` (asynchronous) provide type-safe deferred operation chaining, logging/observability taps, error recovery, and concurrent execution.
 *   **Added Unit**: Represents the absence of a value, allowing type-safe generic returns.
@@ -101,7 +101,33 @@ void main() {
 }
 ```
 
-### 3. `TaskEither<L, R>`
+### 3. `Result<T, E>`
+Represents the result of an operation that can succeed (`Ok`) or fail (`Err`). An alternative to throwing exceptions or returning nullable types.
+
+```dart
+import 'package:daxle/daxle.dart';
+
+Result<int, String> parsePort(String value) {
+  final port = int.tryParse(value);
+  if (port == null) return const .err('Invalid port number');
+  return .ok(port);
+}
+
+void main() {
+  final result = parsePort('8080');
+
+  // fold to handle both success and error cases
+  result.fold(
+    onOk: (port) => print('Port is $port'), // Port is 8080
+    onErr: (error, stack) => print('Failed to parse: $error'),
+  );
+
+  // transform success or error values
+  final mapped = result.map((p) => p + 1); // Ok(8081)
+}
+```
+
+### 4. `TaskEither<L, R>`
 Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>` and [AsyncPipeline]:
 *   **Lazy Execution**: Both `TaskEither` and [AsyncPipeline] are lazy blueprints. They do not run until `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
 *   **Monadic Error Short-Circuiting**: Unlike [AsyncPipeline] (which relies on standard exceptions propagating until caught by `recover`), `TaskEither` embeds the `Either` state at each step. If a step resolves to a `Left`, subsequent steps are short-circuited.
@@ -130,7 +156,7 @@ void main() async {
 }
 ```
 
-### 4. `Pipeline<T>` & `AsyncPipeline<T>`
+### 5. `Pipeline<T>` & `AsyncPipeline<T>`
 Deferred, type-safe pipelines to chain operations sequentially. Supports logging (`tap`), error translation (`mapError`), fallback recovery (`recover`/`recoverWith`), cleanup (`finalize`), and concurrent combinations (`zip`).
 
 ```dart
@@ -158,7 +184,7 @@ void main() async {
 }
 ```
 
-### 5. `Unit`
+### 6. `Unit`
 A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
 
 ```dart
@@ -174,7 +200,7 @@ Either<String, Unit> saveRecord(String data) {
 }
 ```
 
-### 6. Record Extensions
+### 7. Record Extensions
 Provides built-in utility extensions on Dart 3 `Record` tuples of size 2, 3, 4, and 5 containing [Option], [Either], or [TaskEither]. 
 
 These extensions allow you to zip, map, flatMap, and filter values directly on the tuples:
