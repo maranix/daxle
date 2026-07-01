@@ -1,4 +1,7 @@
-## 2.0.1 (2026-07-01)
+## 2.1.0 (2026-07-01)
+
+- **NEW FEATURES**:
+  - Re-introduced `Result<T, E>` with `Ok` and `Err` variants, featuring `.result()` extension methods on both synchronous and asynchronous functions to capture exceptions cleanly into `Result` types.
 
 - **DOCUMENTATION & REFACTORING**:
   - Reorganized internal folder structure inside `lib/src/` into logical subfolders (`types/`, `pipeline/`, and `extensions/`).
@@ -10,7 +13,7 @@
 
 - **BREAKING CHANGES / API REWRITE**:
   - Removed `Lazy<T>` type. Use deferred pipelines or standard closures.
-  - Redesigned `Option<T>`, `Either<L, R>`, and `Result<T, E>` as sealed classes with direct subclasses (`Some`/`None`, `Left`/`Right`, `Ok`/`Err`) for full compile-time exhaustive pattern matching.
+  - Redesigned `Option<T>` and `Either<L, R>` as sealed classes with direct subclasses (`Some`/`None`, `Left`/`Right`) for full compile-time exhaustive pattern matching.
   - Changed `Option.getOrElse` to take an eager default value `T` instead of a resolver callback.
   - Changed `Either.getOrElse` to take a resolver callback `R Function(L left)` instead of an eager default value.
 
@@ -26,7 +29,6 @@
   - Added `Unit` type and `unit` constant to represent the absence of a meaningful value.
   - Added `zipped()`, `map()`, `flatMap()`, and `filter()` extension methods on Dart 3 `Record` tuples of size 2, 3, 4, and 5 containing `Option`, `Either`, or `TaskEither` values (runs `TaskEither` tasks concurrently).
   - Added `Option.fromPredicate` and `Either.cond` factory constructors, and `Option.filter` method for clean, explicit conditional evaluation.
-  - Re-introduced `Result<T, E>` with `Ok` and `Err` variants, featuring `.result()` extension methods on both synchronous and asynchronous functions to capture exceptions cleanly into `Result` types.
 
 ---
 
