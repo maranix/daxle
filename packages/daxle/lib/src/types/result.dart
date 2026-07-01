@@ -357,23 +357,3 @@ final class Err<T, E> extends Result<T, E> {
     return 'Err($error$st)';
   }
 }
-
-/// Extension on synchronous functions to convert them to a `Result`.
-extension SyncResultFunctionX<T> on T Function() {
-  /// Converts this synchronous function into a `Result<T, E>`.
-  ///
-  /// If it returns a value successfully, it returns [Ok]. If it throws,
-  /// the error is caught and wrapped in [Err] (optionally mapped via [onError]).
-  Result<T, E> result<E>({E Function(Object error)? onError}) =>
-      Result.from(this, onError: onError);
-}
-
-/// Extension on asynchronous functions to convert them to a `Result`.
-extension AsyncResultFunctionX<T> on Future<T> Function() {
-  /// Converts this asynchronous function into a `Future<Result<T, E>>`.
-  ///
-  /// If it completes successfully, it resolves to [Ok]. If it throws,
-  /// the error is caught and wrapped in [Err] (optionally mapped via [onError]).
-  Future<Result<T, E>> result<E>({E Function(Object error)? onError}) =>
-      Result.fromAsync(this, onError: onError);
-}

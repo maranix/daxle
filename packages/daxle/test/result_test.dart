@@ -112,27 +112,5 @@ void main() {
       expect(ok.toEither(), equals(const Right<String, int>(42)));
       expect(err.toEither(), equals(const Left<String, int>('oops')));
     });
-
-    test('result() extension on sync and async functions', () async {
-      int syncSuccess() => 42;
-      int syncError() => throw 'oops';
-      Future<int> asyncSuccess() async => 42;
-      Future<int> asyncError() async => throw 'oops';
-
-      expect(syncSuccess.result<String>(), equals(const Ok<int, String>(42)));
-      expect(
-        syncError.result<String>(),
-        equals(const Err<int, String>('oops')),
-      );
-
-      expect(
-        await asyncSuccess.result<String>(),
-        equals(const Ok<int, String>(42)),
-      );
-      expect(
-        await asyncError.result<String>(),
-        equals(const Err<int, String>('oops')),
-      );
-    });
   });
 }

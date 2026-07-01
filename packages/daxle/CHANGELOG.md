@@ -1,11 +1,15 @@
 ## 2.1.0 (2026-07-01)
 
 - **NEW FEATURES**:
-  - Re-introduced `Result<T, E>` with `Ok` and `Err` variants, featuring `.result()` extension methods on both synchronous and asynchronous functions to capture exceptions cleanly into `Result` types.
+  - Re-introduced `Result<T, E>` with `Ok` and `Err` variants for representing operations that can succeed or fail.
+
+- **BREAKING CHANGES**:
+  - Removed all record extensions (`zipped()`, `map()`, `flatMap()`, and `filter()` on Dart tuples/records) to keep the library lean and focus on a single explicit way of doing things.
+  - Removed all function extension methods (`.result()`, `.either()`, and `.option()`).
 
 - **DOCUMENTATION & REFACTORING**:
-  - Reorganized internal folder structure inside `lib/src/` into logical subfolders (`types/`, `pipeline/`, and `extensions/`).
-  - Added comprehensive `{@template}` and `{@macro}` documentation to all core data types, classes, and record extensions to maximize readability and reduce doc comments redundancy.
+  - Reorganized internal folder structure inside `lib/src/` into logical subfolders (`types/`).
+  - Added comprehensive `{@template}` and `{@macro}` documentation to all core data types and classes to maximize readability and reduce doc comments redundancy.
   - Added `example/example.md` to showcase the primary library features on pub.dev.
   - Formatted the codebase to ensure a 160/160 pub points quality score.
 
