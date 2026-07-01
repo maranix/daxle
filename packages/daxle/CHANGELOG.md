@@ -1,3 +1,11 @@
+## 2.0.1 (2026-07-01)
+
+- **DOCUMENTATION & REFACTORING**:
+  - Reorganized internal folder structure inside `lib/src/` into logical subfolders (`types/`, `pipeline/`, and `extensions/`).
+  - Added comprehensive `{@template}` and `{@macro}` documentation to all core data types, classes, and record extensions to maximize readability and reduce doc comments redundancy.
+  - Added `example/example.md` to showcase the primary library features on pub.dev.
+  - Formatted the codebase to ensure a 160/160 pub points quality score.
+
 ## 2.0.0 (2026-06-27)
 
 - **BREAKING CHANGES / API REWRITE**:
