@@ -1,3 +1,15 @@
+## 2.2.0 (2026-07-11)
+
+- **NEW FEATURES / RE-EXPORTS**:
+  - Re-exported key utilities from `package:async` to simplify asynchronous control flow and stream manipulation. These include:
+    - `FutureGroup`, `AsyncCache`, and `AsyncMemoizer` for advanced future handling.
+    - `StreamZip`, `StreamQueue`, `StreamGroup`, and `StreamSplitter` for streamlined stream consumption and combination.
+
+- **DOCUMENTATION & REFACTORING**:
+  - Updated library documentation in `lib/daxle.dart` and `README.md` to document the new `async` utilities.
+  - Completed the incomplete documentation example for `Unit` inside `lib/daxle.dart`.
+  - Removed outdated record extensions references from `lib/daxle.dart` and `README.md`.
+
 ## 2.1.0 (2026-07-01)
 
 - **NEW FEATURES**:

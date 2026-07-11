@@ -7,7 +7,7 @@
 /// This approach promotes safer error management and reduces the reliance on
 /// traditional mechanisms such as throwing exceptions or using `null`.
 ///
-/// This library exports six core concepts/types:
+/// This library exports seven core concepts/types/utilities:
 ///
 /// - [Option]: For values that may or may not be present (replacing nullable `T?`).
 /// - [Either]: For values that can be one of two distinct types (typically Left for error, Right for success).
@@ -15,7 +15,7 @@
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
 /// - [Pipeline] and [AsyncPipeline]: For composing deferred pipelines of operations.
 /// - [Unit]: A type representing the absence of a meaningful value.
-/// - **Record Extensions**: Functional mapping, flatMapping, filtering, and zipping extensions on 2-tuples, 3-tuples, 4-tuples, and 5-tuples containing [Option], [Either], or [TaskEither].
+/// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
 ///
 /// ---
 ///
@@ -191,6 +191,59 @@
 ///       .run(); // Resolves to 50
 /// }
 /// ```
+///
+/// ---
+///
+/// ## `Unit`
+///
+/// A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// Either<String, Unit> saveRecord(String data) {
+///   try {
+///     // Save logic...
+///     return const .right(unit);
+///   } catch (e) {
+///     return .left('Failed to save: $e');
+///   }
+/// }
+/// ```
+///
+/// ---
+///
+/// ## Async Utilities
+///
+/// This package re-exports several powerful primitives from `package:async` to simplify asynchronous control flow and stream manipulation:
+///
+/// - **Future Utilities**:
+///   - [FutureGroup]: Collects futures and fires when all are complete, allowing dynamic addition of futures.
+///   - [AsyncCache]: Caches the results of asynchronous operations.
+///   - [AsyncMemoizer]: Runs an asynchronous block once and caches the result for future calls.
+///
+/// - **Stream Utilities**:
+///   - [StreamZip]: Combines multiple streams into a single stream of zipped values.
+///   - [StreamQueue]: Simplifies stream consumption with pull-based operations.
+///   - [StreamGroup]: Merges multiple streams into a single output stream.
+///   - [StreamSplitter]: Splits a single stream into multiple identical, independent streams.
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// void main() async {
+///   // Combine multiple streams concurrently
+///   final streamA = Stream.fromIterable([1, 2, 3]);
+///   final streamB = Stream.fromIterable(['A', 'B', 'C']);
+///   final zipped = StreamZip([streamA, streamB]);
+///
+///   await for (final pair in zipped) {
+///     print(pair); // [1, 'A'], [2, 'B'], [3, 'C']
+///   }
+/// }
+/// ```
 library;
 
 export 'src/types/option.dart';
@@ -199,3 +252,17 @@ export 'src/pipeline/pipeline.dart';
 export 'src/types/task_either.dart';
 export 'src/types/either.dart';
 export 'src/types/result.dart';
+
+// Export some useful utilities from `async` package
+export 'package:async/async.dart'
+    show
+        // Future
+        FutureGroup,
+        // Async
+        AsyncCache,
+        AsyncMemoizer,
+        // Stream
+        StreamZip,
+        StreamQueue,
+        StreamGroup,
+        StreamSplitter;

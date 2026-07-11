@@ -28,7 +28,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^2.0.0
+  daxle: ^2.2.0
 ```
 
 Then, run:
@@ -200,25 +200,33 @@ Either<String, Unit> saveRecord(String data) {
 }
 ```
 
-### 7. Record Extensions
-Provides built-in utility extensions on Dart 3 `Record` tuples of size 2, 3, 4, and 5 containing [Option], [Either], or [TaskEither]. 
+### 7. Async Utilities
+Provides re-exported utilities from `package:async` to simplify asynchronous control flow and stream handling:
 
-These extensions allow you to zip, map, flatMap, and filter values directly on the tuples:
-*   **`.zipped()`**: Combines multiple instances into a single instance containing a record of values (concurrently runs [TaskEither] tasks).
-*   **`.map()`**: Transforms the zipped record of values when all are successful.
-*   **`.flatMap()`**: Chains a new computation when all are successful.
-*   **`.filter()`** (Option only): Retains the record only if it satisfies a predicate.
+*   **Future Utilities**:
+    *   `FutureGroup`: A collection of futures that waits for all added futures to complete.
+    *   `AsyncCache`: Caches the results of asynchronous operations.
+    *   `AsyncMemoizer`: Memorizes the result of an asynchronous closure to run it only once.
+*   **Stream Utilities**:
+    *   `StreamZip`: Combines multiple streams into a single stream of zipped lists.
+    *   `StreamQueue`: Simplifies pull-based stream consumption.
+    *   `StreamGroup`: Merges multiple streams into a single output stream.
+    *   `StreamSplitter`: Splits a stream into multiple identical, independent copies.
 
 ```dart
-// 1. Zipping: Option<(int, String)>
-final Option<(int, String)> opt = (.some(1), .some('a')).zipped();
+import 'package:daxle/daxle.dart';
 
-// 2. Mapping: Either<String, int>
-final Either<String, int> either = (.right(10), .right(20)).map((a, b) => a + b);
-
-// 3. FlatMapping concurrently: TaskEither<String, Order>
-final TaskEither<String, Order> task = (getUser(1), getProfile(1))
-    .flatMap((user, profile) => createOrder(user, profile));
+void main() async {
+  final streamA = Stream.fromIterable([1, 2]);
+  final streamB = Stream.fromIterable(['A', 'B']);
+  
+  // StreamZip is re-exported from package:async
+  final zipped = StreamZip([streamA, streamB]);
+  
+  await for (final pair in zipped) {
+    print(pair); // [1, 'A'], then [2, 'B']
+  }
+}
 ```
 
 ---
