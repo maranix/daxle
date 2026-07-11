@@ -1,6 +1,6 @@
 ## 2.2.0 (2026-07-11)
 
-- **NEW FEATURES / RE-EXPORTS**:
+- **NEW FEATURES**:
   - Re-exported key utilities from `package:async` to simplify asynchronous control flow and stream manipulation. These include:
     - `FutureGroup`, `AsyncCache`, and `AsyncMemoizer` for advanced future handling.
     - `StreamZip`, `StreamQueue`, `StreamGroup`, and `StreamSplitter` for streamlined stream consumption and combination.
