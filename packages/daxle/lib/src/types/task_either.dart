@@ -259,10 +259,12 @@ class TaskEither<L, R> {
   }) {
     return _transform((either) async {
       try {
-        return await either.fold(
-          (l) async => Left<L, B>(l),
-          (r) => f(r).run(),
-        );
+        switch (either) {
+          case Left(value: final l):
+            return Left<L, B>(l);
+          case Right(value: final r):
+            return await f(r).run();
+        }
       } catch (e, st) {
         if (onError != null) {
           return Left<L, B>(onError(e, st));
@@ -341,10 +343,12 @@ class TaskEither<L, R> {
   }) {
     return _transform((either) async {
       try {
-        return await either.fold(
-          (l) => f(l).run(),
-          (r) async => Right<L, R>(r),
-        );
+        switch (either) {
+          case Left(value: final l):
+            return await f(l).run();
+          case Right(value: final r):
+            return Right<L, R>(r);
+        }
       } catch (e, st) {
         if (onError != null) {
           return Left<L, R>(onError(e, st));
@@ -391,15 +395,11 @@ class TaskEither<L, R> {
       final results = <R>[];
       for (final task in tasks) {
         final either = await task.run();
-        final Either<L, List<R>>? failure = either.fold(
-          (l) => Left<L, List<R>>(l),
-          (r) {
+        switch (either) {
+          case Left(value: final l):
+            return Left<L, List<R>>(l);
+          case Right(value: final r):
             results.add(r);
-            return null;
-          },
-        );
-        if (failure != null) {
-          return failure;
         }
       }
       return Right<L, List<R>>(results);
