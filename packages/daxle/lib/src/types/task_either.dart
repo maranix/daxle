@@ -193,15 +193,19 @@ class TaskEither<L, R> {
     });
   }
 
-  /// Private helper to chain asynchronous operations and map thrown exceptions
-  /// to a Left, maintaining the enclosing try/catch logic.
+  /// Applies a transformation while preserving TaskEither's exception semantics.
+  ///
+  /// Any exception thrown by the transformation is:
+  /// - mapped using `onError` when provided,
+  /// - converted to `Left` when it is already of type `L`,
+  /// - otherwise rethrown unchanged.
   TaskEither<L, B> _transformWithErrorHandling<B>(
-    FutureOr<Either<L, B>> Function(Either<L, R> either) f,
+    FutureOr<Either<L, B>> Function(Either<L, R> either) transform,
     L Function(Object error, StackTrace stackTrace)? onError,
   ) {
     return _transform((either) async {
       try {
-        return await f(either);
+        return await transform(either);
       } catch (e, st) {
         if (onError != null) {
           return Left<L, B>(onError(e, st));
@@ -251,10 +255,12 @@ class TaskEither<L, R> {
     L2 Function(L error) mapLeft,
     R2 Function(R success) mapRight,
   ) {
-    return _transform((either) => either.fold(
-          (l) => Left<L2, R2>(mapLeft(l)),
-          (r) => Right<L2, R2>(mapRight(r)),
-        ));
+    return _transform(
+      (either) => either.fold(
+        (l) => Left<L2, R2>(mapLeft(l)),
+        (r) => Right<L2, R2>(mapRight(r)),
+      ),
+    );
   }
 
   /// Chains another [TaskEither] computation onto this one if this one succeeds.
