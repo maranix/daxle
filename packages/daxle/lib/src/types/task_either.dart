@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'either.dart';
 
 /// {@template task_either}
@@ -5,6 +6,120 @@ import 'either.dart';
 ///
 /// It wraps a lazy [Future] (a function returning a [Future<Either<L, R>>])
 /// allowing safe, declarative chaining of async operations.
+///
+/// ### Repository and Database Examples
+///
+/// Use `TaskEither` to wrap asynchronous database queries or repository calls
+/// that can fail.
+///
+/// ```dart
+/// class UserRepository {
+///   final Database db;
+///   UserRepository(this.db);
+///
+///   TaskEither<DatabaseError, User> getUserById(String id) {
+///     return TaskEither.fromFuture(
+///       () => db.query('SELECT * FROM users WHERE id = ?', [id]),
+///       (error, stackTrace) => DatabaseError('Failed to fetch user: $error'),
+///     ).flatMap((result) {
+///       if (result.isEmpty) {
+///         return TaskEither.left(DatabaseError('User not found'));
+///       }
+///       return TaskEither.right(User.fromMap(result.first));
+///     });
+///   }
+/// }
+/// ```
+///
+/// ### Side Effects using `tap`
+///
+/// Use `tap` to run side effects (like updating local cache, analytics, or UI changes)
+/// when the computation is successful, without changing the value in the pipeline.
+///
+/// ```dart
+/// getUserById(userId)
+///   .tap((user) => cache.saveUser(user)) // Side effect on success
+///   .map((user) => user.name);
+/// ```
+///
+/// ### Logging using `tapLeft`
+///
+/// Use `tapLeft` to execute side effects (like logging) when a computation fails,
+/// without affecting the propagated error.
+///
+/// ```dart
+/// getUserById(userId)
+///   .tapLeft((err) => logger.severe('Error fetching user: $err'))
+///   .map((user) => user.name);
+/// ```
+///
+/// ### Validation Pipelines and `ensure`
+///
+/// Use `ensure` to validate the successful value of a task, transitioning
+/// to a `Left` if the validation fails.
+///
+/// ```dart
+/// TaskEither<ValidationError, User> validateAndFetchUser(String id) {
+///   return getUserById(id)
+///     .ensure((user) => user.isActive, () => ValidationError('User is inactive'))
+///     .ensure((user) => user.hasCompletedOnboarding, () => ValidationError('Onboarding incomplete'));
+/// }
+/// ```
+///
+/// ### Combining Independent Tasks (sequence and traverse)
+///
+/// If you have a collection of tasks and want to run them sequentially,
+/// use `TaskEither.sequence`. If any task fails, execution stops immediately.
+///
+/// ```dart
+/// final tasks = [
+///   updateInventory(itemA),
+///   updateInventory(itemB),
+///   updateInventory(itemC),
+/// ];
+/// final TaskEither<InventoryError, List<Unit>> result = TaskEither.sequence(tasks);
+/// ```
+///
+/// Or use `TaskEither.traverse` to map an iterable to tasks and run them:
+///
+/// ```dart
+/// final items = ['itemA', 'itemB', 'itemC'];
+/// final TaskEither<InventoryError, List<Unit>> result = TaskEither.traverse(
+///   items,
+///   (item) => updateInventory(item),
+/// );
+/// ```
+///
+/// ### When to use `map` vs `flatMap`
+///
+/// - Use `map` to transform a successful value synchronously:
+///   `task.map((user) => user.email)`
+/// - Use `flatMap` to chain a nested asynchronous computation that returns a `TaskEither`:
+///   `task.flatMap((user) => fetchUserPreferences(user.id))`
+///
+/// ### Common Anti-patterns
+///
+/// **Anti-pattern: Nested execution instead of chaining**
+/// ```dart
+/// // Avoid:
+/// task.map((user) async {
+///   final prefs = await fetchUserPreferences(user.id).run();
+///   return prefs.fold((l) => throw l, (r) => r);
+/// });
+///
+/// // Prefer using flatMap:
+/// task.flatMap((user) => fetchUserPreferences(user.id));
+/// ```
+///
+/// **Anti-pattern: Executing tasks eagerly**
+/// ```dart
+/// // Avoid:
+/// final future = fetchUser(123).run(); // starts future immediately
+/// final task = TaskEither.right(42).flatMap((_) => TaskEither(() => future));
+///
+/// // Prefer:
+/// final task = TaskEither.right(42).flatMap((_) => fetchUser(123));
+/// ```
 /// {@endtemplate}
 class TaskEither<L, R> {
   final Future<Either<L, R>> Function() _run;
@@ -107,6 +222,59 @@ class TaskEither<L, R> {
     });
   }
 
+  /// Runs the provided [callback] on the [Right] value of this [TaskEither] without modifying it.
+  ///
+  /// The callback may be synchronous or asynchronous.
+  /// The callback is executed only if this [TaskEither] resolves to a [Right].
+  /// The original [Right] value continues through the pipeline unchanged.
+  TaskEither<L, R> tap(
+    FutureOr<void> Function(R value) callback,
+  ) {
+    return TaskEither(() async {
+      final either = await run();
+      if (either is Right<L, R>) {
+        await callback(either.value);
+      }
+      return either;
+    });
+  }
+
+  /// Runs the provided [callback] on the [Left] value of this [TaskEither] without modifying it.
+  ///
+  /// The callback may be synchronous or asynchronous.
+  /// The callback is executed only if this [TaskEither] resolves to a [Left].
+  /// The original [Left] value continues through the pipeline unchanged.
+  TaskEither<L, R> tapLeft(
+    FutureOr<void> Function(L error) callback,
+  ) {
+    return TaskEither(() async {
+      final either = await run();
+      if (either is Left<L, R>) {
+        await callback(either.value);
+      }
+      return either;
+    });
+  }
+
+  /// Ensures that the [Right] value of this [TaskEither] satisfies the [predicate].
+  ///
+  /// If this [TaskEither] resolves to a [Right] and the [predicate] returns `true`,
+  /// the value continues unchanged.
+  /// If it returns `false`, the result is a [Left] with the value returned by [onFailure].
+  /// If this [TaskEither] resolves to a [Left], it is returned unchanged.
+  TaskEither<L, R> ensure(
+    bool Function(R value) predicate,
+    L Function() onFailure,
+  ) {
+    return TaskEither(() async {
+      final either = await run();
+      return either.fold(
+        (l) => Left<L, R>(l),
+        (r) => predicate(r) ? Right<L, R>(r) : Left<L, R>(onFailure()),
+      );
+    });
+  }
+
   /// Recovers from a [Left] failure by returning the result of [f].
   ///
   /// Catching any exceptions thrown during upstream computation, by [f], or
@@ -156,5 +324,38 @@ class TaskEither<L, R> {
       rethrow;
     }
     return either.fold(ifLeft, ifRight);
+  }
+
+  /// Executes an [Iterable] of [TaskEither]s sequentially, collecting their successful results.
+  ///
+  /// If any task returns a [Left], execution stops immediately and that error is returned.
+  /// Otherwise, returns a [Right] containing a list of all successful values.
+  static TaskEither<L, List<R>> sequence<L, R>(
+    Iterable<TaskEither<L, R>> tasks,
+  ) {
+    return TaskEither(() async {
+      final results = <R>[];
+      for (final task in tasks) {
+        final either = await task.run();
+        switch (either) {
+          case Left(value: final l):
+            return Left<L, List<R>>(l);
+          case Right(value: final r):
+            results.add(r);
+        }
+      }
+      return Right<L, List<R>>(results);
+    });
+  }
+
+  /// Maps each element of [items] to a [TaskEither] using [mapper], and executes them sequentially.
+  ///
+  /// If any task returns a [Left], execution stops immediately and that error is returned.
+  /// Otherwise, returns a [Right] containing a list of all mapped values.
+  static TaskEither<L, List<B>> traverse<L, A, B>(
+    Iterable<A> items,
+    TaskEither<L, B> Function(A) mapper,
+  ) {
+    return TaskEither.sequence(items.map(mapper));
   }
 }
