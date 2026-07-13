@@ -203,5 +203,19 @@ void main() {
       expect(resFail.fold((l) => l, (r) => null), equals('err'));
       expect(executionOrder, equals([1, 2])); // 3 should NOT execute
     });
+
+    test('bimap transforms both Left and Right', () async {
+      final taskRight = TaskEither<String, int>.right(42).bimap(
+        (err) => 'mapped $err',
+        (val) => val * 2,
+      );
+      final taskLeft = TaskEither<String, int>.left('err').bimap(
+        (err) => 'mapped $err',
+        (val) => val * 2,
+      );
+
+      expect(await taskRight.run(), equals(Right(84)));
+      expect(await taskLeft.run(), equals(Left('mapped err')));
+    });
   });
 }

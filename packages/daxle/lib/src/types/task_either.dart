@@ -231,6 +231,20 @@ class TaskEither<L, R> {
     return _transform((either) => either.mapLeft(mapper));
   }
 
+  /// Applies [mapLeft] to the error value if this is a [Left], or [mapRight]
+  /// to the success value if this is a [Right].
+  ///
+  /// Laziness is preserved.
+  TaskEither<L2, R2> bimap<L2, R2>(
+    L2 Function(L error) mapLeft,
+    R2 Function(R success) mapRight,
+  ) {
+    return _transform((either) => either.fold(
+          (l) => Left<L2, R2>(mapLeft(l)),
+          (r) => Right<L2, R2>(mapRight(r)),
+        ));
+  }
+
   /// Chains another [TaskEither] computation onto this one if this one succeeds.
   ///
   /// If this [TaskEither] resolves to a [Left], the failure is propagated and [f]
@@ -245,10 +259,10 @@ class TaskEither<L, R> {
   }) {
     return _transform((either) async {
       try {
-        return await switch (either) {
-          Left(value: final l) => Left<L, B>(l),
-          Right(value: final r) => f(r).run(),
-        };
+        return await either.fold(
+          (l) async => Left<L, B>(l),
+          (r) => f(r).run(),
+        );
       } catch (e, st) {
         if (onError != null) {
           return Left<L, B>(onError(e, st));
@@ -306,13 +320,13 @@ class TaskEither<L, R> {
     L Function() onFailure,
   ) {
     return _transform((either) async {
-      switch (either) {
-        case Left(value: final l):
-          return Left<L, R>(l);
-        case Right(value: final r):
+      return await either.fold(
+        (l) async => Left<L, R>(l),
+        (r) async {
           final isValid = await predicate(r);
           return isValid ? Right<L, R>(r) : Left<L, R>(onFailure());
-      }
+        },
+      );
     });
   }
 
@@ -327,10 +341,10 @@ class TaskEither<L, R> {
   }) {
     return _transform((either) async {
       try {
-        return await switch (either) {
-          Left(value: final l) => f(l).run(),
-          Right(value: final r) => Right<L, R>(r),
-        };
+        return await either.fold(
+          (l) => f(l).run(),
+          (r) async => Right<L, R>(r),
+        );
       } catch (e, st) {
         if (onError != null) {
           return Left<L, R>(onError(e, st));
@@ -377,11 +391,15 @@ class TaskEither<L, R> {
       final results = <R>[];
       for (final task in tasks) {
         final either = await task.run();
-        switch (either) {
-          case Left(value: final l):
-            return Left<L, List<R>>(l);
-          case Right(value: final r):
+        final Either<L, List<R>>? failure = either.fold(
+          (l) => Left<L, List<R>>(l),
+          (r) {
             results.add(r);
+            return null;
+          },
+        );
+        if (failure != null) {
+          return failure;
         }
       }
       return Right<L, List<R>>(results);
