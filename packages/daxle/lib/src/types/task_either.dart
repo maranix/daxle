@@ -31,6 +31,21 @@ import 'either.dart';
 /// }
 /// ```
 ///
+/// ### Realistic Pipeline Example
+///
+/// Here is a repository pipeline demonstrating how different combinators (like
+/// [map], [tap], and [mapLeft]) flow together declaratively:
+///
+/// ```dart
+/// TaskEither<AppError, Unit> publishPendingChanges(String userId) {
+///   return getUserProfile(userId)              // TaskEither<DatabaseError, Profile>
+///       .mapLeft((dbError) => AppError(dbError)) // Domain error conversion
+///       .map(_calculatePendingSteps)            // Synchronous transformation
+///       .tap(_publishPending)                  // Side effect (async/sync)
+///       .map((_) => unit);                     // Final representation
+/// }
+/// ```
+///
 /// ### Side Effects using `tap`
 ///
 /// Use `tap` to run side effects (like updating local cache, analytics, or UI changes)
@@ -56,13 +71,14 @@ import 'either.dart';
 /// ### Validation Pipelines and `ensure`
 ///
 /// Use `ensure` to validate the successful value of a task, transitioning
-/// to a `Left` if the validation fails.
+/// to a `Left` if the validation fails. `ensure` supports both synchronous
+/// and asynchronous predicates.
 ///
 /// ```dart
 /// TaskEither<ValidationError, User> validateAndFetchUser(String id) {
 ///   return getUserById(id)
 ///     .ensure((user) => user.isActive, () => ValidationError('User is inactive'))
-///     .ensure((user) => user.hasCompletedOnboarding, () => ValidationError('Onboarding incomplete'));
+///     .ensure((user) => checkUniqueness(user.email), () => ValidationError('Email already taken'));
 /// }
 /// ```
 ///
@@ -166,18 +182,32 @@ class TaskEither<L, R> {
   /// Runs the underlying asynchronous computation.
   Future<Either<L, R>> run() => _run();
 
+  /// Private helper to chain transformations on the resolved [Either] value
+  /// of this [TaskEither], reducing code duplication.
+  TaskEither<L2, R2> _transform<L2, R2>(
+    FutureOr<Either<L2, R2>> Function(Either<L, R> either) f,
+  ) {
+    return TaskEither(() async {
+      final either = await run();
+      return await f(either);
+    });
+  }
+
   /// Applies [f] to the success value inside the [Right] of this [TaskEither].
   ///
   /// Catching any exceptions thrown during upstream computation or by [f],
   /// mapping them to a Left if [onError] is provided, or if the thrown error
   /// is of type [L].
+  ///
+  /// [map] is intended for synchronous transformations. If the transformation
+  /// performs another asynchronous operation that returns a [TaskEither], use
+  /// [flatMap] instead.
   TaskEither<L, B> map<B>(
     B Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return TaskEither(() async {
+    return _transform((either) {
       try {
-        final either = await run();
         return either.map(f);
       } catch (e, st) {
         if (onError != null) {
@@ -189,6 +219,16 @@ class TaskEither<L, R> {
         rethrow;
       }
     });
+  }
+
+  /// Applies [mapper] to the error value inside the [Left] of this [TaskEither].
+  ///
+  /// If this [TaskEither] resolves to a [Right], the value continues unchanged.
+  /// Laziness is preserved.
+  TaskEither<L2, R> mapLeft<L2>(
+    L2 Function(L error) mapper,
+  ) {
+    return _transform((either) => either.mapLeft(mapper));
   }
 
   /// Chains another [TaskEither] computation onto this one if this one succeeds.
@@ -203,9 +243,8 @@ class TaskEither<L, R> {
     TaskEither<L, B> Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return TaskEither(() async {
+    return _transform((either) async {
       try {
-        final either = await run();
         return await switch (either) {
           Left(value: final l) => Left<L, B>(l),
           Right(value: final r) => f(r).run(),
@@ -230,8 +269,7 @@ class TaskEither<L, R> {
   TaskEither<L, R> tap(
     FutureOr<void> Function(R value) callback,
   ) {
-    return TaskEither(() async {
-      final either = await run();
+    return _transform((either) async {
       if (either is Right<L, R>) {
         await callback(either.value);
       }
@@ -247,8 +285,7 @@ class TaskEither<L, R> {
   TaskEither<L, R> tapLeft(
     FutureOr<void> Function(L error) callback,
   ) {
-    return TaskEither(() async {
-      final either = await run();
+    return _transform((either) async {
       if (either is Left<L, R>) {
         await callback(either.value);
       }
@@ -258,20 +295,24 @@ class TaskEither<L, R> {
 
   /// Ensures that the [Right] value of this [TaskEither] satisfies the [predicate].
   ///
-  /// If this [TaskEither] resolves to a [Right] and the [predicate] returns `true`,
-  /// the value continues unchanged.
-  /// If it returns `false`, the result is a [Left] with the value returned by [onFailure].
+  /// The [predicate] may be synchronous or asynchronous.
+  /// If this [TaskEither] resolves to a [Right] and the [predicate] returns/resolves
+  /// to `true`, the value continues unchanged.
+  /// If it returns/resolves to `false`, the result is a [Left] with the value returned
+  /// by [onFailure].
   /// If this [TaskEither] resolves to a [Left], it is returned unchanged.
   TaskEither<L, R> ensure(
-    bool Function(R value) predicate,
+    FutureOr<bool> Function(R value) predicate,
     L Function() onFailure,
   ) {
-    return TaskEither(() async {
-      final either = await run();
-      return either.fold(
-        (l) => Left<L, R>(l),
-        (r) => predicate(r) ? Right<L, R>(r) : Left<L, R>(onFailure()),
-      );
+    return _transform((either) async {
+      switch (either) {
+        case Left(value: final l):
+          return Left<L, R>(l);
+        case Right(value: final r):
+          final isValid = await predicate(r);
+          return isValid ? Right<L, R>(r) : Left<L, R>(onFailure());
+      }
     });
   }
 
@@ -284,9 +325,8 @@ class TaskEither<L, R> {
     TaskEither<L, R> Function(L left) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return TaskEither(() async {
+    return _transform((either) async {
       try {
-        final either = await run();
         return await switch (either) {
           Left(value: final l) => f(l).run(),
           Right(value: final r) => Right<L, R>(r),

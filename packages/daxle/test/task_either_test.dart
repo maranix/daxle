@@ -33,6 +33,14 @@ void main() {
       expect(await task.run(), equals(Right(25)));
     });
 
+    test('mapLeft transforms errors', () async {
+      final taskRight = TaskEither<String, int>.right(42).mapLeft((err) => 'mapped $err');
+      final taskLeft = TaskEither<String, int>.left('err').mapLeft((err) => 'mapped $err');
+
+      expect(await taskRight.run(), equals(Right(42)));
+      expect(await taskLeft.run(), equals(Left('mapped err')));
+    });
+
     test('orElse fallback', () async {
       final task = TaskEither<String, int>.left(
         'error',
@@ -99,7 +107,7 @@ void main() {
       expect(tappedLeftErr, equals('err'));
     });
 
-    test('ensure validates value', () async {
+    test('ensure validates value (sync and async)', () async {
       final taskRight = TaskEither<String, int>.right(42);
 
       final ok = taskRight.ensure((v) => v > 40, () => 'too small');
@@ -108,9 +116,25 @@ void main() {
       expect(await ok.run(), equals(Right(42)));
       expect(await fail.run(), equals(Left('too big')));
 
+      // Async ensure
+      final okAsync = taskRight.ensure((v) async {
+        await Future.delayed(const Duration(milliseconds: 1));
+        return v > 40;
+      }, () => 'too small');
+      final failAsync = taskRight.ensure((v) async {
+        await Future.delayed(const Duration(milliseconds: 1));
+        return v < 40;
+      }, () => 'too big');
+
+      expect(await okAsync.run(), equals(Right(42)));
+      expect(await failAsync.run(), equals(Left('too big')));
+
       final taskLeft = TaskEither<String, int>.left('original error');
       final leftEnsure = taskLeft.ensure((v) => v > 40, () => 'too small');
       expect(await leftEnsure.run(), equals(Left('original error')));
+
+      final leftEnsureAsync = taskLeft.ensure((v) async => v > 40, () => 'too small');
+      expect(await leftEnsureAsync.run(), equals(Left('original error')));
     });
 
     test('sequence executes tasks sequentially and short-circuits', () async {
