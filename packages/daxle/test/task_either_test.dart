@@ -217,5 +217,13 @@ void main() {
       expect(await taskRight.run(), equals(Right(84)));
       expect(await taskLeft.run(), equals(Left('mapped err')));
     });
+
+    test('flatMap exception catching', () async {
+      final task = TaskEither<String, int>.right(10).flatMap(
+        (r) => TaskEither(() async => throw Exception('oops')),
+        onError: (e, st) => 'caught',
+      );
+      expect(await task.run(), equals(Left('caught')));
+    });
   });
 }

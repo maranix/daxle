@@ -263,6 +263,8 @@ class TaskEither<L, R> {
           case Left(value: final l):
             return Left<L, B>(l);
           case Right(value: final r):
+            // Explicitly awaited to catch exceptions thrown by the chained task
+            // inside the enclosing try-catch block.
             return await f(r).run();
         }
       } catch (e, st) {
