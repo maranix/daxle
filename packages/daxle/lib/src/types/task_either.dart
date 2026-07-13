@@ -288,10 +288,13 @@ class TaskEither<L, R> {
     FutureOr<void> Function(R value) callback,
   ) {
     return _transform((either) async {
-      if (either is Right<L, R>) {
-        await callback(either.value);
-      }
-      return either;
+      return await either.fold<FutureOr<Either<L, R>>>(
+        (l) => either,
+        (r) async {
+          await callback(r);
+          return either;
+        },
+      );
     });
   }
 
@@ -304,10 +307,13 @@ class TaskEither<L, R> {
     FutureOr<void> Function(L error) callback,
   ) {
     return _transform((either) async {
-      if (either is Left<L, R>) {
-        await callback(either.value);
-      }
-      return either;
+      return await either.fold<FutureOr<Either<L, R>>>(
+        (l) async {
+          await callback(l);
+          return either;
+        },
+        (r) => either,
+      );
     });
   }
 

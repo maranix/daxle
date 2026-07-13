@@ -43,6 +43,21 @@ sealed class Either<L, R> {
   factory Either.cond(bool condition, R right, L left) =>
       condition ? Right<L, R>(right) : Left<L, R>(left);
 
+  /// Executes [run] synchronously and catches any exceptions.
+  /// 
+  /// If [run] completes successfully, returns [Right].
+  /// If [run] throws an exception, passes it to [onError] and returns [Left].
+  static Either<L, R> tryCatch<L, R>(
+    R Function() run,
+    L Function(Object error, StackTrace stackTrace) onError,
+  ) {
+    try {
+      return Right<L, R>(run());
+    } catch (e, st) {
+      return Left<L, R>(onError(e, st));
+    }
+  }
+
   /// Returns `true` if this is a [Left] instance.
   bool get isLeft => this is Left<L, R>;
 
@@ -72,16 +87,118 @@ sealed class Either<L, R> {
     return fold((l) => Left<B, R>(f(l)), (r) => Right<B, R>(r));
   }
 
+  /// Applies [mapLeft] to the error value if this is a [Left], or [mapRight]
+  /// to the success value if this is a [Right].
+  Either<L2, R2> bimap<L2, R2>(
+    L2 Function(L left) mapLeft,
+    R2 Function(R right) mapRight,
+  ) {
+    return fold(
+      (l) => Left<L2, R2>(mapLeft(l)),
+      (r) => Right<L2, R2>(mapRight(r)),
+    );
+  }
+
   /// Applies [f] to the value inside [Right], returning the resulting [Either].
   ///
   /// Returns the current [Left] unchanged if this is a [Left].
   Either<L, B> flatMap<B>(Either<L, B> Function(R right) f) {
-    return fold((l) => Left<L, B>(l), (r) => f(r));
+    return switch (this) {
+      Left(value: final l) => Left<L, B>(l),
+      Right(value: final r) => f(r),
+    };
+  }
+
+  /// Runs the provided [callback] on the [Right] value of this [Either] without modifying it.
+  ///
+  /// The callback is executed only if this [Either] is a [Right].
+  Either<L, R> tap(void Function(R value) callback) {
+    return fold(
+      (l) => this,
+      (r) {
+        callback(r);
+        return this;
+      },
+    );
+  }
+
+  /// Runs the provided [callback] on the [Left] value of this [Either] without modifying it.
+  ///
+  /// The callback is executed only if this [Either] is a [Left].
+  Either<L, R> tapLeft(void Function(L error) callback) {
+    return fold(
+      (l) {
+        callback(l);
+        return this;
+      },
+      (r) => this,
+    );
+  }
+
+  /// Ensures that the [Right] value of this [Either] satisfies the [predicate].
+  ///
+  /// If this [Either] is a [Right] and the [predicate] returns `true`, the value continues unchanged.
+  /// If it returns `false`, the result is a [Left] with the value returned by [onFailure].
+  /// If this [Either] is a [Left], it is returned unchanged.
+  Either<L, R> ensure(
+    bool Function(R value) predicate,
+    L Function() onFailure,
+  ) {
+    return fold(
+      (l) => this,
+      (r) => predicate(r) ? this : Left<L, R>(onFailure()),
+    );
+  }
+
+  /// Recovers from a [Left] failure by returning the result of [f].
+  Either<L, R> orElse(Either<L, R> Function(L left) f) {
+    return switch (this) {
+      Left(value: final l) => f(l),
+      Right() => this,
+    };
   }
 
   /// Returns the value inside [Right], or the result of [dflt] if this is a [Left].
   R getOrElse(R Function(L left) dflt) {
     return fold(dflt, (r) => r);
+  }
+
+  /// Executes an [Iterable] of [Either]s sequentially, collecting their successful results.
+  ///
+  /// If any value is a [Left], execution stops immediately and that error is returned.
+  /// Otherwise, returns a [Right] containing a list of all successful values.
+  static Either<L, List<R>> sequence<L, R>(Iterable<Either<L, R>> items) {
+    final results = <R>[];
+    for (final item in items) {
+      switch (item) {
+        case Left(value: final l):
+          return Left<L, List<R>>(l);
+        case Right(value: final r):
+          results.add(r);
+      }
+    }
+    return Right<L, List<R>>(results);
+  }
+
+  /// Maps each element of [items] to an [Either] using [mapper], and collects the results.
+  ///
+  /// If any mapped value is a [Left], execution stops immediately and that error is returned.
+  /// Otherwise, returns a [Right] containing a list of all mapped values.
+  static Either<L, List<B>> traverse<L, A, B>(
+    Iterable<A> items,
+    Either<L, B> Function(A item) mapper,
+  ) {
+    final results = <B>[];
+    for (final item in items) {
+      final either = mapper(item);
+      switch (either) {
+        case Left(value: final l):
+          return Left<L, List<B>>(l);
+        case Right(value: final r):
+          results.add(r);
+      }
+    }
+    return Right<L, List<B>>(results);
   }
 }
 

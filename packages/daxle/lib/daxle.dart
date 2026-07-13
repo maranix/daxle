@@ -11,7 +11,6 @@
 ///
 /// - [Option]: For values that may or may not be present (replacing nullable `T?`).
 /// - [Either]: For values that can be one of two distinct types (typically Left for error, Right for success).
-/// - [Result]: For values representing the result of an operation that can succeed ([Ok]) or fail ([Err]).
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
 /// - [Pipeline] and [AsyncPipeline]: For composing deferred pipelines of operations.
 /// - [Unit]: A type representing the absence of a meaningful value.
@@ -83,38 +82,10 @@
 ///   // Construct using boolean condition:
 ///   final auth = .cond(true, 'Authorized User', 'Access Denied');
 ///
+///
 ///   result.fold(
 ///     (error) => print('Error: $error'),
 ///     (value) => print('Value: $value'), // Prints: Value: 123
-///   );
-/// }
-/// ```
-///
-/// ---
-///
-/// ## `Result<T, E>`
-///
-/// The [Result] type represents the result of an operation that can succeed ([Ok])
-/// or fail ([Err]). It is similar to [Either] but specifically tailored for representing
-/// success or failure, featuring additional convenience operations like `unwrap`, `expect`,
-/// and `mapErr`.
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// Result<int, String> divide(int a, int b) {
-///   if (b == 0) return const .err('Cannot divide by zero');
-///   return .ok(a ~/ b);
-/// }
-///
-/// void main() {
-///   final result = divide(10, 2);
-///
-///   result.fold(
-///     onOk: (value) => print('Success: $value'), // Prints: Success: 5
-///     onErr: (error, _) => print('Failure: $error'),
 ///   );
 /// }
 /// ```
@@ -251,7 +222,6 @@ export 'src/types/unit.dart';
 export 'src/pipeline/pipeline.dart';
 export 'src/types/task_either.dart';
 export 'src/types/either.dart';
-export 'src/types/result.dart';
 
 // Export some useful utilities from `async` package
 export 'package:async/async.dart'
