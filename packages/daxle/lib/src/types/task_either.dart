@@ -193,6 +193,27 @@ class TaskEither<L, R> {
     });
   }
 
+  /// Private helper to chain asynchronous operations and map thrown exceptions
+  /// to a Left, maintaining the enclosing try/catch logic.
+  TaskEither<L, B> _transformWithErrorHandling<B>(
+    FutureOr<Either<L, B>> Function(Either<L, R> either) f,
+    L Function(Object error, StackTrace stackTrace)? onError,
+  ) {
+    return _transform((either) async {
+      try {
+        return await f(either);
+      } catch (e, st) {
+        if (onError != null) {
+          return Left<L, B>(onError(e, st));
+        }
+        if (e is L) {
+          return Left<L, B>(e as L);
+        }
+        rethrow;
+      }
+    });
+  }
+
   /// Applies [f] to the success value inside the [Right] of this [TaskEither].
   ///
   /// Catching any exceptions thrown during upstream computation or by [f],
@@ -206,19 +227,10 @@ class TaskEither<L, R> {
     B Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return _transform((either) {
-      try {
-        return either.map(f);
-      } catch (e, st) {
-        if (onError != null) {
-          return Left<L, B>(onError(e, st));
-        }
-        if (e is L) {
-          return Left<L, B>(e as L);
-        }
-        rethrow;
-      }
-    });
+    return _transformWithErrorHandling(
+      (either) => either.map(f),
+      onError,
+    );
   }
 
   /// Applies [mapper] to the error value inside the [Left] of this [TaskEither].
@@ -257,26 +269,16 @@ class TaskEither<L, R> {
     TaskEither<L, B> Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return _transform((either) async {
-      try {
-        switch (either) {
-          case Left(value: final l):
-            return Left<L, B>(l);
-          case Right(value: final r):
-            // Explicitly awaited to catch exceptions thrown by the chained task
-            // inside the enclosing try-catch block.
-            return await f(r).run();
-        }
-      } catch (e, st) {
-        if (onError != null) {
-          return Left<L, B>(onError(e, st));
-        }
-        if (e is L) {
-          return Left<L, B>(e as L);
-        }
-        rethrow;
+    return _transformWithErrorHandling((either) async {
+      switch (either) {
+        case Left(value: final l):
+          return Left<L, B>(l);
+        case Right(value: final r):
+          // Explicitly awaited to catch exceptions thrown by the chained task
+          // inside the enclosing try-catch block.
+          return await f(r).run();
       }
-    });
+    }, onError);
   }
 
   /// Runs the provided [callback] on the [Right] value of this [TaskEither] without modifying it.
@@ -349,24 +351,14 @@ class TaskEither<L, R> {
     TaskEither<L, R> Function(L left) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return _transform((either) async {
-      try {
-        switch (either) {
-          case Left(value: final l):
-            return await f(l).run();
-          case Right(value: final r):
-            return Right<L, R>(r);
-        }
-      } catch (e, st) {
-        if (onError != null) {
-          return Left<L, R>(onError(e, st));
-        }
-        if (e is L) {
-          return Left<L, R>(e as L);
-        }
-        rethrow;
+    return _transformWithErrorHandling((either) async {
+      switch (either) {
+        case Left(value: final l):
+          return await f(l).run();
+        case Right(value: final r):
+          return Right<L, R>(r);
       }
-    });
+    }, onError);
   }
 
   /// Projects this [TaskEither] into a value of type [B] by running the computation

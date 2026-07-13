@@ -188,7 +188,7 @@ void main() {
 
       final items = [1, 2, 3];
       final success = Either.traverse<String, int, int>(
-        items, 
+        items,
         (i) => Right(i * 2),
       );
       
