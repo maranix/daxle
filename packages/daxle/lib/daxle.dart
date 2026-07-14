@@ -11,6 +11,7 @@
 ///
 /// - [Option]: For values that may or may not be present (replacing nullable `T?`).
 /// - [Either]: For values that can be one of two distinct types (typically Left for error, Right for success).
+/// - [Task]: For lazy, asynchronous computations.
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
 /// - [Unit]: A type representing the absence of a meaningful value.
 /// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
@@ -91,7 +92,35 @@
 ///
 /// ---
 ///
+/// ## `Task<T>`
+///
+/// The [Task] type represents a lazy, asynchronous computation that produces a value of type `T`.
+/// Unlike a Future, a Task is lazy. The underlying computation is not started until run() is invoked.
+///
+/// **Note**: [Task] does not provide explicit failure handling. If the underlying computation throws,
+/// the exception propagates naturally. For explicit failure handling, use [TaskEither].
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// void main() async {
+///   final task = Task(() async {
+///     print('Executing...');
+///     return 42;
+///   }).map((x) => x * 2);
+///
+///   // The task hasn't executed yet.
+///   final result = await task.run(); // Now it executes.
+///   print('Result: $result');
+/// }
+/// ```
+///
+/// ---
+///
 /// ## `TaskEither<L, R>`
+
 ///
 /// The [TaskEither] type represents a lazy, asynchronous computation that can fail.
 /// It wraps a function returning a `Future<Either<L, R>>`, providing significant
@@ -190,6 +219,7 @@ library;
 
 export 'src/types/option.dart';
 export 'src/types/unit.dart';
+export 'src/types/task.dart';
 export 'src/types/task_either.dart';
 export 'src/types/either.dart';
 

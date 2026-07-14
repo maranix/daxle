@@ -16,6 +16,7 @@ Version 2.0 represents a complete API redesign to leverage modern Dart features 
 
 *   **Removed types**: `Lazy<T>` has been removed to stream-line composition.
 *   **Sealed Option & Either**: `Option` and `Either` are now sealed classes. You can utilize compile-time exhaustive switch-matching.
+*   **Added Task**: Introduces lazy, asynchronous computations (`Future<T>`).
 *   **Added TaskEither**: Introduces lazy, asynchronous computations that can fail (`Future<Either<L, R>>`), ensuring safe and composable async logic.
 *   **Added Unit**: Represents the absence of a value, allowing type-safe generic returns.
 
@@ -100,7 +101,28 @@ void main() {
 }
 ```
 
-### 3. `TaskEither<L, R>`
+### 3. `Task<T>`
+Represents a **lazy, asynchronous computation** that produces a value of type `T`.
+*   **Lazy Execution**: `Task` defers execution until `.run()` is called.
+*   **No Explicit Failures**: Exceptions propagate naturally. For explicit error handling, use `TaskEither`.
+
+```dart
+import 'package:daxle/daxle.dart';
+
+void main() async {
+  final task = Task(() async {
+    print('Fetching data...');
+    return 42;
+  }).map((x) => x * 2);
+
+  // The computation hasn't started yet.
+  
+  final result = await task.run(); // Now it runs.
+  print(result); // 84
+}
+```
+
+### 4. `TaskEither<L, R>`
 Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>`:
 *   **Lazy Execution**: `TaskEither` is a lazy blueprint. It does not run until `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
 *   **Monadic Error Short-Circuiting**: `TaskEither` embeds the `Either` state at each step. If a step resolves to a `Left`, subsequent steps are short-circuited.
@@ -129,7 +151,7 @@ void main() async {
 }
 ```
 
-### 4. `Unit`
+### 5. `Unit`
 A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
 
 ```dart
@@ -145,7 +167,7 @@ Either<String, Unit> saveRecord(String data) {
 }
 ```
 
-### 5. Async Utilities
+### 6. Async Utilities
 Provides re-exported utilities from `package:async` to simplify asynchronous control flow and stream handling:
 
 *   **Future Utilities**:

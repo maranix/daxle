@@ -137,7 +137,7 @@ import 'either.dart';
 /// final task = TaskEither.right(42).flatMap((_) => fetchUser(123));
 /// ```
 /// {@endtemplate}
-class TaskEither<L, R> {
+final class TaskEither<L, R> {
   final Future<Either<L, R>> Function() _run;
 
   /// {@macro task_either}
