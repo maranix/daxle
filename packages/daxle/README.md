@@ -10,15 +10,16 @@ Inspired by functional features in Rust, Haskell, and Scala.
 
 ---
 
-## What's New in v2.0 🚀
+## What's New in v3.0 🚀
 
-Version 2.0 represents a complete API redesign to leverage modern Dart features (such as **sealed classes**, **pattern matching**, and **records**).
+Version 3.0 represents a complete architectural review focused on producing a small, coherent, production-quality functional programming library for Dart.
 
-*   **Removed types**: `Lazy<T>` has been removed to stream-line composition.
-*   **Sealed Option & Either**: `Option` and `Either` are now sealed classes. You can utilize compile-time exhaustive switch-matching.
-*   **Added Task**: Introduces lazy, asynchronous computations (`Future<T>`).
-*   **Added TaskEither**: Introduces lazy, asynchronous computations that can fail (`Future<Either<L, R>>`), ensuring safe and composable async logic.
-*   **Added Unit**: Represents the absence of a value, allowing type-safe generic returns.
+*   **Removed overlapping types**: `Result<T, E>`, `Pipeline<T>`, and `AsyncPipeline<T>` have been removed to ensure exactly one way to model explicit success/failure and lazy computations.
+*   **Sealed Option & Either**: `Option` and `Either` remain the core sealed classes for explicit control flow using compile-time exhaustive switch-matching.
+*   **Added Task**: Introduces lazy, asynchronous computations (`Future<T>`) without explicit failures.
+*   **Enhanced TaskEither**: Added powerful combinators (`sequence`, `traverse`, `bimap`, `tap`, `ensure`) for lazy, asynchronous computations that can fail (`Future<Either<L, R>>`).
+*   **Unit**: Represents the absence of a value, allowing type-safe generic returns.
+*   **Standardized API**: Consistent use of `fold` for value transformations and exhaustive `switch` for explicit branching.
 
 ---
 
@@ -28,7 +29,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^2.2.0
+  daxle: ^3.0.0
 ```
 
 Then, run:

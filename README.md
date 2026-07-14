@@ -6,7 +6,7 @@ Welcome to the `daxle` monorepo workspace. This repository contains the source c
 
 | Package | Path | Description | Version | Pub |
 | :--- | :--- | :--- | :--- | :--- |
-| **daxle** | [`packages/daxle`](packages/daxle/) | Core functional programming library offering modern constructs: `Option`, `Either`, `TaskEither`, `Pipeline`, `AsyncPipeline`, and `Unit`. | `2.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
+| **daxle** | [`packages/daxle`](packages/daxle/) | Core functional programming library offering strictly single-responsibility constructs: `Option`, `Either`, `Task`, `TaskEither`, and `Unit`. | `3.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
 
 ---
 
@@ -15,7 +15,7 @@ Welcome to the `daxle` monorepo workspace. This repository contains the source c
 The primary goal of this workspace is to develop and maintain robust tools that enhance Dart applications by offering:
 - **Type-Safety**: Enforce explicit handling of optional values and operations that can fail.
 - **Modern FP Patterns**: Sealed classes, pattern matching, records, and monadic chaining.
-- **Observability & Deferral**: Deferred synchronous and asynchronous pipelines with tap and recovery capabilities.
+- **Observability & Deferral**: Deferred asynchronous computations with robust sequence, traverse, and explicit failure combinators.
 
 ---
 
