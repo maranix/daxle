@@ -17,7 +17,6 @@ Version 2.0 represents a complete API redesign to leverage modern Dart features 
 *   **Removed types**: `Lazy<T>` has been removed to stream-line composition.
 *   **Sealed Option & Either**: `Option` and `Either` are now sealed classes. You can utilize compile-time exhaustive switch-matching.
 *   **Added TaskEither**: Introduces lazy, asynchronous computations that can fail (`Future<Either<L, R>>`), ensuring safe and composable async logic.
-*   **Added Pipelines**: `Pipeline` (synchronous) and `AsyncPipeline` (asynchronous) provide type-safe deferred operation chaining, logging/observability taps, error recovery, and concurrent execution.
 *   **Added Unit**: Represents the absence of a value, allowing type-safe generic returns.
 
 ---
@@ -102,9 +101,9 @@ void main() {
 ```
 
 ### 3. `TaskEither<L, R>`
-Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>` and [AsyncPipeline]:
-*   **Lazy Execution**: Both `TaskEither` and [AsyncPipeline] are lazy blueprints. They do not run until `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
-*   **Monadic Error Short-Circuiting**: Unlike [AsyncPipeline] (which relies on standard exceptions propagating until caught by `recover`), `TaskEither` embeds the `Either` state at each step. If a step resolves to a `Left`, subsequent steps are short-circuited.
+Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>`:
+*   **Lazy Execution**: `TaskEither` is a lazy blueprint. It does not run until `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
+*   **Monadic Error Short-Circuiting**: `TaskEither` embeds the `Either` state at each step. If a step resolves to a `Left`, subsequent steps are short-circuited.
 *   **Linear Chaining**: Allows chaining dependent async operations via `flatMap` without nesting `await` and `fold` blocks.
 *   **Exception Guarding**: Automatically catches runtime exceptions and maps them to a safe `Left(L)`.
 
@@ -130,35 +129,7 @@ void main() async {
 }
 ```
 
-### 4. `Pipeline<T>` & `AsyncPipeline<T>`
-Deferred, type-safe pipelines to chain operations sequentially. Supports logging (`tap`), error translation (`mapError`), fallback recovery (`recover`/`recoverWith`), cleanup (`finalize`), and concurrent combinations (`zip`).
-
-```dart
-import 'package:daxle/daxle.dart';
-
-void main() async {
-  // 1. Synchronous Pipeline
-  final syncVal = Pipeline(() => 10)
-      .pipe((x) => x * 2)
-      .tap((x) => print('Stage: $x')) // Observational side-effect
-      .recover((err, stack) => -1)    // Recovers if any error occurred
-      .run();                         // Pipeline evaluates lazily here
-
-  // 2. Asynchronous Pipeline
-  final asyncVal = await AsyncPipeline(() => Future.value(100))
-      .pipe((x) async => x + 50)
-      .run();
-
-  // 3. Concurrent pipelines execution
-  final p1 = AsyncPipeline(() => Future.value(10));
-  final p2 = AsyncPipeline(() => Future.value(20));
-
-  final zipped = p1.zip(p2, (a, b) => a + b);
-  final sum = await zipped.run(); // Concurrently waits and combines: 30
-}
-```
-
-### 5. `Unit`
+### 4. `Unit`
 A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
 
 ```dart
@@ -174,7 +145,7 @@ Either<String, Unit> saveRecord(String data) {
 }
 ```
 
-### 6. Async Utilities
+### 5. Async Utilities
 Provides re-exported utilities from `package:async` to simplify asynchronous control flow and stream handling:
 
 *   **Future Utilities**:

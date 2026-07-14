@@ -12,7 +12,6 @@
 /// - [Option]: For values that may or may not be present (replacing nullable `T?`).
 /// - [Either]: For values that can be one of two distinct types (typically Left for error, Right for success).
 /// - [TaskEither]: For lazy, asynchronous computations that can fail.
-/// - [Pipeline] and [AsyncPipeline]: For composing deferred pipelines of operations.
 /// - [Unit]: A type representing the absence of a meaningful value.
 /// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
 ///
@@ -96,13 +95,12 @@
 ///
 /// The [TaskEither] type represents a lazy, asynchronous computation that can fail.
 /// It wraps a function returning a `Future<Either<L, R>>`, providing significant
-/// advantages over a raw `Future<Either<L, R>>` and standard [AsyncPipeline]s:
+/// advantages over a raw `Future<Either<L, R>>`:
 ///
-/// 1. **Lazy Execution**: Futures are eager and execute immediately. Like [AsyncPipeline],
+/// 1. **Lazy Execution**: Futures are eager and execute immediately.
 ///    [TaskEither] is lazy and only runs when `.run()` is called, allowing easy retries
 ///    and fallbacks (via `.orElse`).
-/// 2. **Monadic Error Short-Circuiting**: Unlike [AsyncPipeline] (which relies on standard
-///    exceptions propagating until caught by `recover`), [TaskEither] embeds the [Either]
+/// 2. **Monadic Error Short-Circuiting**: [TaskEither] embeds the [Either]
 ///    state at each step. Any step resolving to a [Left] short-circuits the pipeline,
 ///    bypassing subsequent steps without throwing raw runtime exceptions.
 /// 3. **Automatic Exception Guarding**: `TaskEither.fromFuture` catches runtime exceptions
@@ -133,33 +131,6 @@
 ///     (error) => print('Failed: $error'),
 ///     (config) => print('Success: $config'),
 ///   );
-/// }
-/// ```
-///
-/// ---
-///
-/// ## `Pipeline<T>` & `AsyncPipeline<T>`
-///
-/// [Pipeline] and [AsyncPipeline] provide deferred, type-safe composition of
-/// synchronous and asynchronous operations, with robust tap, recovery, finalization,
-/// and concurrent execution (via zip) capabilities.
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// void main() async {
-///   // Synchronous Pipeline
-///   final syncVal = Pipeline(() => 5)
-///       .pipe((x) => x * 2)
-///       .tap((x) => print('Tapped: $x'))
-///       .run(); // Returns 10
-///
-///   // Asynchronous Pipeline
-///   final asyncVal = await AsyncPipeline(() => Future.value(10))
-///       .pipe((x) => Future.value(x * 5))
-///       .run(); // Resolves to 50
 /// }
 /// ```
 ///
@@ -219,7 +190,6 @@ library;
 
 export 'src/types/option.dart';
 export 'src/types/unit.dart';
-export 'src/pipeline/pipeline.dart';
 export 'src/types/task_either.dart';
 export 'src/types/either.dart';
 
