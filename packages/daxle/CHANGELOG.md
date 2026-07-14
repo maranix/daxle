@@ -1,3 +1,22 @@
+## 3.0.0 (2026-07-14)
+
+- **BREAKING CHANGES / ARCHITECTURE REDESIGN**:
+  - Removed `Result<T, E>` entirely. Use `Either<L, R>` as the single abstraction for explicit success/failure.
+  - Removed `Pipeline<T>` and `AsyncPipeline<T>`. Most useful functionality is now handled by `TaskEither<L, R>` with explicit control flow.
+  - Core primitives are now strictly single-responsibility: `Option<T>`, `Either<L, R>`, `Task<T>`, `TaskEither<L, R>`, and `Unit`.
+
+- **NEW FEATURES**:
+  - Added `Task<T>` primitive for lazy asynchronous computations that do not model explicit failures.
+  - Enhanced `TaskEither<L, R>` with comprehensive combinators:
+    - Added `mapLeft`, `bimap`, `tap`, `tapLeft`, `ensure`, `sequence`, and `traverse`.
+    - Added support for exception catching in `flatMap`.
+  - Standardized `sequence` and `traverse` as static methods across `Either`, `Task`, and `TaskEither` for consistency and easier discovery.
+
+- **DOCUMENTATION & REFACTORING**:
+  - Re-architected implementation of `TaskEither` and `Either` to strictly use `fold` for value transformations and exhaustive `switch` for control flow branching, reducing code duplication.
+  - Improved `_transformWithErrorHandling` docstrings and formatting.
+  - Instantiations of `Option.none()` now use the `const` constructor for improved performance.
+
 ## 2.2.0 (2026-07-11)
 
 - **NEW FEATURES**:
