@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
 /// {@template option}
-/// Represents a value of one of two types: a value of type [T] or no value.
+/// Represents either the presence [Some] or absence [None] of a value of type [T].
 ///
 /// [Option] is an alternative to using nullable types (`T?`) that allows for
 /// fluent chaining of operations.
@@ -27,11 +27,11 @@ sealed class Option<T> {
   /// {@template option_none}
   /// Creates an [Option] representing the absence of a value.
   ///
-  /// This is equivalent to constructing a `None()`.
+  /// This is equivalent to constructing a `const None()`.
   ///
   /// Example:
   /// ```dart
-  /// Option<int> y = Option.none(); // None
+  /// Option<int> y = const Option.none(); // None
   /// print(y.isNone); // true
   /// ```
   /// {@endtemplate}
@@ -95,10 +95,10 @@ sealed class Option<T> {
   };
 
   /// Filters this [Option], returning [Some] if the value matches [predicate], otherwise returning [None].
-  Option<T> filter(bool Function(T value) predicate) => switch (this) {
-    Some(:final value) => predicate(value) ? this : None<T>(),
-    None() => None<T>(),
-  };
+  Option<T> filter(bool Function(T value) predicate) => fold(
+    () => const .none(),
+    (value) => predicate(value) ? this : None<T>(),
+  );
 }
 
 /// {@template some}

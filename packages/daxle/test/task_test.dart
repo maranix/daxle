@@ -22,8 +22,7 @@ void main() {
     });
 
     test('flatMap chains computations', () async {
-      final task = Task(() async => 21)
-          .flatMap((x) => Task(() async => x * 2));
+      final task = Task(() async => 21).flatMap((x) => Task(() async => x * 2));
       expect(await task.run(), 42);
     });
 
@@ -32,7 +31,7 @@ void main() {
       final task = Task(() async => 42).tap((x) {
         sideEffect = x;
       });
-      
+
       expect(await task.run(), 42);
       expect(sideEffect, 42);
     });

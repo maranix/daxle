@@ -44,7 +44,7 @@ sealed class Either<L, R> {
       condition ? Right<L, R>(right) : Left<L, R>(left);
 
   /// Executes [run] synchronously and catches any exceptions.
-  /// 
+  ///
   /// If [run] completes successfully, returns [Right].
   /// If [run] throws an exception, passes it to [onError] and returns [Left].
   static Either<L, R> tryCatch<L, R>(

@@ -34,8 +34,12 @@ void main() {
     });
 
     test('mapLeft transforms errors', () async {
-      final taskRight = TaskEither<String, int>.right(42).mapLeft((err) => 'mapped $err');
-      final taskLeft = TaskEither<String, int>.left('err').mapLeft((err) => 'mapped $err');
+      final taskRight = TaskEither<String, int>.right(
+        42,
+      ).mapLeft((err) => 'mapped $err');
+      final taskLeft = TaskEither<String, int>.left(
+        'err',
+      ).mapLeft((err) => 'mapped $err');
 
       expect(await taskRight.run(), equals(Right(42)));
       expect(await taskLeft.run(), equals(Left('mapped err')));
@@ -69,13 +73,15 @@ void main() {
       int? tappedVal;
       String? tappedLeftErr;
 
-      final taskRight = TaskEither<String, int>.right(42).tap((v) {
-        tapCount++;
-        tappedVal = v;
-      }).tapLeft((err) {
-        tapLeftCount++;
-        tappedLeftErr = err;
-      });
+      final taskRight = TaskEither<String, int>.right(42)
+          .tap((v) {
+            tapCount++;
+            tappedVal = v;
+          })
+          .tapLeft((err) {
+            tapLeftCount++;
+            tappedLeftErr = err;
+          });
 
       final resRight = await taskRight.run();
       expect(resRight, equals(Right(42)));
@@ -93,12 +99,14 @@ void main() {
       await taskRightAsync.run();
       expect(asyncTapCount, equals(1));
 
-      final taskLeft = TaskEither<String, int>.left('err').tap((v) {
-        tapCount++;
-      }).tapLeft((err) {
-        tapLeftCount++;
-        tappedLeftErr = err;
-      });
+      final taskLeft = TaskEither<String, int>.left('err')
+          .tap((v) {
+            tapCount++;
+          })
+          .tapLeft((err) {
+            tapLeftCount++;
+            tappedLeftErr = err;
+          });
 
       final resLeft = await taskLeft.run();
       expect(resLeft, equals(Left('err')));
@@ -133,7 +141,10 @@ void main() {
       final leftEnsure = taskLeft.ensure((v) => v > 40, () => 'too small');
       expect(await leftEnsure.run(), equals(Left('original error')));
 
-      final leftEnsureAsync = taskLeft.ensure((v) async => v > 40, () => 'too small');
+      final leftEnsureAsync = taskLeft.ensure(
+        (v) async => v > 40,
+        () => 'too small',
+      );
       expect(await leftEnsureAsync.run(), equals(Left('original error')));
     });
 
@@ -172,37 +183,40 @@ void main() {
       expect(executionOrder, equals([1, 2])); // task 3 should NOT execute
     });
 
-    test('traverse maps and executes sequentially and short-circuits', () async {
-      final executionOrder = <int>[];
+    test(
+      'traverse maps and executes sequentially and short-circuits',
+      () async {
+        final executionOrder = <int>[];
 
-      final items = [1, 2, 3];
-      final resOk = await TaskEither.traverse(items, (item) {
-        return TaskEither(() async {
-          executionOrder.add(item);
-          return Right(item * 10);
-        });
-      }).run();
+        final items = [1, 2, 3];
+        final resOk = await TaskEither.traverse(items, (item) {
+          return TaskEither(() async {
+            executionOrder.add(item);
+            return Right(item * 10);
+          });
+        }).run();
 
-      expect(resOk.isRight, isTrue);
-      expect(resOk.fold((l) => <int>[], (r) => r), equals([10, 20, 30]));
-      expect(executionOrder, equals([1, 2, 3]));
+        expect(resOk.isRight, isTrue);
+        expect(resOk.fold((l) => <int>[], (r) => r), equals([10, 20, 30]));
+        expect(executionOrder, equals([1, 2, 3]));
 
-      executionOrder.clear();
+        executionOrder.clear();
 
-      final resFail = await TaskEither.traverse(items, (item) {
-        return TaskEither(() async {
-          executionOrder.add(item);
-          if (item == 2) {
-            return Left('err');
-          }
-          return Right(item * 10);
-        });
-      }).run();
+        final resFail = await TaskEither.traverse(items, (item) {
+          return TaskEither(() async {
+            executionOrder.add(item);
+            if (item == 2) {
+              return Left('err');
+            }
+            return Right(item * 10);
+          });
+        }).run();
 
-      expect(resFail.isLeft, isTrue);
-      expect(resFail.fold((l) => l, (r) => null), equals('err'));
-      expect(executionOrder, equals([1, 2])); // 3 should NOT execute
-    });
+        expect(resFail.isLeft, isTrue);
+        expect(resFail.fold((l) => l, (r) => null), equals('err'));
+        expect(executionOrder, equals([1, 2])); // 3 should NOT execute
+      },
+    );
 
     test('bimap transforms both Left and Right', () async {
       final taskRight = TaskEither<String, int>.right(42).bimap(

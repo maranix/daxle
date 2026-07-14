@@ -12,7 +12,7 @@ void main() {
     });
 
     test('None is empty and reports correct flags', () {
-      final opt = Option.none();
+      final opt = const Option.none();
       expect(opt.isSome, isFalse);
       expect(opt.isNone, isTrue);
       expect(opt.getOrElse(0), equals(0));
@@ -27,7 +27,7 @@ void main() {
 
     test('map transforms Some and leaves None unchanged', () {
       final some = Option.some(10).map((v) => v * 2);
-      final none = Option<int>.none().map((v) => v * 2);
+      final none = const Option<int>.none().map((v) => v * 2);
 
       expect(some.getOrElse(0), equals(20));
       expect(none.isNone, isTrue);
@@ -35,7 +35,7 @@ void main() {
 
     test('flatMap chains computations', () {
       final some = Option.some(10).flatMap((v) => Option.some(v * 2));
-      final none = Option.some(10).flatMap((v) => Option<int>.none());
+      final none = Option.some(10).flatMap((v) => const Option<int>.none());
 
       expect(some.getOrElse(0), equals(20));
       expect(none.isNone, isTrue);
@@ -43,7 +43,7 @@ void main() {
 
     test('fold projects value correctly', () {
       final some = Option.some(42);
-      final none = Option<int>.none();
+      final none = const Option<int>.none();
 
       expect(some.fold(() => 'none', (v) => 'some: $v'), equals('some: 42'));
       expect(none.fold(() => 'none', (v) => 'some: $v'), equals('none'));

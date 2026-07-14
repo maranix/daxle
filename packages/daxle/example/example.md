@@ -3,7 +3,7 @@ import 'package:daxle/daxle.dart';
 
 void main() {
   final Option<int> someValue = .some(42);
-  final Option<int> noValue = .none();
+  final Option<int> noValue = const .none();
   final Option<int> fromNull = .fromNullable(null); // Resolves to None
   final Option<int> fromPred = .fromPredicate(10, (v) => v > 5); // Some(10)
 

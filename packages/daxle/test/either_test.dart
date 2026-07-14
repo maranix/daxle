@@ -76,10 +76,12 @@ void main() {
         () => 42,
         (e, st) => 'error',
       );
-      
+
       StackTrace? capturedStackTrace;
       final failure = Either.tryCatch<String, int>(
-        () { throw StateError('oops'); },
+        () {
+          throw StateError('oops');
+        },
         (e, st) {
           capturedStackTrace = st;
           return 'error';
@@ -133,22 +135,31 @@ void main() {
       expect(identical(right, retRight), isTrue);
     });
 
-    test('ensure validates Right values and preserves instances appropriately', () {
-      final Either<String, int> right = Right(10);
-      final Either<String, int> left = Left('err');
+    test(
+      'ensure validates Right values and preserves instances appropriately',
+      () {
+        final Either<String, int> right = Right(10);
+        final Either<String, int> left = Left('err');
 
-      final valid = right.ensure((r) => r > 5, () => 'too small');
-      final invalid = right.ensure((r) => r > 15, () => 'too small');
-      final ensureLeft = left.ensure((r) => r > 5, () => 'too small');
+        final valid = right.ensure((r) => r > 5, () => 'too small');
+        final invalid = right.ensure((r) => r > 15, () => 'too small');
+        final ensureLeft = left.ensure((r) => r > 5, () => 'too small');
 
-      expect(valid.isRight, isTrue);
-      expect(identical(valid, right), isTrue); // preserves original Right instance
-      
-      expect(invalid.isLeft, isTrue);
-      expect(invalid.fold((l) => l, (_) => ''), equals('too small'));
-      
-      expect(identical(ensureLeft, left), isTrue); // existing Left remains unchanged
-    });
+        expect(valid.isRight, isTrue);
+        expect(
+          identical(valid, right),
+          isTrue,
+        ); // preserves original Right instance
+
+        expect(invalid.isLeft, isTrue);
+        expect(invalid.fold((l) => l, (_) => ''), equals('too small'));
+
+        expect(
+          identical(ensureLeft, left),
+          isTrue,
+        ); // existing Left remains unchanged
+      },
+    );
 
     test('orElse recovers from Left', () {
       final Either<String, int> right = Right(10);
@@ -163,24 +174,33 @@ void main() {
       expect(stillLeft.fold((l) => l, (_) => ''), equals('new err'));
     });
 
-    test('sequence executes sequentially and short-circuits on first failure', () {
-      final Either<String, int> right1 = Right(1);
-      final Either<String, int> right2 = Right(2);
-      final Either<String, int> left1 = Left('err1');
-      final Either<String, int> left2 = Left('err2');
+    test(
+      'sequence executes sequentially and short-circuits on first failure',
+      () {
+        final Either<String, int> right1 = Right(1);
+        final Either<String, int> right2 = Right(2);
+        final Either<String, int> left1 = Left('err1');
+        final Either<String, int> left2 = Left('err2');
 
-      final empty = Either.sequence<String, int>([]);
-      final single = Either.sequence([right1]);
-      final success = Either.sequence([right1, right2]);
-      final fail1 = Either.sequence([right1, left1, right2]);
-      final fail2 = Either.sequence([left1, left2]);
+        final empty = Either.sequence<String, int>([]);
+        final single = Either.sequence([right1]);
+        final success = Either.sequence([right1, right2]);
+        final fail1 = Either.sequence([right1, left1, right2]);
+        final fail2 = Either.sequence([left1, left2]);
 
-      expect(empty.getOrElse((_) => [99]), isEmpty);
-      expect(single.getOrElse((_) => []), equals([1]));
-      expect(success.getOrElse((_) => []), equals([1, 2]));
-      expect(fail1.fold((l) => l, (_) => ''), equals('err1')); // short circuits
-      expect(fail2.fold((l) => l, (_) => ''), equals('err1')); // first failure wins
-    });
+        expect(empty.getOrElse((_) => [99]), isEmpty);
+        expect(single.getOrElse((_) => []), equals([1]));
+        expect(success.getOrElse((_) => []), equals([1, 2]));
+        expect(
+          fail1.fold((l) => l, (_) => ''),
+          equals('err1'),
+        ); // short circuits
+        expect(
+          fail2.fold((l) => l, (_) => ''),
+          equals('err1'),
+        ); // first failure wins
+      },
+    );
 
     test('traverse maps in order and short-circuits on first Left', () {
       final empty = Either.traverse<String, int, int>([], (i) => Right(i * 2));
@@ -191,7 +211,7 @@ void main() {
         items,
         (i) => Right(i * 2),
       );
-      
+
       final executedItems = <int>[];
       final failure = Either.traverse<String, int, int>(
         items,
@@ -203,7 +223,10 @@ void main() {
 
       expect(success.getOrElse((_) => []), equals([2, 4, 6]));
       expect(failure.fold((l) => l, (_) => ''), equals('err on 2'));
-      expect(executedItems, equals([1, 2])); // Stops exactly at the first failure
+      expect(
+        executedItems,
+        equals([1, 2]),
+      ); // Stops exactly at the first failure
     });
   });
 }

@@ -33,7 +33,7 @@
 ///   if (id == '123') {
 ///     return .some('Alice');
 ///   }
-///   return .none();
+///   return const .none();
 /// }
 ///
 /// void main() {
