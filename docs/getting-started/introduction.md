@@ -2,6 +2,14 @@
 outline: deep
 ---
 
+::: info 🤖 AI-Assisted Documentation
+Much of this documentation was drafted with the help of AI to provide you with comprehensive guides as quickly as possible. I have proofread and verified the content, but if you spot an inaccuracy I missed, please let me know!
+:::
+
+::: tip 🔄 Subject to Change
+Daxle is actively evolving. This documentation is subject to change depending on new API updates, general maintenance, and feedback.
+:::
+
 # Introduction to Daxle
 
 Welcome to **Daxle**. 
