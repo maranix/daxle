@@ -4,22 +4,25 @@ outline: deep
 
 # Installation
 
-Getting started with Daxle is quick and straightforward. Daxle is intentionally designed to be lightweight and self-contained. It has **minimal external dependencies** (relying only on official Dart packages like `async` and `meta`), ensuring it remains highly stable, resilient to breaking changes, and keeps your application bundle exceptionally small.
+Getting started with Daxle takes just a few seconds. 
+
+Because Daxle is lightweight and relies only on official Dart packages (like `async` and `meta`), you get a stable library that resists breaking changes and keeps your app bundle small.
 
 ---
 
 ## Prerequisites
 
-Daxle takes full advantage of modern Dart features, including sealed classes, robust pattern matching, type-directed constructor tear-offs, and convenient dot-shorthand constructor syntax.
+Daxle leverages modern Dart features like sealed classes, pattern matching, and dot-shorthand constructors. 
 
-* **Supported Dart SDK**: `>= 3.11.0 < 4.0.0`
-* **Supported Flutter SDK**: Fully compatible with any Flutter version bundled with Dart SDK `3.11.0` or higher.
+To use Daxle, you need:
+* **Dart SDK**: `>= 3.11.0 < 4.0.0`
+* **Flutter SDK**: Any version bundled with Dart 3.11.0 or higher.
 
 ---
 
-## Adding the Dependency
+## Add the Dependency
 
-To introduce Daxle to your project, simply run the appropriate command for your environment in your terminal:
+Run the command for your environment to add Daxle to your project:
 
 ::: code-group
 ```bash [Dart CLI]
@@ -31,14 +34,14 @@ flutter pub add daxle
 ```
 :::
 
-Alternatively, if you prefer managing dependencies manually, you can add `daxle` directly to your `pubspec.yaml` file:
+Or add it manually to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   daxle: ^3.0.0
 ```
 
-Then, retrieve the newly added package:
+Then fetch the package:
 
 ```bash
 dart pub get
@@ -46,12 +49,10 @@ dart pub get
 
 ---
 
-## Importing the Library
+## Import the Library
 
-Once installed, you can start using Daxle in your Dart or Flutter files by adding a single import at the top of your file:
+Add this single import to the top of your file to start using Daxle:
 
 ```dart
 import 'package:daxle/daxle.dart';
 ```
-
-

@@ -4,15 +4,15 @@ outline: deep
 
 # Data Transformation
 
-## Question
-**How do I transform and compose values?**
+## How do you safely transform and compose collections of data?
 
 ---
 
-## Problem
-When working with collections of items where each item needs to undergo asynchronous, fallible processing (such as reading a list of system log files, parsing debug entries, and transforming the output), standard Dart requires managing loop counters, collecting errors into lists, and catching exceptions manually.
+## The Problem With Batch Processing in Standard Dart
 
-If you attempt to run them concurrently with `Future.wait`, a single exception can cause the entire batch to fail, and you lose track of which specific file caused the failure.
+Imagine you need to process a collection of items—like reading system logs, parsing debug entries, and transforming the results. In standard Dart, you have to manually track loop counters, build error lists by hand, and write tedious `catch` blocks for every step.
+
+If you try to speed things up with `Future.wait`, one single exception blows up the entire batch. Worse, you lose track of exactly which item caused the failure.
 
 ```dart
 // Imperative collection processing: error prone, hard to collect separate failures
@@ -34,8 +34,11 @@ Future<Map<String, int>> processLogs(List<String> paths) async {
 
 ---
 
-## Solution
-Use `TaskEither.traverse` to map an iterable of inputs to tasks and run them sequentially, and use `bimap` to format both success and failure outcomes at the item level.
+## The Solution: Transform Collections with Complete Safety
+
+Instead of wrestling with loops and `Future.wait`, use `TaskEither.traverse`. 
+
+This maps your iterable inputs directly to secure tasks and runs them sequentially. Then, use `bimap` to effortlessly format both your success and failure outcomes at the item level.
 
 ```dart
 import 'dart:io';
@@ -83,7 +86,7 @@ TaskEither<LogError, List<LogReport>> processAllLogs(List<String> paths) {
 }
 ```
 
-You can now use `bimap` to map the final results of the batch process:
+Now, format your final batch results instantly using `bimap`:
 
 ```dart
 void main() async {
@@ -107,8 +110,8 @@ void main() async {
 
 ---
 
-## Why this solution works well with Daxle
+## Why You'll Love This Approach
 
-* **Dual-track mapping (`bimap`)**: With `bimap`, you can transform the success value and the failure error simultaneously. This allows you to easily format domain types into user-facing status messages at the boundaries of your system.
-* **Sequential execution control**: `TaskEither.traverse` runs tasks one after another. If any task returns a `Left` failure, execution halts immediately. This prevents waste of I/O resources on subsequent files if a critical dependency is missing.
-* **Collection compilation**: Daxle handles the heavy lifting of folding a list of tasks `List<TaskEither<L, B>>` into a single task returning a list of values `TaskEither<L, List<B>>`, keeping your code clean and free of manual list operations.
+* **Format Everything in One Step (`bimap`)**: Transform your success values and your errors at the exact same time. You can easily turn domain errors into user-friendly status messages before they leave your system.
+* **Save Resources with Sequential Control**: `TaskEither.traverse` runs tasks one by one. If a critical task fails, execution stops immediately. You never waste I/O resources processing files when a dependency is already broken.
+* **Ditch Manual List Operations**: Daxle does the heavy lifting. It automatically folds your list of tasks (`List<TaskEither>`) into a single task returning a list of values. Your code stays perfectly clean.

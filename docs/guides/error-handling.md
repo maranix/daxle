@@ -4,15 +4,15 @@ outline: deep
 
 # Error Handling
 
-In standard Dart applications, unexpected situations are usually handled by throwing exceptions. While exceptions are useful for developer bugs (like passing a null value where it isn't expected) or unrecoverable system failures (like out of memory errors), using exceptions for expected domain errors is fragile and hard to scale.
+Dart handles unexpected problems by throwing exceptions. That works fine for developer bugs or crashing systems. But relying on exceptions for expected domain errors? That makes your app fragile and impossible to scale.
 
-Daxle provides a type-safe alternative: treating errors as explicit, first-class values.
+Daxle gives you a bulletproof alternative: **treat errors as explicit, first-class values.**
 
 ---
 
-## The Problem with Exceptions
+## Why Exceptions Sabotage Your Code
 
-When a function throws an exception, that behavior is invisible in the function's type signature. 
+When a function throws an exception, that danger is invisible in the function's type signature. 
 
 ```dart
 // The signature claims this always returns a Config, but it can throw!
@@ -27,25 +27,25 @@ Config loadConfig(String path) {
 
 This model has several downsides:
 
-1. **Hidden Failures**: You cannot tell by looking at `loadConfig` that it can fail, nor what exceptions it might throw. You must read its implementation details or trust its documentation.
-2. **Missing Compiler Help**: If you forget to wrap this call in a `try-catch` block, your application might crash at runtime. The compiler cannot help you verify that you handled the failure case.
-3. **Control Flow Inversion**: Exceptions interrupt the natural flow of your code, jumping to the nearest matching `catch` block. This makes it difficult to chain operations or recover gracefully inside data pipelines.
+1. **Hidden Failures**: You can't trust the signature. You have to dig into the implementation to find out what might explode.
+2. **No Compiler Help**: Forget a `try-catch` block? Your app crashes in production. The compiler won't save you.
+3. **Broken Control Flow**: Exceptions hijack your code's natural flow, jumping to random `catch` blocks and ruining data pipelines.
 
 ---
 
-## The Solution: Errors as Values
+## The Fix: Make Errors Visible Values
 
-Instead of jumping out of the program execution when something goes wrong, we return a data structure that explicitly represents either success or failure.
+Stop jumping out of your program. Return explicit data structures that represent success or failure.
 
-Daxle provides two primary types for this:
-* **`Either<L, R>`** for synchronous computations.
-* **`TaskEither<L, R>`** for asynchronous computations.
+Daxle arms you with two core types:
+* **`Either<L, R>`** for synchronous tasks.
+* **`TaskEither<L, R>`** for asynchronous tasks.
 
-By convention:
-* **`Left` (holding a value of type `L`)** represents the failure or error case.
-* **`Right` (holding a value of type `R`)** represents the success case.
+The rules are simple:
+* **`Left`** holds the failure (`L`).
+* **`Right`** holds the success (`R`).
 
-Using explicit error types, the `loadConfig` function becomes self-documenting:
+By using explicit errors, your functions document themselves:
 
 ```dart
 import 'dart:io';
@@ -76,17 +76,17 @@ Either<ConfigError, Config> loadConfigSafe(String path) {
 }
 ```
 
-Now, the compiler guarantees that callers of `loadConfigSafe` cannot access the `Config` without acknowledging that the operation might have returned a `ConfigError`.
+Now, the compiler forces every caller to acknowledge that `loadConfigSafe` might fail. No more surprise crashes.
 
 ---
 
-## Working with Errors and Successes
+## Mastering Success and Failure
 
-Once an operation returns an `Either`, you can transform, validate, and extract values cleanly.
+Transform, validate, and extract values effortlessly once you have an `Either`.
 
-### Chaining Dependent Operations
+### Chain Operations Without Fear
 
-If you need to perform multiple fallible operations in a sequence, use `flatMap`. If any step returns a `Left`, the rest of the chain is skipped, and the error propagates to the end of the pipeline.
+Need to run fallible operations in sequence? Use `flatMap`. If one step fails, Daxle skips the rest and safely delivers the error to the end of the pipeline.
 
 ```dart
 Either<ConfigError, String> extractDatabaseUrl(String configPath) {
@@ -97,9 +97,9 @@ Either<ConfigError, String> extractDatabaseUrl(String configPath) {
 }
 ```
 
-### Transforming Errors
+### Translate Errors Easily
 
-Intermediate errors can be converted using `mapLeft`. This is particularly useful when translating lower-level exceptions or library errors into your high-level domain errors.
+Translate cryptic low-level exceptions into clear domain errors using `mapLeft`.
 
 ```dart
 // Convert a generic filesystem or network error to a domain-specific one
@@ -109,9 +109,9 @@ Either<DomainError, Data> processLocalFile(String path) {
 }
 ```
 
-### Unwrapping and Resolving Results
+### Resolve Your Results Safely
 
-At the end of your pipeline, you must handle both cases. The most common way to resolve an `Either` is by using `fold`. The `fold` method takes two functions: one for the `Left` (failure) case and one for the `Right` (success) case, returning a single merged result.
+Use `fold` to finalize your pipeline. It forces you to handle both success and failure cleanly, giving you absolute peace of mind.
 
 ```dart
 void applyConfig(String path) {
@@ -131,9 +131,9 @@ void applyConfig(String path) {
 
 ---
 
-## When to Use Either vs. Exceptions
+## Either vs. Exceptions: The Cheatsheet
 
-Using explicit errors does not mean you should never use `throw` or `try-catch`. They both have their places in a healthy codebase:
+Using explicit errors doesn't mean deleting `throw` or `try-catch`. They both have their places in a healthy codebase:
 
 | Scenario | Recommended Approach | Reason |
 | :--- | :--- | :--- |

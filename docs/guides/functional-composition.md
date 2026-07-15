@@ -4,20 +4,20 @@ outline: deep
 
 # Functional Composition
 
-Functional composition is the practice of building software by chaining together small, single-responsibility functions. Instead of writing imperative blocks of code with temporary variables and manual checks, you define a data pipeline where the output of one step becomes the input of the next.
+Functional composition lets you build powerful software by snapping together tiny, single-purpose functions. Forget messy variables and endless `if`-checks. Build seamless data pipelines where the output of one step flows perfectly into the next.
 
-Daxle provides a fluent API on its core types to make composing pipelines simple and readable.
+Daxle's fluent API makes writing these pipelines incredibly simple and wildly readable.
 
 ---
 
-## The Core Combinators
+## Your Pipeline Toolkit: Core Combinators
 
-To build pipelines, you need a set of tools to transform and direct values as they flow through your code. Daxle provides several key operators (combinators) to do this.
+Master these key operators (combinators) to transform and direct your data flows.
 
-### `map`
-Use `map` to transform a successful value inside a container. If the container is in a failure state (`Left` or `None`), the transformation is skipped entirely.
+### Transform with `map`
+Transform a successful value instantly. If you encounter a failure (`Left` or `None`), Daxle skips the work.
 
-* **When to use**: You have a successful value and want to apply a synchronous, infallible transformation.
+* **Why you need it**: You have a successful value and want to apply a safe, synchronous transformation.
 
 ```dart
 final Option<String> input = Option.some('  100  ');
@@ -27,10 +27,10 @@ final Option<int> doubled = input
     .map((num) => num * 2); // Some(200)
 ```
 
-### `flatMap`
-Use `flatMap` when the transformation itself can fail and returns another container (`Either`, `Option`, or `TaskEither`). Using `map` here would result in nested containers (like `Either<L, Either<L, R>>`), whereas `flatMap` flattens them.
+### Chain with `flatMap`
+Use `flatMap` when your next step might fail. It prevents messy, nested containers like `Either<L, Either<L, R>>` and keeps your chain perfectly flat.
 
-* **When to use**: You want to chain a dependent fallible operation or an asynchronous task.
+* **Why you need it**: You want to chain fallible operations or async tasks.
 
 ```dart
 // flatMap prevents nested Either types
@@ -44,10 +44,10 @@ Either<ParseError, int> parsePort(String input) {
 }
 ```
 
-### `ensure`
-Use `ensure` to check if a successful value satisfies a predicate. If it fails, the container transitions to a failure state with a fallback value.
+### Validate with `ensure`
+Check if a successful value meets your rules. If it fails, `ensure` immediately triggers a failure state with your fallback value.
 
-* **When to use**: You need to run validation checks on a value mid-pipeline.
+* **Why you need it**: You need instant, inline validation mid-pipeline.
 
 ```dart
 final Either<String, int> age = Either.right(25);
@@ -58,10 +58,10 @@ final validatedAge = age.ensure(
 );
 ```
 
-### `tap` and `tapLeft`
-Use `tap` (on success) and `tapLeft` (on failure) to execute side-effects like logging, analytics, or caching. They run your callback and return the original container unchanged.
+### Trigger Side-Effects with `tap`
+Run side-effects like logging or analytics without breaking your pipeline. `tap` handles successes; `tapLeft` handles failures.
 
-* **When to use**: You want to log, cache, or trigger external actions without affecting the pipeline's value.
+* **Why you need it**: You want to log data or trigger external systems without altering your pipeline's value.
 
 ```dart
 final task = TaskEither.right('file_data.csv')
@@ -69,10 +69,10 @@ final task = TaskEither.right('file_data.csv')
     .tapLeft((err) => logger.severe('Pipeline failed: $err'));
 ```
 
-### `fold`
-Use `fold` at the very end of your pipeline. It forces you to handle both failure and success cases, unwrapping the values inside the container.
+### Resolve with `fold`
+Unwrap your final values at the very end of the pipeline. `fold` forces you to handle both success and failure completely.
 
-* **When to use**: You are at the boundaries of your system (e.g., returning a response to a UI, writing a status code to an HTTP response) and need a raw value.
+* **Why you need it**: You're passing data out of your pipeline and need a raw value.
 
 ```dart
 final Either<Failure, Config> result = loadConfig();
@@ -85,11 +85,11 @@ final String statusMessage = result.fold(
 
 ---
 
-## Visualizing a Composition Pipeline
+## See the Pipeline in Action
 
-To understand how composition works, let's look at a pipeline that reads, parses, and validates a line from a configuration file.
+Let's see the massive difference composition makes when reading and validating a configuration file.
 
-Here is the imperative version using traditional Dart control flow:
+### The Old Way: Clunky Imperative Code
 
 ```dart
 // Imperative approach (hard to compose, relies on mutable variables)
@@ -107,7 +107,7 @@ Config? parseLogLine(String rawLine) {
 }
 ```
 
-Now here is the functional composition version using Daxle. Notice how it reads from top to bottom as a single declarative stream:
+### The Daxle Way: A Clean, Declarative Pipeline
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -144,9 +144,9 @@ Either<ConfigError, Config> parseConfigLine(String rawLine) {
 }
 ```
 
-### Type Flow Analysis
+### Watch the Data Flow
 
-Let's trace how the types transform at each step in the pipeline:
+Watch how your types transform at each safe, testable step:
 
 ```mermaid
 graph TD
@@ -169,4 +169,4 @@ graph TD
 6. We `.flatMap()` to parse the port and instantiate our `Config` object, yielding `Either<ConfigError, Config>`.
 7. We `.ensure()` that the port is not in a reserved range, yielding the final `Either<ConfigError, Config>`.
 
-By composing small, testable transformations, we created a safe, self-documenting data pipeline where errors are caught early and handled uniformly.
+By combining tiny transformations, you've built a bulletproof, self-documenting pipeline that catches errors instantly.

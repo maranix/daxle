@@ -4,17 +4,17 @@ outline: deep
 
 # Asynchronous Programming
 
-In Dart, asynchronous programming is centered around `Future` and `Stream`. While `Future` is excellent for single asynchronous operations, it has properties that make it difficult to compose and manage safely in complex applications. 
+Dart's built-in `Future` and `Stream` power asynchronous programming. But as your app grows, `Future`s become hard to compose, manage, and debug safely.
 
-Daxle introduces **`Task`** and **`TaskEither`** to bring safety, laziness, and execution control to your asynchronous workflows.
+Daxle gives you **`Task`** and **`TaskEither`**. These tools bring lazy execution, unshakeable safety, and total control back to your asynchronous workflows.
 
 ---
 
-## Eager vs. Lazy Execution
+## Take Control: Eager vs. Lazy Execution
 
-The key conceptual difference between Dart's `Future` and Daxle's `Task` is **execution timing**:
-* **`Future` is eager**: As soon as you create a `Future`, the Dart event loop schedules it for execution. It is already running.
-* **`Task` is lazy**: A `Task` is a description of an asynchronous computation. It does not start running until you explicitly call its `.run()` method.
+The biggest difference between Dart's `Future` and Daxle's `Task` is **when** they run:
+* **`Future` is eager**: Create a `Future`, and Dart runs it instantly. You lose control the moment you write it.
+* **`Task` is lazy**: A `Task` defines your workflow. It waits patiently until you explicitly call `.run()`. You decide exactly when it executes.
 
 Here is a comparison:
 
@@ -40,32 +40,32 @@ void main() async {
 }
 ```
 
-### Why Laziness Matters
+### Why You Need Lazy Execution
 
-Laziness separates **what** you want to do from **when** you want to do it. This provides major architectural benefits:
+Laziness splits **what** you want to do from **when** it happens. This unlocks massive architectural wins:
 
-1. **Safety**: You can construct complex pipelines of database reads, API requests, and validations without triggering side effects during the setup phase.
-2. **Reusability**: Because a `Task` is just a function wrapper, you can run it multiple times. A standard `Future` can only resolve once. If you want to retry a failed operation with a `Future`, you have to call the original function again. With a `Task`, you simply call `.run()` again on the same task instance.
-3. **Pipelining**: You can chain transformations together before executing them. The entire chain remains lazy and executes sequentially when triggered.
-
----
-
-## Task vs. TaskEither
-
-Daxle provides two lazy asynchronous types:
-
-* **`Task<T>`**: Represents an asynchronous computation that yields a value of type `T`. It does not provide explicit failure handling. If the underlying computation throws an exception, it propagates normally. Use `Task` when failures are represented as exceptions following normal Dart semantics.
-* **`TaskEither<L, R>`**: Represents an asynchronous computation that can fail. It wraps a function returning `Future<Either<L, R>>`. Use `TaskEither` for I/O and domain operations where failures are expected (e.g. database issues, server timeouts) and should be explicitly handled.
+1. **Bulletproof Safety**: Build complex pipelines—database reads, API calls, validations—without triggering accidental side effects during setup.
+2. **Infinite Reusability**: A standard `Future` resolves exactly once. If it fails, you must recreate it to retry. Because a `Task` simply wraps a function, you can run `.run()` as many times as you need on the same instance.
+3. **Seamless Pipelining**: Chain transformations easily before execution. Your entire chain stays lazy and runs sequentially on your command.
 
 ---
 
-## Common Anti-patterns and Mistakes
+## Choose Your Weapon: Task vs. TaskEither
 
-When moving from `Future`s to `Task`s, developers often make a few common mistakes.
+Daxle arms you with two lazy asynchronous types:
+
+* **`Task<T>`**: Delivers a guaranteed value of type `T`. It ignores explicit failure handling. If it throws an exception, standard Dart rules apply. Use `Task` when you treat failures as exceptions.
+* **`TaskEither<L, R>`**: Built for workflows that fail. It safely wraps operations returning `Future<Either<L, R>>`. Use `TaskEither` for network I/O, database queries, and any domain operation where you expect—and need to handle—failures explicitly.
+
+---
+
+## Stop Making These Mistakes
+
+Avoid these common traps when migrating from `Future`s to `Task`s.
 
 ### 1. Accidentally executing Futures eagerly
 
-If you create a `Future` outside of the `Task` factory function, it will start running immediately, defeating the benefit of lazy evaluation.
+If you launch a `Future` before defining your `Task`, it runs immediately. You instantly lose the benefits of lazy evaluation.
 
 ```dart
 // ❌ ANTI-PATTERN: The network call starts immediately!
@@ -84,7 +84,7 @@ final task = TaskEither.fromFuture(
 
 ### 2. Awaiting inside mapping operations
 
-Using `.map()` with an asynchronous function that returns a `Future` creates a nested `Task<Future<T>>` or `TaskEither<L, Future<R>>`. This is hard to read and handle.
+Don't use `.map()` with async functions. It spawns messy, nested types like `Task<Future<T>>` or `TaskEither<L, Future<R>>` that ruin readability. Use `flatMap` to keep your chains clean.
 
 ```dart
 // ❌ ANTI-PATTERN: Map returns a Future, creating nested types
@@ -98,7 +98,7 @@ final task = Task.right('id-123')
 
 ---
 
-## Practical Examples
+## See It in Action
 
 ### Chaining Async Operations Safely
 

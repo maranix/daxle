@@ -4,13 +4,17 @@ outline: deep
 
 # Error Recovery
 
-## Question
-**How do I recover from failures?**
+## How do you gracefully recover from failures without writing spaghetti code?
 
 ---
 
-## Problem
-In software engineering, operations fail for many reasons: network timeouts, read/write errors, or server issues. Writing fallback logic to handle these gracefully (e.g., try Server A, fallback to Server B, fallback to local disk, and finally default to hardcoded values) usually leads to nested blocks of try-catch handling where recovery logic gets buried.
+## The Trap of Deeply Nested Fallbacks
+
+Network timeouts happen. Servers crash. Disk reads fail. 
+
+To keep your app alive, you write fallback logic: *Try Server A. If that fails, try Server B. If that fails, read the local disk. If that fails, use defaults.*
+
+But in standard Dart, this creates a nightmare of nested `try-catch` blocks. Your actual recovery logic gets buried under layers of error-handling boilerplate.
 
 ```dart
 // Imperative fallback logic: hard to read, easy to miss exceptions, eager execution of code
@@ -37,8 +41,11 @@ Future<Config> loadConfigWithFallback() async {
 
 ---
 
-## Solution
-Use Daxle's `orElse`, `getOrElse`, and `fold` combinators. Since Daxle's tasks are lazy, fallback tasks are only executed if and when the preceding step fails, allowing you to define a declarative recovery chain.
+## The Solution: Build Declarative Recovery Chains
+
+You don't need nested `catch` blocks. Use Daxle's `orElse`, `getOrElse`, and `fold` combinators instead. 
+
+Because Daxle tasks evaluate lazily, your fallback tasks only execute when the previous step actually fails. This lets you write a clean, declarative chain of fallbacks.
 
 ```dart
 import 'dart:io';
@@ -84,7 +91,7 @@ TaskEither<ConfigError, Config> getConfigTask() {
 }
 ```
 
-Now, when executing the task, you can fold the result or supply a final fallback config:
+When you execute the task, just fold the result and provide your final default value:
 
 ```dart
 void main() async {
@@ -105,8 +112,8 @@ void main() async {
 
 ---
 
-## Why this solution works well with Daxle
+## Why You'll Love This Approach
 
-* **Lazy evaluation preserves resources**: With eager `Future` structures, you must be careful not to trigger requests in parallel unless you intend to. Daxle's `orElse` keeps the fallback tasks lazy. The network request to `fetchBackup()` and the disk read to `readLocalCache()` are only initiated if the primary task returns a `Left`.
-* **Clean, linear reading flow**: The recovery pipeline is expressed in a flat, natural chain of `.orElse()` statements rather than deeply nested `catch` brackets.
-* **Separation of concerns**: You can change the order of recovery or inject additional fallback steps (e.g. trying an environment variable fallback) by adding a single line to the pipeline without refactoring the rest of your error logic.
+* **Never Waste Resources**: Eager `Futures` can accidentally trigger parallel requests. Daxle's `orElse` keeps your fallbacks strictly lazy. The backup network request and disk read only execute if the primary task actually fails.
+* **Read Logic Like Plain English**: Your recovery pipeline becomes a flat, natural chain of `.orElse()` statements. Say goodbye to deep, unreadable `catch` brackets.
+* **Adapt to Changes Instantly**: Need to add a new fallback source? Just insert a single `.orElse()` line. You can reorder or expand your recovery steps without touching the rest of your error logic.

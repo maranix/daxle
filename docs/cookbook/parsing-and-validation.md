@@ -4,13 +4,15 @@ outline: deep
 
 # Parsing and Validation
 
-## Question
-**How do I safely parse and validate values without exceptions?**
+## How do you safely parse and validate data without leaking exceptions?
 
 ---
 
-## Problem
-In standard Dart, parsing unstructured values (like CSV rows or key-value config files) and validating them can quickly clutter your code with `try-catch` blocks and nested `if` statements.
+## The Mess of Manual Validation
+
+When you parse unstructured data—like CSV rows or raw configuration files—you have to validate it. In standard Dart, this means littering your code with `try-catch` blocks and deeply nested `if` statements.
+
+Before long, your business logic is buried, formatting exceptions get swallowed, and you lose critical details about why the validation actually failed.
 
 ```dart
 // Imperative validation: hard to read and easily lets exceptions escape
@@ -34,8 +36,11 @@ ThresholdConfig? parseAndValidate(String input) {
 
 ---
 
-## Solution
-Use `Either.tryCatch` to parse values safely, then use `ensure` to apply validation rules. This keeps the parsing and validation logic in a single, linear, compile-safe pipeline.
+## The Solution: Safe, Linear Validation Pipelines
+
+You can eliminate the clutter by using `Either.tryCatch` to safely parse values, followed by `ensure` to enforce your business rules. 
+
+This creates a single, highly readable pipeline that is guaranteed to be compile-safe.
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -93,7 +98,7 @@ Either<ValidationError, ThresholdConfig> parseThreshold(String input) {
 }
 ```
 
-Usage is clean and predictable:
+Usage becomes entirely predictable, with zero hidden exceptions:
 
 ```dart
 void main() {
@@ -117,8 +122,8 @@ void main() {
 
 ---
 
-## Why this solution works well with Daxle
+## Why You'll Love This Approach
 
-* **Unified pipeline**: Parsing (which can throw exceptions) and validation checks (which represent logical failures) are treated uniformly as inputs to `Either`.
-* **Zero exception leakage**: `Either.tryCatch` acts as a safe boundary, converting untyped runtime exceptions into explicit, typed compiler warnings.
-* **Separation of concerns**: The parsing logic, the validation rules, and the error definitions are decoupled, making them easy to test in isolation.
+* **Unify Your Flow**: Parsing errors (which throw exceptions) and validation errors (which fail logical checks) are treated exactly the same way. They both seamlessly feed into `Either`.
+* **Stop Exception Leaks Completely**: `Either.tryCatch` acts as a bulletproof boundary. It catches untyped runtime exceptions and instantly converts them into explicit, typed compiler warnings.
+* **Test with Confidence**: Because your parsing logic, validation rules, and error definitions are cleanly decoupled, you can easily test every single rule in isolation.

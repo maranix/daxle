@@ -4,30 +4,30 @@ outline: deep
 
 # Unit
 
-Representing the absence of a meaningful value in generic computations.
+Give your type-safe pipelines a clear way to succeed without returning data.
 
 ---
 
-## What is it?
+## What is Unit?
 
-`Unit` is a type that has exactly one value: the global constant `unit`. In functional programming, it is used to represent the return value of a computation or function that performs a side effect but doesn't need to return any actual data.
+`Unit` is a type that holds exactly one value: the global constant `unit`. 
 
-In standard Dart, you would use `void` for functions that don't return anything. However, because `void` is a keyword and not a proper type, it cannot be used as a generic type parameter (for instance, you cannot easily instantiate `Either<Failure, void>`). While `Future<void>` is allowed in Dart, `void` inside generic parameters behaves inconsistently and cannot be returned as a value. `Unit` solves this by being a standard Dart class with a single instance.
+In standard Dart, you use `void` to say "this function doesn't return anything." But `void` isn't a real object type. When you try to use it inside a generic container like `Either<Failure, void>`, Dart's type system fights you. `Unit` fixes this by giving you a real, tangible object to return when a side effect—like deleting a file or sending a log—succeeds, but produces no data.
 
 ---
 
-## Why use it?
+## Why you need it
 
-If you are using type-safe containers like `Option` or `Either`, you will frequently run into situations where an operation can fail, but if it succeeds, there is no value to return. 
+If you build reliable systems using containers like `Option` or `Either`, you frequently run into operations that can fail, but have nothing to say when they succeed.
 
-For example, when writing to a file, deleting a database record, or sending a log over the network:
-* **The failure case**: Returns a specific error object (e.g., `StorageException`).
-* **The success case**: Has no meaningful data to return. We just need to know it succeeded.
+Instead of fighting compiler warnings with `void` or breaking type safety with `null`, you simply return `unit`:
 
-If you try to use `void` (e.g., `Either<StorageException, void>`), Dart's type system will make it difficult to construct and compose values. By using `Unit` (e.g., `Either<StorageException, Unit>`), you can return the `unit` constant to signal success:
+* **Zero compiler warnings**: `Unit` plays perfectly with Dart's generic type parameters.
+* **Safer composition**: Chain your operations seamlessly.
+* **Clear intent**: Returning `unit` explicitly tells other developers, "This operation succeeded, and we are intentionally discarding the result."
 
 ```dart
-// Returns a Left with the exception, or a Right with unit
+// Returns a Left with the error, or a Right with unit
 Either<StorageException, Unit> deleteFile(String path) {
   try {
     File(path).deleteSync();
@@ -40,9 +40,9 @@ Either<StorageException, Unit> deleteFile(String path) {
 
 ---
 
-## Basic Example
+## See it in action
 
-Here is a simple example showing how `unit` is used in a file-writing operation. We want to write text to a file and return a result indicating success or failure.
+Here is how you use `unit` to handle a simple file-writing operation. 
 
 ```dart
 import 'dart:io';
@@ -78,11 +78,11 @@ void main() {
 
 ## Common Operations
 
-`Unit` has no methods other than an overridden `toString()`. The only common operation is returning or matching the `unit` constant.
+`Unit` is incredibly simple. It has no methods other than an overridden `toString()`. Your only job is to return it or match against it.
 
 ### Returning Unit
 
-Always return the predefined global `unit` constant instead of trying to instantiate `Unit`.
+Always return the predefined `unit` constant. Do not try to instantiate the class yourself.
 
 ```dart
 Either<String, Unit> performAction(bool shouldSucceed) {
@@ -94,9 +94,9 @@ Either<String, Unit> performAction(bool shouldSucceed) {
 }
 ```
 
-### Checking for Unit in Pattern Matching
+### Checking for Unit
 
-Since `Unit` is a final class, you can check for it using Dart's pattern matching.
+Because `Unit` is a final class, you can check for it flawlessly using Dart's pattern matching.
 
 ```dart
 void handleResult(Either<String, Unit> result) {
@@ -111,68 +111,35 @@ void handleResult(Either<String, Unit> result) {
 
 ---
 
-## Composition
+## Compose with ease
 
-`Unit` is highly useful when composing multiple operations where we discard intermediate results but want to keep track of execution success.
-
-For example, copying a file and then logging the operation:
+`Unit` shines when you chain multiple side effects together. You can execute tasks, discard their intermediate results, and keep your pipeline moving forward.
 
 ```dart
 TaskEither<FileError, Unit> copyAndLog(String src, String dest) {
-  return copyFileTask(src, dest) // TaskEither<FileError, Unit>
-      .flatMap((_) => writeLogTask(dest)); // Chains another TaskEither returning Unit
+  return copyFileTask(src, dest) 
+      .flatMap((_) => writeLogTask(dest)); // Chain the next operation
 }
 ```
-
-In the example above, `flatMap` expects a function that takes the success value of `copyFileTask`. Since `copyFileTask` returns `Unit`, we can discard it using `_` and proceed with the next task.
 
 ---
 
 ## Best Practices
 
-* **Use the global constant**: Always use the lowercase global constant `unit`. Never try to instantiate the `Unit` class (its constructor is private anyway).
-* **Use for side effects**: Use `Unit` as the success type parameter in `Either` or `TaskEither` when the underlying operation is executed purely for its side effects (e.g., database writes, file deletes, cache clearing).
-* **Represent as `()`**: Note that `unit.toString()` returns `'()'`. This aligns with other languages like Rust or Swift where the unit type is represented as an empty tuple.
+* **Always use the constant**: Stick to the lowercase `unit`. 
+* **Use for side effects**: Pair `Unit` with `Either` or `TaskEither` when your function performs a database write, file deletion, or cache clear.
+* **Expect `()` in logs**: `unit.toString()` returns `'()'`. This matches the convention of other modern languages like Rust and Swift.
 
 ---
 
 ## Common Mistakes
 
-* **Trying to use `void` inside generic containers**: Writing `Either<Failure, void>` will cause compiler warnings or runtime issues because `void` cannot be treated as a regular object type in many contexts. Use `Either<Failure, Unit>` instead.
-* **Using `null` as a placeholder**: Returning `Either.right(null)` is discouraged unless `null` is a valid domain value. It bypasses type safety and defeats the purpose of avoiding nullability issues.
-
----
-
-## When to Use
-
-* Use `Unit` when a generic type parameter requires a type, but the operation returns no meaningful data (e.g., `Either<L, Unit>`, `Task<Unit>`, `Option<Unit>`).
-* Use `Unit` to signal the successful completion of a side-effecting function in a pipeline.
-
----
-
-## API Overview
-
-### Classes
-
-| Class | Description |
-|---|---|
-| `Unit` | A final class representing a type with a single value. |
-
-### Constants
-
-| Constant | Type | Description |
-|---|---|---|
-| `unit` | `Unit` | The single global instance of the `Unit` type. |
-
-### Methods
-
-| Method | Return Type | Description |
-|---|---|---|
-| `toString()` | `String` | Returns `'()'`, representing the unit value. |
+* **Forcing `void` into generics**: Writing `Either<Failure, void>` creates brittle code and compiler warnings. Let `Unit` do the heavy lifting instead.
+* **Falling back to `null`**: Returning `Either.right(null)` bypasses type safety. Use `unit` to keep your domains strict and predictable.
 
 ---
 
 ## Related Types
 
-* [Either](either) - Commonly paired with `Unit` (e.g., `Either<L, Unit>`) to represent fallible side effects.
-* [TaskEither](task-either) - Commonly paired with `Unit` (e.g., `TaskEither<L, Unit>`) to represent asynchronous fallible side effects.
+* [Either](either) - Pair with `Unit` to model fallible side effects (`Either<L, Unit>`).
+* [TaskEither](task-either) - Pair with `Unit` to model asynchronous, fallible side effects (`TaskEither<L, Unit>`).

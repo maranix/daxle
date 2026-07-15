@@ -4,16 +4,16 @@ outline: deep
 
 # Best Practices
 
-Adopting functional types like `Either`, `Option`, and `Task` can significantly improve code safety and predictability. However, without guidelines, codebases can become hard to read due to nested logic, poor naming, or inappropriate type choices.
+Daxle's functional types—`Either`, `Option`, and `Task`—make your code safer and more predictable. But without a clear strategy, you risk creating tangled, unreadable code.
 
-This guide provides practical recommendations for writing clean, maintainable, and idiomatic Daxle code.
+Follow these practical guidelines to write clean, maintainable, and idiomatic Daxle code that your team will love.
 
 ---
 
-## 1. Naming Conventions
+## 1. Write Code That Reads Like English
 
 ### Let the Return Type Speak
-When writing functions that return Daxle types, use standard, active verbs. You do not need to add prefixes or suffixes like `Task` or `Either` to the function name, as the return type already conveys this information.
+When returning Daxle types, use strong, active verbs. Skip the `Task` or `Either` suffixes—the return type already tells you exactly what to expect.
 
 ```dart
 // ❌ AVOID: Adding type jargon to function names
@@ -24,7 +24,7 @@ TaskEither<NetworkError, String> fetchHtml(String url) { ... }
 ```
 
 ### Distinguish Between Eager and Lazy Actions
-If you have a function that executes immediately (returns a `Future`) alongside a function that is lazy (returns a `Task` or `TaskEither`), use clear descriptors (like `Run` or `Safe`) to distinguish them.
+Mixing immediate `Future`s with lazy `Task`s? Use clear adjectives like `Run` or `Safe` to instantly tell them apart.
 
 ```dart
 // Returns an eager Future (can throw exceptions)
@@ -36,9 +36,9 @@ TaskEither<ConfigError, Unit> writeConfigSafe(Config config) { ... }
 
 ---
 
-## 2. Choosing the Right Type
+## 2. Pick the Perfect Type
 
-Choosing the correct type keeps your APIs simple and prevents overhead.
+Choosing the right type keeps your API snappy and lightweight.
 
 ```mermaid
 graph TD
@@ -58,9 +58,9 @@ graph TD
     G -->|No| J["Plain Dart T"]
 ```
 
-### Option vs. Either
-* Use **`Option<T>`** when a value might be absent as part of normal program flow, and the *reason* for its absence is either obvious or irrelevant.
-* Use **`Either<L, R>`** when an operation can fail, and you need to explain *why* it failed using a specific error object or code.
+### When to Use Option vs. Either
+* Grab **`Option<T>`** when an absent value is normal program flow. You don't need to explain *why* it's missing.
+* Grab **`Either<L, R>`** when an operation fails and you must explain *why* using a precise error object or code.
 
 ```dart
 // ❌ AVOID: Using Either when no failure context is needed
@@ -70,17 +70,17 @@ Either<Unit, String> getMiddleName(User user) { ... }
 Option<String> getMiddleName(User user) { ... }
 ```
 
-### Task vs. TaskEither
-* Use **`Task<T>`** for lazy asynchronous operations where failures are either impossible or represent developer bugs that should throw standard Dart exceptions.
-* Use **`TaskEither<L, R>`** for all I/O, network requests, database queries, and parser executions where asynchronous failures are expected and must be handled.
+### When to Use Task vs. TaskEither
+* Choose **`Task<T>`** for lazy async operations that simply cannot fail, or when failures are developer bugs that should crash loudly as standard exceptions.
+* Choose **`TaskEither<L, R>`** for all I/O—database queries, network requests, and file reads. If it can fail asynchronously, handle it safely with `TaskEither`.
 
 ---
 
-## 3. Avoid Unnecessary Nesting
+## 3. Flatten Your Pipelines
 
-A common mistake is calling `.fold()` in the middle of a pipeline and returning another container. This introduces indentation and ruins the readability of your composition chain.
+Calling `.fold()` mid-pipeline creates deep nesting and destroys readability. Keep your chains perfectly flat.
 
-### The Nested "Fold" Anti-pattern
+### The Trap: Nested Folds
 
 ```dart
 // ❌ AVOID: Nested folds that cause callback nesting
@@ -97,9 +97,9 @@ TaskEither<ConfigError, Unit> updatePort(String path, String portInput) {
 }
 ```
 
-### The Flattened Pipeline
+### The Fix: Keep It Flat
 
-Instead of folding mid-pipeline, convert your inner types using combinators like `flatMap` and `TaskEither.fromEither` or `TaskEither.fromEither(Option.fold...)` to keep the chain flat.
+Instead of folding in the middle, use combinators like `flatMap` and `TaskEither.fromEither` to keep your pipeline completely flat and readable.
 
 ```dart
 //  PREFER: Converting and chaining flat operations
@@ -118,13 +118,13 @@ TaskEither<ConfigError, Unit> updatePortFlat(String path, String portInput) {
 
 ---
 
-## 4. Catch Exceptions at System Boundaries
+## 4. Trap Exceptions at the Boundary
 
-Standard Dart packages and core libraries throw exceptions (e.g. `SocketException`, `FormatException`). 
+Standard libraries throw exceptions (e.g. `SocketException`, `FormatException`). 
 
-**Never let raw exceptions leak into your domain or business logic layers.**
+**Never let them leak into your clean business logic.**
 
-Wrap them in `Either.tryCatch` or `TaskEither.fromFuture` at the lowest possible layer (e.g. at the HTTP client or Database helper level) and map them to explicit domain errors.
+Wrap them in `Either.tryCatch` or `TaskEither.fromFuture` at the lowest possible layer (like your HTTP client or Database helper). Map them directly to clear domain errors.
 
 ```dart
 // ❌ AVOID: Leaking exceptions from helper layers
@@ -144,4 +144,4 @@ class SafeNetworkService {
 }
 ```
 
-This keeps your business logic clean, predictable, and 100% free of uncaught runtime crashes.
+This guarantees your business logic stays pure, predictable, and 100% crash-free.

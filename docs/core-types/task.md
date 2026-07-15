@@ -4,15 +4,16 @@ outline: deep
 
 # Task
 
-Representing a lazy asynchronous computation.
+Take absolute control over when and how your asynchronous operations execute.
 
 ---
 
-## What is it?
+## What is Task?
 
-`Task<T>` represents an asynchronous computation that yields a value of type `T`. Unlike Dart's standard `Future`, which executes immediately upon creation, a `Task` is **lazy**: it encapsulates the async operation and defers its execution until you explicitly call `run()`.
+A `Task<T>` gives you a lazy, reproducible asynchronous operation that produces a value of type `T`.
 
-Under the hood, a `Task<T>` is simply a wrapper around a function that returns a `Future`:
+Standard Dart `Future`s are eager—they start running the exact moment you create them. A `Task` waits. It wraps your future inside a function and completely defers execution until you explicitly pull the trigger by calling `.run()`.
+
 ```dart
 final class Task<T> {
   final Future<T> Function() _run;
@@ -22,54 +23,52 @@ final class Task<T> {
 
 ---
 
-## Why use it?
+## Why you need it
 
-Standard Dart `Future`s are eager. As soon as you instantiate a future, the runtime schedules it for execution. This makes it difficult to compose async operations or reuse them safely.
+Eager execution strips you of control. When a network request fires immediately, you lose the ability to easily delay it, retry it, or weave it safely into complex workflows.
 
-With `Task`, you gain three main advantages:
+`Task` hands the control back to you:
 
-1. **Explicit Execution Control**: You define *what* will happen, and separate it from *when* it happens.
-2. **Easy Retries & Delays**: Since a `Task` is just a description of a computation, you can run it multiple times or delay its start without needing to recreate the pipeline from scratch.
-3. **Safe Composition**: You can chain multiple tasks together (`map`, `flatMap`) to build complex workflows. The entire pipeline remains lazy and does not start running until the final task's `run()` is called.
-
-Compare eager futures with lazy tasks:
+1. **Total Execution Control**: Separate *what* your code does from *when* it does it. Build your entire pipeline first, then execute it on your terms.
+2. **Effortless Retries & Delays**: A `Task` is just a description of work. You can rerun it multiple times or pause it without rebuilding the logic from scratch.
+3. **Bulletproof Composition**: Chain operations securely using `map` and `flatMap`. The entire sequence stays dormant until you are ready.
 
 ```dart
-// Eager: The network request starts immediately.
+// Eager: The network request fires instantly.
 final future = fetchUserData('user-123'); 
 
-// Lazy: The network request is defined but does NOT start.
+// Lazy: The work is defined, but nothing happens yet.
 final task = Task(() => fetchUserData('user-123')); 
 
-// ... later ...
-final data = await task.run(); // Execution starts here.
+// ... execution happens exactly when you say so.
+final data = await task.run(); 
 ```
 
 ---
 
-## Basic Example
+## See it in action
 
-Here is a simple example showing how to read a file lazily. We define the task, chain a mapping operation to parse its contents, and then run it.
+Here is how you lazily define a file read operation, chain a transformation to it, and finally run the pipeline.
 
 ```dart
 import 'dart:io';
 import 'package:daxle/daxle.dart';
 
-// 1. Define a lazy task to read a file
+// 1. Define the work lazily
 final readLogTask = Task(() async {
   print('Executing file read...');
   return await File('app.log').readAsString();
 });
 
 void main() async {
-  // 2. Chain a transformation (still lazy, nothing has run yet)
+  // 2. Chain a transformation (still completely lazy)
   final wordCountTask = readLogTask.map((content) {
     return content.split(RegExp(r'\s+')).length;
   });
 
   print('Pipeline configured.');
 
-  // 3. Trigger the execution
+  // 3. Pull the trigger
   final count = await wordCountTask.run();
   
   print('Log word count: $count');
@@ -80,9 +79,9 @@ void main() async {
 
 ## Common Operations
 
-### Creating Tasks
+### Create a Task
 
-Create a task by wrapping an asynchronous function that returns a `Future`:
+Wrap your async work in a function that returns a `Future`:
 
 ```dart
 final task = Task(() async {
@@ -91,38 +90,37 @@ final task = Task(() async {
 });
 ```
 
-### Running Tasks
+### Run a Task
 
-Execute the deferred asynchronous computation using `run()`. This returns a standard Dart `Future`:
+Trigger the deferred computation. This gives you back a standard Dart `Future`:
 
 ```dart
 final Future<String> future = task.run();
 final result = await future;
 ```
 
-### Transforming Tasks (`map` / `flatMap`)
+### Chain and Transform (`map` / `flatMap`)
 
-You can map and chain tasks. None of the transformations run immediately; they are all queued up to run sequentially when `run()` is called.
+Shape your data as it flows through the pipeline. None of these transformations run until you call `run()`.
 
 ```dart
 final readTask = Task(() async => '{"id": 100, "status": "active"}');
 
-// map: Transforms the output synchronously
+// map: Shape the output synchronously
 final statusTask = readTask.map((json) => json.contains('active') ? 'ONLINE' : 'OFFLINE');
 
-// flatMap: Chains another asynchronous Task based on the output of the first
+// flatMap: Chain to another async Task seamlessly
 final notifyTask = statusTask.flatMap((status) {
   return Task(() async {
-    // Send status to another service
     await sendStatusUpdate(status);
     return 'Notification sent';
   });
 });
 ```
 
-### Side Effects (`tap`)
+### Add Safe Side Effects (`tap`)
 
-Execute synchronous or asynchronous side-effects (like logging or updating local variables) without altering the value flowing through the pipeline:
+Log data or update variables without disrupting your pipeline:
 
 ```dart
 final task = Task(() async => 'Log message data');
@@ -132,12 +130,12 @@ final tappedTask = task.tap((data) async {
 });
 ```
 
-### Batch Operations (`sequence` / `traverse`)
+### Execute in Batch (`sequence` / `traverse`)
 
-Run multiple tasks sequentially (one after another):
+Run arrays of tasks efficiently:
 
-* `sequence`: Converts a list of `Task`s into a single `Task` returning a list of values.
-* `traverse`: Maps an iterable of items to `Task`s and runs them sequentially.
+* `sequence`: Runs a list of tasks one by one, gathering the results.
+* `traverse`: Maps your data into tasks and runs them sequentially.
 
 ```dart
 final tasks = [
@@ -145,13 +143,12 @@ final tasks = [
   Task(() async => 'Task B'),
 ];
 
-// sequence: Runs Task A, awaits it, then runs Task B, awaits it.
+// Runs Task A, waits, then runs Task B
 final Task<List<String>> batch = Task.sequence(tasks);
-final results = await batch.run(); // ['Task A', 'Task B']
+final results = await batch.run(); 
 
-
-final paths = ['log1.txt', 'log2.txt', 'log3.txt'];
-// traverse: Safely maps and processes paths one by one
+// Maps paths to tasks and runs them safely
+final paths = ['log1.txt', 'log2.txt'];
 final Task<List<int>> byteCounts = Task.traverse(
   paths,
   (path) => Task(() => File(path).length()),
@@ -160,90 +157,44 @@ final Task<List<int>> byteCounts = Task.traverse(
 
 ---
 
-## Composition
-
-`Task` is often composed with collections or other transformations. Below, we read files from a directory list and collect their sizes:
-
-```dart
-Task<List<int>> getFileSizes(List<String> paths) {
-  return Task.traverse(paths, (path) {
-    return Task(() => File(path).length());
-  });
-}
-```
-
----
-
 ## Best Practices
 
-* **Always Wrap Closures**: Ensure you pass an anonymous function returning a future (`() => ...`) to the `Task` constructor. Never pass an already-running future.
-* **Keep Side-Effects Inside the Pipeline**: Avoid running side-effects outside of the `Task` lifecycle. If you need to perform logs or state updates, chain them with `.tap()`.
-* **Defer Execution to the Edge**: Keep your business logic returning `Task` instances. Only run them at the last possible moment, such as inside controller actions, main functions, or UI event handlers.
+* **Always pass a closure**: Always write `Task(() => ... )`. Never pass an already-running future directly into the constructor.
+* **Keep side effects contained**: Use `.tap()` to handle logs or analytics. Don't leak side effects outside the pipeline.
+* **Push execution to the edges**: Keep your core business logic returning `Task` objects. Only call `.run()` at the very edge of your app—like in your UI handlers or main functions.
 
 ---
 
 ## Common Mistakes
 
-* **Capturing Eager Futures**:
+* **Accidentally running eager futures**:
   ```dart
-  // AVOID: This starts running immediately!
+  // AVOID: This fires immediately!
   final future = myAsyncCall();
   final task = Task(() => future); 
   
-  // PREFER: Defer execution by passing a lambda
+  // PREFER: True lazy execution
   final task = Task(() => myAsyncCall());
   ```
-* **Forgetting to Call `run()`**: Because a `Task` is lazy, if you write `task.map(...)` without calling `await task.run()`, the underlying future will never execute.
-* **Ignoring Exceptions**: Standard `Task` does not have built-in exception catching. If the wrapped function throws, the exception will propagate when `run()` is called. If you need type-safe async error handling, use `TaskEither`.
+* **Forgetting the trigger**: Because `Task` is lazy, writing `task.map(...)` does nothing on its own. You must call `await task.run()` to start the engine.
+* **Ignoring errors**: `Task` does not catch exceptions automatically. If you expect your async work to fail, upgrade to `TaskEither`.
 
 ---
 
-## When to Use
+## When to use Task
 
-* When you want to construct complex asynchronous pipelines without eagerly triggering execution.
-* When executing tasks sequentially matters (e.g., writing sequential logs to a file).
-* When exceptions are handled at a higher level or are not a core part of the domain logic.
+* When building complex asynchronous workflows that shouldn't fire immediately.
+* When sequential execution is critical.
+* When errors are already handled elsewhere in your architecture.
 
-### When NOT to Use
+### When to look elsewhere
 
-* For simple async calls where you want to fetch something immediately and render it (e.g., standard Flutter `FutureBuilder` works best with standard eager `Future`s).
-* When failures are common and need to be explicitly checked by type. In those cases, use `TaskEither`.
-
----
-
-## API Overview
-
-### Classes
-
-| Class | Description |
-|---|---|
-| `Task<T>` | Final class representing a lazy asynchronous computation producing a value of type `T`. |
-
-### Constructors
-
-| Constructor | Description |
-|---|---|
-| `Task(Future<T> Function() run)` | Wraps an asynchronous computation in a lazy `Task`. |
-
-### Methods
-
-| Method | Return Type | Description |
-|---|---|---|
-| `run()` | `Future<T>` | Executes the deferred asynchronous computation. |
-| `map<R>(R Function(T) f)` | `Task<R>` | Transforms the task's output value synchronously. |
-| `flatMap<R>(Task<R> Function(T) f)` | `Task<R>` | Chains another lazy asynchronous computation. |
-| `tap(FutureOr<void> Function(T) callback)` | `Task<T>` | Runs a callback on the output without modifying the value. |
-
-### Static Methods
-
-| Method | Return Type | Description |
-|---|---|---|
-| `sequence<R>(Iterable<Task<R>> tasks)` | `Task<List<R>>` | Runs a list of tasks sequentially and collects the results. |
-| `traverse<A, B>(Iterable<A> items, Task<B> Function(A) mapper)` | `Task<List<B>>` | Maps an iterable to tasks and executes them sequentially. |
+* If you just need to fetch data immediately for a simple Flutter `FutureBuilder`, standard `Future`s are fine.
+* If your operation is prone to failure (like network calls), switch to `TaskEither` for ironclad error handling.
 
 ---
 
 ## Related Types
 
-* [TaskEither](task-either) - The fail-safe variant of `Task`, returning an `Either` containing errors or results.
-* [Either](either) - The synchronous counterpart for representing success/failure outcomes.
+* [TaskEither](task-either) - The fail-safe variant of `Task`.
+* [Either](either) - The synchronous counterpart for success/failure modeling.

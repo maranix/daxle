@@ -4,15 +4,20 @@ outline: deep
 
 # Building Asynchronous Pipelines
 
-## Question
-**How do I compose multiple asynchronous operations cleanly?**
+## How do you compose multiple asynchronous operations cleanly?
 
 ---
 
-## Problem
-In a typical Dart backend or CLI utility, you often need to chain several asynchronous operations together—such as reading a file, sending its contents over the network, and saving a confirmation status to a database. 
+## The Nightmare of Nested Try-Catch Blocks
 
-Mixing eager `Future` calls from different libraries usually results in nested `try-catch` blocks, making it difficult to figure out where an exception originated, and hard to stop the pipeline when an early step fails.
+If you build Dart backends or CLI tools, you chain asynchronous operations all the time. You read a file, send the data over a network, and save a status to your database. 
+
+But when you mix eager `Future` calls from different libraries, you quickly end up with nested `try-catch` blocks. 
+
+This creates three immediate problems:
+1. You can't easily see where an exception started.
+2. You struggle to stop the pipeline when an early step fails.
+3. Your code becomes a wall of unreadable, imperative spaghetti.
 
 ```dart
 // Imperative async composition: verbose, hard to track failures, leaks exceptions
@@ -44,8 +49,13 @@ Future<void> runTelemetryPipeline(String path) async {
 
 ---
 
-## Solution
-Wrap each asynchronous step in a `TaskEither` and compose them into a flat, sequential pipeline using `flatMap` and `tap`. The pipeline will execute lazily, and if any step fails, it will immediately halt and return the specific error.
+## The Solution: Build Flat, Sequential Pipelines
+
+Instead of fighting `Future` objects, wrap each asynchronous step in a `TaskEither`. 
+
+Then, compose your operations into a flat pipeline using `flatMap` and `tap`. 
+
+Your pipeline now executes lazily. If any step fails, execution halts immediately and hands you the exact error you need to fix.
 
 ```dart
 import 'dart:io';
@@ -104,7 +114,7 @@ TaskEither<PipelineError, Unit> buildPipeline(String path) {
 }
 ```
 
-To run this pipeline, you simply call `.run()` and await the result:
+To run this pipeline, just call `.run()` and await the result:
 
 ```dart
 void main() async {
@@ -122,9 +132,9 @@ void main() async {
 
 ---
 
-## Why this solution works well with Daxle
+## Why You'll Love This Approach
 
-* **Flat, readable flow**: The code reads from top to bottom. There are no nested indentation blocks or multiple levels of `try-catch` structures.
-* **Granular type safety**: Each step declares its own failure type, yet they are all unified under the parent `PipelineError` sealed class. The compiler ensures you handle every possible error outcome.
-* **Implicit short-circuiting**: You do not need to check `if (succeeded)` after each step. If `uploadTelemetry` fails, Daxle automatically skips `recordTelemetrySuccess` and returns the upload error.
-* **Execution deferral**: The entire sequence is composed but does not run until `.run()` is called. This makes it trivial to trigger, delay, or retry the entire pipeline.
+* **Read Code Like a Book**: Your logic flows from top to bottom. You completely eliminate nested indentation and messy `try-catch` structures.
+* **Catch Errors at Compile Time**: Each step declares its exact failure type, all unified under a sealed class. The compiler forces you to handle every possible error before your code even runs.
+* **Stop Wasting Execution Time**: If an early step fails, Daxle automatically skips the rest. You don't have to write manual `if (succeeded)` checks.
+* **Control Exactly When Code Runs**: Daxle composes the entire sequence but waits for you to call `.run()`. This gives you the power to trigger, delay, or retry your pipeline exactly when you want.

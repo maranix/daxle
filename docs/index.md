@@ -3,42 +3,47 @@ layout: home
 
 hero:
   name: Daxle
-  text: The missing companion to Dart's standard library.
-  tagline: Expressive, type-safe, and composable abstractions that feel native to Dart.
+  text: Build predictable Dart apps without the boilerplate.
+  tagline: Replace defensive null-checks and untracked exceptions with expressive, type-safe pipelines that feel native to Dart.
   actions:
     - theme: brand
-      text: Get Started
+      text: Start Writing Safer Code
       link: /getting-started/introduction
     - theme: alt
-      text: GitHub
+      text: View on GitHub
       link: https://github.com/maranix/daxle
 
 features:
-  - title: Native & Approachable
-    details: Designed specifically for modern Dart. Leveraging sealed classes, exhaustive pattern matching, and shorthand constructors to feel like a natural extension of the language.
-  - title: Composable Pipelines
-    details: Swap complex nesting, statements, and mutable state for clean, linear pipelines. Chain calculations effortlessly using map, flatMap, and fold.
-  - title: Explicit Error Handling
-    details: Stop relying on unhandled exceptions and side-effects. Use Either to model success and failure as first-class values, enforcing compile-time safety.
-  - title: Lazy Async Computations
-    details: Defer asynchronous work with Task and TaskEither. Build pipelines that act as blueprints, executing or recovering only when you explicitly call run().
-  - title: Safer Null Handling
-    details: Go beyond nullable types (T?). Option offers an expressive API to filter, chain, and transform optional states, reducing the cognitive load of defensive null-checks.
-  - title: Predictable Control Flow
-    details: Write code that is simple to test and reason about. Localize your error handling and side effects, making your control flow deterministic.
+  - title: End Defensive Null-Checking
+    details: Stop littering your code with `if (value == null)`. Use `Option` to gracefully chain and transform optional data without the cognitive load.
+  - title: Catch Errors at Compile-Time
+    details: Stop relying on untracked exceptions that crash in production. Use `Either` to make failure a first-class value the compiler forces you to handle.
+  - title: Chain Logic, Not If-Statements
+    details: Swap complex nesting and mutable state for clean, linear pipelines. Chain your business logic effortlessly using `map`, `flatMap`, and `fold`.
+  - title: Take Control of Async Work
+    details: Standard Futures run immediately. `Task` and `TaskEither` act as lazy blueprints, making it trivial to compose, retry, and safely recover from network failures.
+  - title: Feels Like Native Dart
+    details: Designed specifically for modern Dart. Daxle leverages sealed classes and exhaustive pattern matching so you never feel like you're fighting the language.
+  - title: Test with Confidence
+    details: Localize your side effects and error handling. Write deterministic code that is simple to reason about and a joy to test.
 ---
 
 ## Why Daxle?
 
-Dart's standard library is incredibly capable. However, as applications scale in complexity, business logic often gets buried under boilerplate. Developers find themselves constantly writing defensive null checks, guarding against untracked runtime exceptions, and juggling eager asynchronous states.
+Dart's standard library is incredibly capable. But as your application grows, your core business logic often gets buried under noise. 
 
-**Daxle** provides the building blocks you need to write robust, declarative code without introducing heavy academic paradigms. By treating errors and missing data as first-class values, Daxle helps you create clean, predictable pipelines that naturally reveal your code's intent.
+Are you tired of:
+- Guessing which functions might throw untracked exceptions?
+- Writing the same defensive null-checks over and over?
+- Juggling eager async states that are hard to compose and retry?
+
+**Daxle** fixes this. It provides the building blocks you need to write robust, declarative code without introducing confusing academic jargon. By treating errors and missing data as values, Daxle helps you create clean pipelines that reveal exactly what your code is trying to do.
 
 ---
 
 ## See it in Action
 
-Don't just take our word for it. Here is how Daxle transforms typical, defensive Dart patterns into elegant and type-safe pipelines.
+Don't just take our word for it. Here is how Daxle transforms typical, fragile Dart patterns into elegant and unbreakable pipelines.
 
 ### 1. Safe Optional Chaining
 
