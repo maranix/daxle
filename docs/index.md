@@ -23,64 +23,59 @@ features:
   - title: Lazy Async Computations
     details: Defer asynchronous work with Task and TaskEither. Build pipelines that act as blueprints, executing or recovering only when you explicitly call run().
   - title: Safer Null Handling
-    details: Go beyond nullable types (T?). Option offers an expressive API to filter, chain, and transform optional states, making invalid states unrepresentable.
+    details: Go beyond nullable types (T?). Option offers an expressive API to filter, chain, and transform optional states, reducing the cognitive load of defensive null-checks.
   - title: Predictable Control Flow
     details: Write code that is simple to test and reason about. Localize your error handling and side effects, making your control flow deterministic.
 ---
 
 ## Why Daxle?
 
-Dart's standard library is incredibly capable, but as codebases grow, reliability and readability can suffer from defensive patterns: nested null-checks, manual exception handling, and implicit side-effects.
+Dart's standard library is incredibly capable. However, as applications scale in complexity, business logic often gets buried under boilerplate. Developers find themselves constantly writing defensive null checks, guarding against untracked runtime exceptions, and juggling eager asynchronous states.
 
-**Daxle** (derived from **Dart** + **Axle**) acts as the missing connector. Just as an axle connects wheels and enables motion, Daxle links your application logic with expressive, type-safe primitives that keep your code moving forward cleanly.
+**Daxle** provides the building blocks you need to write robust, declarative code without introducing heavy academic paradigms. By treating errors and missing data as first-class values, Daxle helps you create clean, predictable pipelines that naturally reveal your code's intent.
 
-Instead of introducing academic paradigms, Daxle embraces Dart's modern features—like sealed classes, pattern matching, and type inference—to provide developers with the building blocks they need to write safer, more predictable code that looks and feels native to the language.
+---
 
-## Elegant & Expressive APIs
+## See it in Action
 
-See how Daxle transforms typical Dart patterns into clean, linear, and type-safe pipelines.
+Don't just take our word for it. Here is how Daxle transforms typical, defensive Dart patterns into elegant and type-safe pipelines.
 
-### Safe Optional Chaining
+### 1. Safe Optional Chaining
 
-Avoid nested null-checks and intermediate variables. Use `Option` to safely chain transformations and filter values.
+Standard Dart relies on early returns and repetitive null-checking when transforming optional values. Daxle's `Option` allows you to chain operations gracefully, keeping the focus entirely on your logic.
 
 ::: code-group
 ```dart [Daxle]
 import 'package:daxle/daxle.dart';
 
-// Parse and filter a port configuration securely
-Option<int> getValidPort(String? rawInput) {
-  return .fromNullable(rawInput)
-      .flatMap((s) => .fromNullable(int.tryParse(s)))
-      .filter((p) => p >= 1024 && p <= 65535);
-}
+// Clean, declarative, and focused on the intent
+Option<int> parseValidPort(Map<String, String> env) {
+  final port = int.tryParse(env['PORT'] ?? '');
 
-void main() {
-  final port = getValidPort("8080").getOrElse(80);
-  print('Port: $port'); // Port: 8080
+  return .fromNullable(port)
+      .filter((p) => p >= 1024 && p <= 65535);
 }
 ```
 
 ```dart [Standard Dart]
-// Requires manual null checks and intermediate variables
-int? getValidPort(String? rawInput) {
-  if (rawInput == null) return null;
-  final parsed = int.tryParse(rawInput);
-  if (parsed == null) return null;
-  if (parsed < 1024 || parsed > 65535) return null;
-  return parsed;
-}
-
-void main() {
-  final port = getValidPort("8080") ?? 80;
-  print('Port: $port'); // Port: 8080
+// Visually noisy with defensive conditions
+int? parseValidPort(Map<String, String> env) {
+  final raw = env['PORT'];
+  if (raw == null) return null;
+  
+  final port = int.tryParse(raw);
+  if (port == null || port < 1024 || port > 65535) {
+    return null;
+  }
+  
+  return port;
 }
 ```
 :::
 
-### Explicit Error Handling
+### 2. Explicit Error Handling
 
-Model errors as values instead of throwing unhandled exceptions. Pattern-match exhaustively at compile-time to guarantee every failure case is handled.
+Instead of throwing untracked exceptions that could crash your app at runtime, Daxle uses `Either` to return errors as values. This forces you to handle failure cases explicitly at compile-time.
 
 ::: code-group
 ```dart [Daxle]
@@ -93,13 +88,11 @@ Either<String, double> safeDivide(double a, double b) {
 void main() {
   final result = safeDivide(10, 0);
 
-  // Enforced exhaustive matching
+  // The compiler ensures both cases are handled exhaustively
   final message = switch (result) {
     Left(value: final error) => 'Failed: $error',
     Right(value: final value) => 'Success: $value',
   };
-  
-  print(message); // Failed: Division by zero
 }
 ```
 
@@ -110,51 +103,51 @@ double safeDivide(double a, double b) {
 }
 
 void main() {
+  // Easy to forget the try-catch, potentially causing runtime crashes
   try {
     final result = safeDivide(10, 0);
     print('Success: $result');
-  } on ArgumentError catch (error) {
-    print('Failed: ${error.message}'); // Failed: Division by zero
+  } on ArgumentError catch (e) {
+    print('Failed: ${e.message}');
   }
 }
 ```
 :::
 
-### Lazy & Resilient Async Pipelines
+### 3. Resilient Async Pipelines
 
-`Future` execution is eager and starts running immediately. `TaskEither` represents a lazy computation blueprint that catches exceptions automatically, supports async flat-mapping, and runs only when you call `run()`.
+Standard `Future`s execute eagerly the moment they are created. Daxle's `TaskEither` acts as a lazy blueprint. It won't run until you tell it to, making it incredibly easy to compose, retry, and safely recover from asynchronous failures.
 
 ```dart
 import 'package:daxle/daxle.dart';
 
-// Represents a blueprint for an HTTP request
 TaskEither<String, String> fetchHtml(String url) {
   return TaskEither.fromFuture(
     () => httpClient.read(Uri.parse(url)),
-    (error, _) => 'Failed to fetch $url: $error',
+    (error, _) => 'Network request failed: $error',
   );
 }
 
 void main() async {
-  // Chain async operations and recover seamlessly
+  // Construct the pipeline blueprint
   final pipeline = fetchHtml('https://dart.dev')
       .map((html) => extractTitle(html))
-      .tap((title) => print('Page Title: $title'))
+      .tap((title) => print('Fetched Title: $title'))
       .orElse((err) => TaskEither.right('Fallback Title'));
 
-  // The request is only executed here
-  final Either<String, String> result = await pipeline.run();
+  // The asynchronous work only begins here
+  final result = await pipeline.run();
 }
 ```
 
+---
+
 ## Get Started in Seconds
 
-Daxle has zero external dependencies other than standard Dart SDK packages, keeping your application bundle light and production-ready.
-
-Add Daxle to your project:
+Daxle is self-contained and has **zero external dependencies** other than the standard Dart SDK. Keep your application bundle light and production-ready.
 
 ```bash
 dart pub add daxle
 ```
 
-Ready to write cleaner, safer code? Get started by reading the [Introduction](/getting-started/introduction).
+Ready to write cleaner, safer code? Head over to the [Getting Started guide](/getting-started/introduction).
