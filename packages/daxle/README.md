@@ -1,25 +1,27 @@
-# daxle
+# Daxle: Write Safer, Predictable Dart Code
 
 [![Pub Version](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle)
 [![Pub Points](https://img.shields.io/pub/points/daxle.svg)](https://pub.dev/packages/daxle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A lightweight, type-safe functional programming toolkit for Dart. Designed to replace unsafe patterns (like throwing exceptions or abusing `null`) with explicit, declarative types and pipelines.
+Stop writing nested try/catch blocks and imperative state checks. Daxle is a lightweight, type-safe functional programming toolkit that helps you build predictable and composable Dart applications.
 
-Inspired by functional features in Rust, Haskell, and Scala.
+**[📚 Read the Official Documentation](https://daxle.maranix.in)**
 
 ---
 
-## What's New in v3.0 🚀
+## Why Daxle?
 
-Version 3.0 represents a complete architectural review focused on producing a small, coherent, production-quality functional programming library for Dart.
+Dart's type system is great, but runtime exceptions and complex asynchronous workflows can still lead to unpredictable bugs. Daxle gives you explicit, declarative types to handle missing values and errors gracefully at compile-time.
 
-*   **Removed overlapping types**: `Result<T, E>`, `Pipeline<T>`, and `AsyncPipeline<T>` have been removed to ensure exactly one way to model explicit success/failure and lazy computations.
-*   **Sealed Option & Either**: `Option` and `Either` remain the core sealed classes for explicit control flow using compile-time exhaustive switch-matching.
-*   **Added Task**: Introduces lazy, asynchronous computations (`Future<T>`) without explicit failures.
-*   **Enhanced TaskEither**: Added powerful combinators (`sequence`, `traverse`, `bimap`, `tap`, `ensure`) for lazy, asynchronous computations that can fail (`Future<Either<L, R>>`).
-*   **Unit**: Represents the absence of a value, allowing type-safe generic returns.
-*   **Standardized API**: Consistent use of `fold` for value transformations and exhaustive `switch` for explicit branching.
+### Stop Guessing What Can Fail
+Instead of throwing exceptions that might crash your app in production, use `Either<L, R>` to make failures an explicit part of your function signature. The compiler will force you to handle both success and error states.
+
+### Compose Values with Option
+While Dart's null safety is excellent, `Option<T>` takes it further by allowing you to chain operations functionally. Replace imperative `if (val != null)` checks with clean, declarative pipelines that gracefully handle missing data.
+
+### Compose Async Workflows Cleanly
+Instead of nesting `await` and `try/catch` blocks, use `TaskEither` to chain asynchronous operations. If any step fails, the chain short-circuits gracefully without throwing exceptions.
 
 ---
 
@@ -29,10 +31,10 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^3.0.0
+  daxle: ^3.0.0+1
 ```
 
-Then, run:
+Then run:
 
 ```bash
 dart pub get
@@ -40,9 +42,9 @@ dart pub get
 
 ---
 
-## Core Types
+## How It Works
 
-### 1. `Option<T>`
+### Handle Missing Values with `Option<T>`
 An alternative to nullable values (`T?`). Represents either the presence of a value (`Some`) or the absence of a value (`None`).
 
 ```dart
@@ -51,20 +53,8 @@ import 'package:daxle/daxle.dart';
 void main() {
   final Option<int> someValue = .some(42);
   final Option<int> noValue = const .none();
-  final Option<int> fromNull = .fromNullable(null); // Resolves to None
-  final Option<int> fromPred = .fromPredicate(10, (v) => v > 5); // Some(10)
 
-  // Filter option value:
-  final filtered = someValue.filter((v) => v > 100); // None
-
-  // Transform with map or flatMap
-  final mapped = someValue.map((v) => 'The answer is $v'); 
-  print(mapped); // Some(The answer is 42)
-
-  // Retrieve values safely
-  final int val = noValue.getOrElse(0); // Returns 0
-
-  // Exhaustive pattern matching (enforced at compile-time!)
+  // Exhaustive pattern matching enforced at compile-time!
   final message = switch (someValue) {
     Some(value: final v) => 'Found: $v',
     None() => 'Nothing here',
@@ -72,8 +62,8 @@ void main() {
 }
 ```
 
-### 2. `Either<L, R>`
-Represents a value of one of two possible types. By convention, `Right` is success/expected and `Left` is error/failure.
+### Make Errors Explicit with `Either<L, R>`
+By convention, `Right` is success and `Left` is an error.
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -86,49 +76,16 @@ Either<String, int> divide(int a, int b) {
 void main() {
   final result = divide(10, 2);
 
-  // Construct based on boolean condition:
-  final resultCond = .cond(true, 5, 'Cannot divide by zero');
-
-  // Check state
-  if (result.isRight) {
-    print('Successful division!');
-  }
-
-  // Fold to extract values safely
+  // Safely extract the value or handle the error
   final message = result.fold(
-    (leftError) => 'Failure: $leftError',
-    (rightVal) => 'Result: $rightVal',
+    (error) => 'Failure: $error',
+    (value) => 'Result: $value',
   );
 }
 ```
 
-### 3. `Task<T>`
-Represents a **lazy, asynchronous computation** that produces a value of type `T`.
-*   **Lazy Execution**: `Task` defers execution until `.run()` is called.
-*   **No Explicit Failures**: Exceptions propagate naturally. For explicit error handling, use `TaskEither`.
-
-```dart
-import 'package:daxle/daxle.dart';
-
-void main() async {
-  final task = Task(() async {
-    print('Fetching data...');
-    return 42;
-  }).map((x) => x * 2);
-
-  // The computation hasn't started yet.
-  
-  final result = await task.run(); // Now it runs.
-  print(result); // 84
-}
-```
-
-### 4. `TaskEither<L, R>`
-Represents a **lazy, asynchronous computation** that returns an `Either<L, R>`. It provides significant advantages over a raw `Future<Either<L, R>>`:
-*   **Lazy Execution**: `TaskEither` is a lazy blueprint. It does not run until `.run()` is called, allowing easy retries or fallbacks via `.orElse`.
-*   **Monadic Error Short-Circuiting**: `TaskEither` embeds the `Either` state at each step. If a step resolves to a `Left`, subsequent steps are short-circuited.
-*   **Linear Chaining**: Allows chaining dependent async operations via `flatMap` without nesting `await` and `fold` blocks.
-*   **Exception Guarding**: Automatically catches runtime exceptions and maps them to a safe `Left(L)`.
+### Chain Async Operations Safely with `TaskEither<L, R>`
+A lazy, asynchronous computation that returns an `Either<L, R>`. It embeds the `Either` state at each step, short-circuiting on failure.
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -144,66 +101,27 @@ TaskEither<String, String> fetchConfig(String role) => .fromFuture(
 );
 
 void main() async {
-  // Chain dependent async computations flatly:
+  // Chain dependent async computations without nesting:
   final task = fetchUser(42)
       .flatMap((user) => fetchConfig(user));
 
+  // The computation doesn't start until you run it
   final Either<String, String> result = await task.run();
-}
-```
-
-### 5. `Unit`
-A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
-
-```dart
-import 'package:daxle/daxle.dart';
-
-Either<String, Unit> saveRecord(String data) {
-  try {
-    // Save logic...
-    return const .right(unit);
-  } catch (e) {
-    return .left('Failed to save: $e');
-  }
-}
-```
-
-### 6. Async Utilities
-Provides re-exported utilities from `package:async` to simplify asynchronous control flow and stream handling:
-
-*   **Future Utilities**:
-    *   `FutureGroup`: A collection of futures that waits for all added futures to complete.
-    *   `AsyncCache`: Caches the results of asynchronous operations.
-    *   `AsyncMemoizer`: Memorizes the result of an asynchronous closure to run it only once.
-*   **Stream Utilities**:
-    *   `StreamZip`: Combines multiple streams into a single stream of zipped lists.
-    *   `StreamQueue`: Simplifies pull-based stream consumption.
-    *   `StreamGroup`: Merges multiple streams into a single output stream.
-    *   `StreamSplitter`: Splits a stream into multiple identical, independent copies.
-
-```dart
-import 'package:daxle/daxle.dart';
-
-void main() async {
-  final streamA = Stream.fromIterable([1, 2]);
-  final streamB = Stream.fromIterable(['A', 'B']);
-  
-  // StreamZip is re-exported from package:async
-  final zipped = StreamZip([streamA, streamB]);
-  
-  await for (final pair in zipped) {
-    print(pair); // [1, 'A'], then [2, 'B']
-  }
 }
 ```
 
 ---
 
+## Ready to build safer apps?
+
+Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Unit`, `Async Utilities`, and advanced combinators. 
+
+---
 
 ## Contributing
 
-Contributions are welcome! This package is part of the `daxle` monorepo workspace. Please see the root repository for workspace contribution guidelines.
+Contributions are welcome! Please see the [monorepo workspace](https://github.com/maranix/daxle) for guidelines.
 
 ## License
 
-`daxle` is released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE).

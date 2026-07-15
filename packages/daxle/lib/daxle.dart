@@ -1,28 +1,26 @@
-/// `daxle` is a library that provides a set of functional programming constructs
-/// inspired by languages like Rust and Haskell. It is designed to enhance the
-/// robustness and clarity of Dart applications by offering explicit, type-safe
-/// mechanisms for handling fallible operations, optional values, and deferred
-/// computation pipelines.
+/// Build predictable, composable Dart applications.
 ///
-/// This approach promotes safer error management and reduces the reliance on
-/// traditional mechanisms such as throwing exceptions or using `null`.
+/// `daxle` is a lightweight functional programming toolkit that replaces
+/// imperative state checks and nested try/catch blocks with clean,
+/// declarative pipelines. Inspired by languages like Rust and Haskell,
+/// it brings robust functional primitives to modern Dart.
 ///
-/// This library exports seven core concepts/types/utilities:
+/// This library exports five core types and essential async utilities:
 ///
-/// - [Option]: For values that may or may not be present (replacing nullable `T?`).
-/// - [Either]: For values that can be one of two distinct types (typically Left for error, Right for success).
-/// - [Task]: For lazy, asynchronous computations.
-/// - [TaskEither]: For lazy, asynchronous computations that can fail.
-/// - [Unit]: A type representing the absence of a meaningful value.
+/// - [Option]: For composing optional values without imperative state checks.
+/// - [Either]: For explicit, type-safe error handling and branching.
+/// - [Task]: For composing lazy, asynchronous workflows.
+/// - [TaskEither]: For chaining asynchronous operations that can fail, with automatic short-circuiting.
+/// - [Unit]: For representing the absence of a meaningful value.
 /// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
 ///
 /// ---
 ///
 /// ## `Option<T>`
 ///
-/// The [Option] type is a container for an optional value. An instance of [Option]
-/// is either `Some`, containing a value, or `None`, indicating the absence of a value.
-/// It provides a type-safe alternative to using `null`.
+/// Compose optional values functionally. An instance of [Option] is either `Some`
+/// (containing a value) or `None` (indicating absence). It allows you to chain
+/// operations and handle missing data declaratively, avoiding messy `if` checks.
 ///
 /// ### Example:
 ///
@@ -59,9 +57,9 @@
 ///
 /// ## `Either<L, R>`
 ///
-/// The [Either] type is a generic sum type that can hold a value of one of two
-/// distinct types: `Left` or `Right`. By convention, `Right` represents success
-/// and `Left` represents failure.
+/// Make failures an explicit part of your function signatures. [Either] holds a
+/// value of one of two types: `Left` or `Right`. By convention, `Right` represents
+/// success and `Left` represents an error, forcing you to handle both states at compile-time.
 ///
 /// ### Example:
 ///
@@ -94,8 +92,9 @@
 ///
 /// ## `Task<T>`
 ///
-/// The [Task] type represents a lazy, asynchronous computation that produces a value of type `T`.
-/// Unlike a Future, a Task is lazy. The underlying computation is not started until run() is invoked.
+/// Compose deferred asynchronous workflows. Unlike a `Future`, a [Task] is lazy
+/// and won't execute until you call `.run()`. This allows you to construct
+/// complex async pipelines before execution begins.
 ///
 /// **Note**: [Task] does not provide explicit failure handling. If the underlying computation throws,
 /// the exception propagates naturally. For explicit failure handling, use [TaskEither].
@@ -122,18 +121,15 @@
 /// ## `TaskEither<L, R>`
 
 ///
-/// The [TaskEither] type represents a lazy, asynchronous computation that can fail.
-/// It wraps a function returning a `Future<Either<L, R>>`, providing significant
-/// advantages over a raw `Future<Either<L, R>>`:
+/// Chain async operations safely without nesting. [TaskEither] represents a lazy,
+/// asynchronous computation that can fail (`Future<Either<L, R>>`), offering three major advantages:
 ///
-/// 1. **Lazy Execution**: Futures are eager and execute immediately.
-///    [TaskEither] is lazy and only runs when `.run()` is called, allowing easy retries
-///    and fallbacks (via `.orElse`).
-/// 2. **Monadic Error Short-Circuiting**: [TaskEither] embeds the [Either]
-///    state at each step. Any step resolving to a [Left] short-circuits the pipeline,
-///    bypassing subsequent steps without throwing raw runtime exceptions.
-/// 3. **Automatic Exception Guarding**: `TaskEither.fromFuture` catches runtime exceptions
-///    and maps them automatically to a [Left] value.
+/// 1. **Lazy Execution**: Unlike eager Futures, [TaskEither] only runs when `.run()`
+///    is called, allowing you to easily build retries or fallbacks.
+/// 2. **Short-Circuiting**: It embeds the [Either] state at each step. Any step
+///    resolving to a [Left] short-circuits the pipeline gracefully.
+/// 3. **Exception Guarding**: `TaskEither.fromFuture` automatically catches
+///    runtime exceptions and maps them to a safe [Left] value.
 ///
 /// ### Example:
 ///
