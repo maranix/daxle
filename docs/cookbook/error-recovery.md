@@ -6,7 +6,6 @@ outline: deep
 
 ## How do you gracefully recover from failures without writing spaghetti code?
 
----
 
 ## The Trap of Deeply Nested Fallbacks
 
@@ -39,7 +38,6 @@ Future<Config> loadConfigWithFallback() async {
 }
 ```
 
----
 
 ## The Solution: Build Declarative Recovery Chains
 
@@ -110,7 +108,6 @@ void main() async {
 }
 ```
 
----
 
 ## Why You'll Love This Approach
 

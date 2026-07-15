@@ -6,7 +6,6 @@ outline: deep
 
 Make your errors impossible to ignore.
 
----
 
 ## What is Either?
 
@@ -18,7 +17,6 @@ It guarantees that a value holds one of two possible outcomes:
 
 Instead of relying on hidden exceptions that crash your app when forgotten, `Either` brings your errors to the surface. It proves at compile-time that your code is safe.
 
----
 
 ## Why you need it
 
@@ -50,7 +48,6 @@ Either<ConfigError, Config> loadSafe(String path) {
 }
 ```
 
----
 
 ## See it in action
 
@@ -91,7 +88,6 @@ void main() {
 }
 ```
 
----
 
 ## Common Operations
 
@@ -171,7 +167,6 @@ result.fold(
 );
 ```
 
----
 
 ## Best Practices
 
@@ -179,14 +174,12 @@ result.fold(
 * **Wrap Exceptions at the Edges**: Don't scatter `tryCatch` everywhere. Use it right at the boundary where you talk to libraries or databases, converting their untyped exceptions into your typed domain errors.
 * **Always Fold**: Stop checking `.isRight`. Use `.fold()` at the end of your pipeline to guarantee every outcome is handled.
 
----
 
 ## Common Mistakes
 
 * **Throwing Lefts**: Never `throw` a `Left` value. `Either` is built to flow smoothly through your return types.
 * **Ignoring Errors**: Using `.getOrElse()` too early hides valuable error data. Keep your errors in the `Either` until the absolute last moment where you need to display them to the user.
 
----
 
 ## Related Types
 

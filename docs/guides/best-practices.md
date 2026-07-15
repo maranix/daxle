@@ -8,7 +8,6 @@ Daxle's functional types—`Either`, `Option`, and `Task`—make your code safer
 
 Follow these practical guidelines to write clean, maintainable, and idiomatic Daxle code that your team will love.
 
----
 
 ## 1. Write Code That Reads Like English
 
@@ -34,7 +33,6 @@ Future<void> writeConfig(Config config) { ... }
 TaskEither<ConfigError, Unit> writeConfigSafe(Config config) { ... }
 ```
 
----
 
 ## 2. Pick the Perfect Type
 
@@ -74,7 +72,6 @@ Option<String> getMiddleName(User user) { ... }
 * Choose **`Task<T>`** for lazy async operations that simply cannot fail, or when failures are developer bugs that should crash loudly as standard exceptions.
 * Choose **`TaskEither<L, R>`** for all I/O—database queries, network requests, and file reads. If it can fail asynchronously, handle it safely with `TaskEither`.
 
----
 
 ## 3. Flatten Your Pipelines
 
@@ -116,7 +113,6 @@ TaskEither<ConfigError, Unit> updatePortFlat(String path, String portInput) {
 }
 ```
 
----
 
 ## 4. Trap Exceptions at the Boundary
 

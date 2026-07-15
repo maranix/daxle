@@ -6,7 +6,6 @@ outline: deep
 
 Take absolute control over when and how your asynchronous operations execute.
 
----
 
 ## What is Task?
 
@@ -21,7 +20,6 @@ final class Task<T> {
 }
 ```
 
----
 
 ## Why you need it
 
@@ -44,7 +42,6 @@ final task = Task(() => fetchUserData('user-123'));
 final data = await task.run(); 
 ```
 
----
 
 ## See it in action
 
@@ -75,7 +72,6 @@ void main() async {
 }
 ```
 
----
 
 ## Common Operations
 
@@ -155,7 +151,6 @@ final Task<List<int>> byteCounts = Task.traverse(
 );
 ```
 
----
 
 ## Best Practices
 
@@ -163,7 +158,6 @@ final Task<List<int>> byteCounts = Task.traverse(
 * **Keep side effects contained**: Use `.tap()` to handle logs or analytics. Don't leak side effects outside the pipeline.
 * **Push execution to the edges**: Keep your core business logic returning `Task` objects. Only call `.run()` at the very edge of your app—like in your UI handlers or main functions.
 
----
 
 ## Common Mistakes
 
@@ -179,7 +173,6 @@ final Task<List<int>> byteCounts = Task.traverse(
 * **Forgetting the trigger**: Because `Task` is lazy, writing `task.map(...)` does nothing on its own. You must call `await task.run()` to start the engine.
 * **Ignoring errors**: `Task` does not catch exceptions automatically. If you expect your async work to fail, upgrade to `TaskEither`.
 
----
 
 ## When to use Task
 
@@ -192,7 +185,6 @@ final Task<List<int>> byteCounts = Task.traverse(
 * If you just need to fetch data immediately for a simple Flutter `FutureBuilder`, standard `Future`s are fine.
 * If your operation is prone to failure (like network calls), switch to `TaskEither` for ironclad error handling.
 
----
 
 ## Related Types
 

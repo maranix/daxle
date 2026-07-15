@@ -8,7 +8,6 @@ Dart's built-in `Future` and `Stream` power asynchronous programming. But as you
 
 Daxle gives you **`Task`** and **`TaskEither`**. These tools bring lazy execution, unshakeable safety, and total control back to your asynchronous workflows.
 
----
 
 ## Take Control: Eager vs. Lazy Execution
 
@@ -48,7 +47,6 @@ Laziness splits **what** you want to do from **when** it happens. This unlocks m
 2. **Infinite Reusability**: A standard `Future` resolves exactly once. If it fails, you must recreate it to retry. Because a `Task` simply wraps a function, you can run `.run()` as many times as you need on the same instance.
 3. **Seamless Pipelining**: Chain transformations easily before execution. Your entire chain stays lazy and runs sequentially on your command.
 
----
 
 ## Choose Your Weapon: Task vs. TaskEither
 
@@ -57,7 +55,6 @@ Daxle arms you with two lazy asynchronous types:
 * **`Task<T>`**: Delivers a guaranteed value of type `T`. It ignores explicit failure handling. If it throws an exception, standard Dart rules apply. Use `Task` when you treat failures as exceptions.
 * **`TaskEither<L, R>`**: Built for workflows that fail. It safely wraps operations returning `Future<Either<L, R>>`. Use `TaskEither` for network I/O, database queries, and any domain operation where you expect—and need to handle—failures explicitly.
 
----
 
 ## Stop Making These Mistakes
 
@@ -96,7 +93,6 @@ final task = Task.right('id-123')
     .flatMap((id) => Task(() => api.fetchDetails(id))); // Result is Task<Details>
 ```
 
----
 
 ## See It in Action
 

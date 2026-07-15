@@ -8,7 +8,6 @@ Getting started with Daxle takes just a few seconds.
 
 Because Daxle is lightweight and relies only on official Dart packages (like `async` and `meta`), you get a stable library that resists breaking changes and keeps your app bundle small.
 
----
 
 ## Prerequisites
 
@@ -18,7 +17,6 @@ To use Daxle, you need:
 * **Dart SDK**: `>= 3.11.0 < 4.0.0`
 * **Flutter SDK**: Any version bundled with Dart 3.11.0 or higher.
 
----
 
 ## Add the Dependency
 
@@ -47,7 +45,6 @@ Then fetch the package:
 dart pub get
 ```
 
----
 
 ## Import the Library
 

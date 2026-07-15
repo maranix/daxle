@@ -6,7 +6,6 @@ outline: deep
 
 Handle missing values with absolute confidence and eliminate null-pointer crashes.
 
----
 
 ## What is Option?
 
@@ -18,7 +17,6 @@ It lives in one of two clear states:
 
 While Dart’s native `T?` handles simple optional values, `Option<T>` provides a fluid API that lets you transform and chain data safely—without cluttering your code with nested `if` blocks or risky `!` null-assertions.
 
----
 
 ## Why you need it
 
@@ -57,7 +55,6 @@ Option<int> processInput(String? input) {
 }
 ```
 
----
 
 ## See it in action
 
@@ -90,7 +87,6 @@ void main() {
 }
 ```
 
----
 
 ## Common Operations
 
@@ -143,7 +139,6 @@ final val2 = opt.fold(
 );
 ```
 
----
 
 ## Best Practices
 
@@ -151,14 +146,12 @@ final val2 = opt.fold(
 * **Ditch `isSome` checks**: Calling `if (opt.isSome) { opt.get() }` just recreates the bad habits of standard null checking. Rely on `.map()` and `.flatMap()` to handle the data naturally.
 * **Wrap messy APIs immediately**: When a third-party package gives you nullable data, wrap it in `Option.fromNullable()` right at the boundary.
 
----
 
 ## Common Mistakes
 
 * **Nesting Options**: Writing `.map()` for a function that already returns an `Option` leaves you with `Option<Option<T>>`. Swap to `.flatMap()` to keep your pipeline completely flat.
 * **Over-engineering simple code**: If you're checking a single local variable, Dart's `??` operator is fine. Unleash `Option` when you have multi-step transformations or complex domain rules.
 
----
 
 ## Related Types
 

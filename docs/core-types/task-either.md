@@ -6,7 +6,6 @@ outline: deep
 
 Build bulletproof asynchronous pipelines that never crash unexpectedly.
 
----
 
 ## What is TaskEither?
 
@@ -21,7 +20,6 @@ final class TaskEither<L, R> {
 }
 ```
 
----
 
 ## Why you need it
 
@@ -58,7 +56,6 @@ TaskEither<AppError, UserProfile> getUserSafe(String id) {
 }
 ```
 
----
 
 ## See it in action
 
@@ -99,7 +96,6 @@ void main() async {
 }
 ```
 
----
 
 ## Common Operations
 
@@ -168,7 +164,6 @@ final result = await task.fold(
 );
 ```
 
----
 
 ## Best Practices
 
@@ -176,7 +171,6 @@ final result = await task.fold(
 * **Never nest**: Don't use `map` if the next step is asynchronous. That creates `TaskEither<L, Future<R>>`. Always use `flatMap` to keep your pipeline completely flat.
 * **Keep it lazy**: Never start a Future outside of your `TaskEither` construction. Wrap the actual call `() => api.fetch()` inside the constructor so you maintain total execution control.
 
----
 
 ## Common Mistakes
 
@@ -191,7 +185,6 @@ final result = await task.fold(
   ```
 * **Forgetting to pull the trigger**: Writing `.flatMap()` builds the pipeline, but does not execute it. You must call `await task.run()` or `.fold()` to actually run the code.
 
----
 
 ## Related Types
 

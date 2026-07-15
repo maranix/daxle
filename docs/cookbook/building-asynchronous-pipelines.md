@@ -6,7 +6,6 @@ outline: deep
 
 ## How do you compose multiple asynchronous operations cleanly?
 
----
 
 ## The Nightmare of Nested Try-Catch Blocks
 
@@ -47,7 +46,6 @@ Future<void> runTelemetryPipeline(String path) async {
 }
 ```
 
----
 
 ## The Solution: Build Flat, Sequential Pipelines
 
@@ -130,7 +128,6 @@ void main() async {
 }
 ```
 
----
 
 ## Why You'll Love This Approach
 

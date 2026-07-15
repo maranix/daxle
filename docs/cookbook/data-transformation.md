@@ -6,7 +6,6 @@ outline: deep
 
 ## How do you safely transform and compose collections of data?
 
----
 
 ## The Problem With Batch Processing in Standard Dart
 
@@ -32,7 +31,6 @@ Future<Map<String, int>> processLogs(List<String> paths) async {
 }
 ```
 
----
 
 ## The Solution: Transform Collections with Complete Safety
 
@@ -108,7 +106,6 @@ void main() async {
 }
 ```
 
----
 
 ## Why You'll Love This Approach
 

@@ -39,7 +39,6 @@ Are you tired of:
 
 **Daxle** fixes this. It provides the building blocks you need to write robust, declarative code without introducing confusing academic jargon. By treating errors and missing data as values, Daxle helps you create clean pipelines that reveal exactly what your code is trying to do.
 
----
 
 ## See it in Action
 
@@ -145,7 +144,6 @@ void main() async {
 }
 ```
 
----
 
 ## Get Started in Seconds
 

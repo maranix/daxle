@@ -18,7 +18,6 @@ Daxle is the missing companion to the Dart standard library. It gives you expres
 
 Think of Daxle as the reliable connector for your app logic. It ties together data flows, error handling, and asynchronous operations so you can build robust Dart apps faster.
 
----
 
 ## The Problem with Modern Dart
 
@@ -30,7 +29,6 @@ But as your application grows, you often fall back on patterns that make your co
 * **Hidden Exceptions**: Exceptions can throw anywhere. You write defensive `try-catch` blocks, but you never know if you caught every error before runtime.
 * **Runaway Futures**: Dart `Future`s start executing the second you create them. This makes them hard to retry, pass around safely, or compose before they run.
 
----
 
 ## The Daxle Solution: Practical, Professional Code
 
@@ -43,7 +41,6 @@ Daxle focuses on **practical software engineering**. It gives you the tools to w
 * **Easily Composable**: Chain complex operations together without deep nesting or confusing temporary variables.
 * **Completely Predictable**: Take absolute control over when your asynchronous operations run and how they recover from failure.
 
----
 
 ## Where to Go Next
 

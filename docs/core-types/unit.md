@@ -6,7 +6,6 @@ outline: deep
 
 Give your type-safe pipelines a clear way to succeed without returning data.
 
----
 
 ## What is Unit?
 
@@ -14,7 +13,6 @@ Give your type-safe pipelines a clear way to succeed without returning data.
 
 In standard Dart, you use `void` to say "this function doesn't return anything." But `void` isn't a real object type. When you try to use it inside a generic container like `Either<Failure, void>`, Dart's type system fights you. `Unit` fixes this by giving you a real, tangible object to return when a side effect—like deleting a file or sending a log—succeeds, but produces no data.
 
----
 
 ## Why you need it
 
@@ -38,7 +36,6 @@ Either<StorageException, Unit> deleteFile(String path) {
 }
 ```
 
----
 
 ## See it in action
 
@@ -74,7 +71,6 @@ void main() {
 }
 ```
 
----
 
 ## Common Operations
 
@@ -109,7 +105,6 @@ void handleResult(Either<String, Unit> result) {
 }
 ```
 
----
 
 ## Compose with ease
 
@@ -122,7 +117,6 @@ TaskEither<FileError, Unit> copyAndLog(String src, String dest) {
 }
 ```
 
----
 
 ## Best Practices
 
@@ -130,14 +124,12 @@ TaskEither<FileError, Unit> copyAndLog(String src, String dest) {
 * **Use for side effects**: Pair `Unit` with `Either` or `TaskEither` when your function performs a database write, file deletion, or cache clear.
 * **Expect `()` in logs**: `unit.toString()` returns `'()'`. This matches the convention of other modern languages like Rust and Swift.
 
----
 
 ## Common Mistakes
 
 * **Forcing `void` into generics**: Writing `Either<Failure, void>` creates brittle code and compiler warnings. Let `Unit` do the heavy lifting instead.
 * **Falling back to `null`**: Returning `Either.right(null)` bypasses type safety. Use `unit` to keep your domains strict and predictable.
 
----
 
 ## Related Types
 

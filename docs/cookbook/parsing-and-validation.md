@@ -6,7 +6,6 @@ outline: deep
 
 ## How do you safely parse and validate data without leaking exceptions?
 
----
 
 ## The Mess of Manual Validation
 
@@ -34,7 +33,6 @@ ThresholdConfig? parseAndValidate(String input) {
 }
 ```
 
----
 
 ## The Solution: Safe, Linear Validation Pipelines
 
@@ -120,7 +118,6 @@ void main() {
 }
 ```
 
----
 
 ## Why You'll Love This Approach
 

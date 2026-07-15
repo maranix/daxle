@@ -6,7 +6,6 @@ outline: deep
 
 ## How do you eliminate repetitive null checks when navigating deep data structures?
 
----
 
 ## The Fatigue of Nested Nulls
 
@@ -34,7 +33,6 @@ String? getSanitizedServerHost(Map<String, dynamic> config) {
 }
 ```
 
----
 
 ## The Solution: Flat Query Pipelines with Option
 
@@ -85,7 +83,6 @@ void main() {
 }
 ```
 
----
 
 ## Why You'll Love This Approach
 

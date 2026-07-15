@@ -8,7 +8,6 @@ Welcome to the Daxle Quick Start guide. Let's build a production-ready configura
 
 In this tutorial, you will handle optional values, validate inputs, and manage domain errors using Daxle—without throwing a single exception or writing `null`.
 
----
 
 ## The Scenario
 
@@ -32,7 +31,6 @@ class AppConfig {
 }
 ```
 
----
 
 ## Step 1: Handle Optional Values with `Option`
 
@@ -68,7 +66,6 @@ int parsePort(Map<String, String> env) {
 }
 ```
 
----
 
 ## Step 2: Enforce Required Values with `Either`
 
@@ -92,7 +89,6 @@ Either<String, String> parseDatabaseUrl(Map<String, String> env) {
 }
 ```
 
----
 
 ## Step 3: Compose the Pipeline
 
@@ -115,7 +111,6 @@ Either<String, AppConfig> loadConfig(Map<String, String> env) {
 }
 ```
 
----
 
 ## Step 4: Execute and Match the Result
 
@@ -154,7 +149,6 @@ void main() {
 }
 ```
 
----
 
 ## What's Next?
 

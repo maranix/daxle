@@ -8,7 +8,6 @@ Dart handles unexpected problems by throwing exceptions. That works fine for dev
 
 Daxle gives you a bulletproof alternative: **treat errors as explicit, first-class values.**
 
----
 
 ## Why Exceptions Sabotage Your Code
 
@@ -31,7 +30,6 @@ This model has several downsides:
 2. **No Compiler Help**: Forget a `try-catch` block? Your app crashes in production. The compiler won't save you.
 3. **Broken Control Flow**: Exceptions hijack your code's natural flow, jumping to random `catch` blocks and ruining data pipelines.
 
----
 
 ## The Fix: Make Errors Visible Values
 
@@ -78,7 +76,6 @@ Either<ConfigError, Config> loadConfigSafe(String path) {
 
 Now, the compiler forces every caller to acknowledge that `loadConfigSafe` might fail. No more surprise crashes.
 
----
 
 ## Mastering Success and Failure
 
@@ -129,7 +126,6 @@ void applyConfig(String path) {
 }
 ```
 
----
 
 ## Either vs. Exceptions: The Cheatsheet
 

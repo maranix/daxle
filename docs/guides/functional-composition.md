@@ -8,7 +8,6 @@ Functional composition lets you build powerful software by snapping together tin
 
 Daxle's fluent API makes writing these pipelines incredibly simple and wildly readable.
 
----
 
 ## Your Pipeline Toolkit: Core Combinators
 
@@ -83,7 +82,6 @@ final String statusMessage = result.fold(
 );
 ```
 
----
 
 ## See the Pipeline in Action
 
