@@ -84,29 +84,25 @@ export const Routes = {
     },
   },
   cookbooks: {
-    apiExamples: {
-      text: 'API',
-      link: '/cookbook/api-examples',
+    parsingAndValidation: {
+      text: 'Parsing and Validation',
+      link: '/cookbook/parsing-and-validation',
     },
-    markdownExamples: {
-      text: 'Markdown',
-      link: '/cookbook/markdown-examples',
+    workingWithOptionalValues: {
+      text: 'Working with Optional Values',
+      link: '/cookbook/working-with-optional-values',
     },
-    validation: {
-      text: 'Validation',
-      link: '/cookbook/validation',
+    buildingAsynchronousPipelines: {
+      text: 'Building Asynchronous Pipelines',
+      link: '/cookbook/building-asynchronous-pipelines',
     },
-    networking: {
-      text: 'Networking',
-      link: '/cookbook/networking',
+    errorRecovery: {
+      text: 'Error Recovery',
+      link: '/cookbook/error-recovery',
     },
-    repositoryPattern: {
-      text: 'Repository Pattern',
-      link: '/cookbook/repository-pattern',
-    },
-    stateManagement: {
-      text: 'State Management',
-      link: '/cookbook/state-management',
+    dataTransformation: {
+      text: 'Data Transformation',
+      link: '/cookbook/data-transformation',
     },
   },
 } as const;
