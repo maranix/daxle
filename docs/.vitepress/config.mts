@@ -24,11 +24,6 @@ export default defineConfig({
       provider: 'local',
     },
 
-    outline: {
-      level: [2, 3],
-      label: 'On this page',
-    },
-
     docFooter: {
       prev: 'Previous',
       next: 'Next',
