@@ -144,7 +144,7 @@ void main() async {
 
 ## Get Started in Seconds
 
-Daxle is self-contained and has **zero external dependencies** other than the standard Dart SDK. Keep your application bundle light and production-ready.
+Daxle has **minimal external dependencies** (relying only on official Dart team packages like `async` and `meta`). This makes the library exceptionally stable, resilient to breaking changes, and keeps your application bundle small and production-ready.
 
 ```bash
 dart pub add daxle

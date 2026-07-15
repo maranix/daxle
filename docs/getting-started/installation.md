@@ -4,7 +4,7 @@ outline: deep
 
 # Installation
 
-Getting started with Daxle is quick and straightforward. Daxle is intentionally designed to be lightweight and self-contained. It relies on no external dependencies other than standard Dart SDK packages, ensuring your application bundle remains exceptionally small and clean.
+Getting started with Daxle is quick and straightforward. Daxle is intentionally designed to be lightweight and self-contained. It has **minimal external dependencies** (relying only on official Dart packages like `async` and `meta`), ensuring it remains highly stable, resilient to breaking changes, and keeps your application bundle exceptionally small.
 
 ---
 
