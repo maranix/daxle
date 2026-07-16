@@ -9,6 +9,9 @@ export default defineConfig({
   description: "A functional programming library for Dart with comprehensive documentation, guides, and API reference.",
   lastUpdated: true,
   cleanUrls: true,
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.png' }]
+  ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: navigation,
