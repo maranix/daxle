@@ -165,22 +165,27 @@ final class Left<L, R> extends Either<L, R> {
   const Left(this.value);
 
   @override
+  @pragma('vm:prefer-inline')
   B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) =>
       ifLeft(value);
 
   @override
+  @pragma('vm:prefer-inline')
   Either<L, B> map<B>(B Function(R right) f) => Left<L, B>(value);
 
   @override
+  @pragma('vm:prefer-inline')
   Either<B, R> mapLeft<B>(B Function(L left) f) => Left<B, R>(f(value));
 
   @override
+  @pragma('vm:prefer-inline')
   Either<L2, R2> bimap<L2, R2>(
     L2 Function(L left) mapLeft,
     R2 Function(R right) mapRight,
   ) => Left<L2, R2>(mapLeft(value));
 
   @override
+  @pragma('vm:prefer-inline')
   Either<L, B> flatMap<B>(Either<L, B> Function(R right) f) =>
       Left<L, B>(value);
 
@@ -226,22 +231,27 @@ final class Right<L, R> extends Either<L, R> {
   const Right(this.value);
 
   @override
+  @pragma('vm:prefer-inline')
   B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) =>
       ifRight(value);
 
   @override
+  @pragma('vm:prefer-inline')
   Either<L, B> map<B>(B Function(R right) f) => Right<L, B>(f(value));
 
   @override
+  @pragma('vm:prefer-inline')
   Either<B, R> mapLeft<B>(B Function(L left) f) => Right<B, R>(value);
 
   @override
+  @pragma('vm:prefer-inline')
   Either<L2, R2> bimap<L2, R2>(
     L2 Function(L left) mapLeft,
     R2 Function(R right) mapRight,
   ) => Right<L2, R2>(mapRight(value));
 
   @override
+  @pragma('vm:prefer-inline')
   Either<L, B> flatMap<B>(Either<L, B> Function(R right) f) => f(value);
 
   @override
