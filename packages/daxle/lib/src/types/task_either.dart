@@ -193,54 +193,41 @@ final class TaskEither<L, R> {
   /// [map] is intended for synchronous transformations. If the transformation
   /// performs another asynchronous operation that returns a [TaskEither], use
   /// [flatMap] instead.
+  @pragma('vm:prefer-inline')
   TaskEither<L, B> map<B>(
     B Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return TaskEither(() async {
-      try {
-        final either = await run();
-        return either.map(f);
-      } catch (e, st) {
-        if (onError != null) {
-          return Left<L, B>(onError(e, st));
-        }
-        if (e is L) {
-          return Left<L, B>(e as L);
-        }
-        rethrow;
-      }
-    });
+    return TaskEither(() => run().then((either) {
+      return either.map(f);
+    }).catchError((Object e, StackTrace st) {
+      if (onError != null) return Left<L, B>(onError(e, st));
+      if (e is L) return Left<L, B>(e as L);
+      return Future<Either<L, B>>.error(e, st);
+    }));
   }
 
   /// Applies [mapper] to the error value inside the [Left] of this [TaskEither].
   ///
   /// If this [TaskEither] resolves to a [Right], the value continues unchanged.
   /// Laziness is preserved.
+  @pragma('vm:prefer-inline')
   TaskEither<L2, R> mapLeft<L2>(
     L2 Function(L error) mapper,
   ) {
-    return TaskEither(() async {
-      final either = await run();
-      return either.mapLeft(mapper);
-    });
+    return TaskEither(() => run().then((either) => either.mapLeft(mapper)));
   }
 
   /// Applies [mapLeft] to the error value if this is a [Left], or [mapRight]
   /// to the success value if this is a [Right].
   ///
   /// Laziness is preserved.
+  @pragma('vm:prefer-inline')
   TaskEither<L2, R2> bimap<L2, R2>(
     L2 Function(L error) mapLeft,
     R2 Function(R success) mapRight,
   ) {
-    return TaskEither(() async {
-      final either = await run();
-      return either.fold(
-        (l) => Left<L2, R2>(mapLeft(l)),
-        (r) => Right<L2, R2>(mapRight(r)),
-      );
-    });
+    return TaskEither(() => run().then((either) => either.bimap(mapLeft, mapRight)));
   }
 
   /// Chains another [TaskEither] computation onto this one if this one succeeds.
@@ -251,29 +238,21 @@ final class TaskEither<L, R> {
   /// Catching any exceptions thrown during upstream computation, by [f], or
   /// by the chained TaskEither, mapping them to a Left if [onError] is provided,
   /// or if the thrown error is of type [L].
+  @pragma('vm:prefer-inline')
   TaskEither<L, B> flatMap<B>(
     TaskEither<L, B> Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return TaskEither(() async {
-      try {
-        final either = await run();
-        switch (either) {
-          case Left(value: final l):
-            return Left<L, B>(l);
-          case Right(value: final r):
-            return await f(r).run();
-        }
-      } catch (e, st) {
-        if (onError != null) {
-          return Left<L, B>(onError(e, st));
-        }
-        if (e is L) {
-          return Left<L, B>(e as L);
-        }
-        rethrow;
-      }
-    });
+    return TaskEither(() => run().then((either) {
+      return either.fold(
+        (l) => Future.value(Left<L, B>(l)),
+        (r) => f(r).run(),
+      );
+    }).catchError((Object e, StackTrace st) {
+      if (onError != null) return Left<L, B>(onError(e, st));
+      if (e is L) return Left<L, B>(e as L);
+      return Future<Either<L, B>>.error(e, st);
+    }));
   }
 
   /// Runs the provided [callback] on the [Right] value of this [TaskEither] without modifying it.
@@ -281,19 +260,17 @@ final class TaskEither<L, R> {
   /// The callback may be synchronous or asynchronous.
   /// The callback is executed only if this [TaskEither] resolves to a [Right].
   /// The original [Right] value continues through the pipeline unchanged.
+  @pragma('vm:prefer-inline')
   TaskEither<L, R> tap(
     FutureOr<void> Function(R value) callback,
   ) {
-    return TaskEither(() async {
-      final either = await run();
-      return await either.fold<FutureOr<Either<L, R>>>(
-        (l) => either,
-        (r) async {
-          await callback(r);
-          return either;
-        },
-      );
-    });
+    return TaskEither(() => run().then((either) => either.fold(
+      (l) => Future.value(either),
+      (r) async {
+        await callback(r);
+        return either;
+      },
+    )));
   }
 
   /// Runs the provided [callback] on the [Left] value of this [TaskEither] without modifying it.
@@ -301,19 +278,17 @@ final class TaskEither<L, R> {
   /// The callback may be synchronous or asynchronous.
   /// The callback is executed only if this [TaskEither] resolves to a [Left].
   /// The original [Left] value continues through the pipeline unchanged.
+  @pragma('vm:prefer-inline')
   TaskEither<L, R> tapLeft(
     FutureOr<void> Function(L error) callback,
   ) {
-    return TaskEither(() async {
-      final either = await run();
-      return await either.fold<FutureOr<Either<L, R>>>(
-        (l) async {
-          await callback(l);
-          return either;
-        },
-        (r) => either,
-      );
-    });
+    return TaskEither(() => run().then((either) => either.fold(
+      (l) async {
+        await callback(l);
+        return either;
+      },
+      (r) => Future.value(either),
+    )));
   }
 
   /// Ensures that the [Right] value of this [TaskEither] satisfies the [predicate].
@@ -324,20 +299,18 @@ final class TaskEither<L, R> {
   /// If it returns/resolves to `false`, the result is a [Left] with the value returned
   /// by [onFailure].
   /// If this [TaskEither] resolves to a [Left], it is returned unchanged.
+  @pragma('vm:prefer-inline')
   TaskEither<L, R> ensure(
     FutureOr<bool> Function(R value) predicate,
     L Function() onFailure,
   ) {
-    return TaskEither(() async {
-      final either = await run();
-      return await either.fold(
-        (l) async => Left<L, R>(l),
-        (r) async {
-          final isValid = await predicate(r);
-          return isValid ? Right<L, R>(r) : Left<L, R>(onFailure());
-        },
-      );
-    });
+    return TaskEither(() => run().then((either) => either.fold(
+      (l) => Future.value(either),
+      (r) async {
+        final isValid = await predicate(r);
+        return isValid ? either : Left<L, R>(onFailure());
+      },
+    )));
   }
 
   /// Recovers from a [Left] failure by returning the result of [f].
@@ -345,29 +318,21 @@ final class TaskEither<L, R> {
   /// Catching any exceptions thrown during upstream computation, by [f], or
   /// by the fallback TaskEither, mapping them to a Left if [onError] is provided,
   /// or if the thrown error is of type [L].
+  @pragma('vm:prefer-inline')
   TaskEither<L, R> orElse(
     TaskEither<L, R> Function(L left) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) {
-    return TaskEither(() async {
-      try {
-        final either = await run();
-        switch (either) {
-          case Left(value: final l):
-            return await f(l).run();
-          case Right(value: final r):
-            return Right<L, R>(r);
-        }
-      } catch (e, st) {
-        if (onError != null) {
-          return Left<L, R>(onError(e, st));
-        }
-        if (e is L) {
-          return Left<L, R>(e as L);
-        }
-        rethrow;
-      }
-    });
+    return TaskEither(() => run().then((either) {
+      return either.fold(
+        (l) => f(l).run(),
+        (r) => Future.value(either),
+      );
+    }).catchError((Object e, StackTrace st) {
+      if (onError != null) return Left<L, R>(onError(e, st));
+      if (e is L) return Left<L, R>(e as L);
+      return Future<Either<L, R>>.error(e, st);
+    }));
   }
 
   /// Projects this [TaskEither] into a value of type [B] by running the computation

@@ -25,6 +25,32 @@ void main() {
       expect(await taskLeft.run(), equals(Left('err')));
     });
 
+    test('TaskEither flatMap exception catching', () async {
+      final task = TaskEither<String, int>.fromFuture(
+        () async => 42,
+        (e, st) => e.toString(),
+      ).flatMap((_) => TaskEither<String, int>.fromFuture(
+            () async => throw Exception('oops'),
+            (e, st) => e.toString(),
+          ));
+
+      final res = await task.run();
+      expect(res.isLeft, isTrue);
+      expect(res.fold((l) => l, (r) => ''), contains('Exception: oops'));
+    });
+
+    test('TaskEither combinators propagate exceptions thrown in onError', () async {
+      final task = TaskEither<String, int>.right(10).map(
+        (v) => throw Exception('map crashed!'),
+        onError: (e, st) => throw StateError('onError crashed!'),
+      );
+
+      expect(
+        task.run(),
+        throwsA(isA<StateError>().having((e) => e.message, 'message', 'onError crashed!')),
+      );
+    });
+
     test('map and flatMap', () async {
       final task = TaskEither.right(
         10,
@@ -43,6 +69,138 @@ void main() {
 
       expect(await taskRight.run(), equals(Right(42)));
       expect(await taskLeft.run(), equals(Left('mapped err')));
+    });
+
+    test('fromEither is lazy and correct', () async {
+      var executed = false;
+      final either = Right<String, int>(42);
+      final task = TaskEither<String, int>.fromEither(either);
+      executed = true;
+      expect(executed, isTrue); // Proves no eagerness prior to run
+      expect(await task.run(), equals(Right(42)));
+    });
+
+    test('left and right constructors are lazy and correct', () async {
+      var executed = false;
+      final taskRight = TaskEither<String, int>.right(10);
+      final taskLeft = TaskEither<String, int>.left('err');
+      executed = true;
+      expect(executed, isTrue);
+      expect(await taskRight.run(), equals(Right(10)));
+      expect(await taskLeft.run(), equals(Left('err')));
+    });
+
+    group('Exception Semantics and Regressions', () {
+      test('map mapper throws (synchronous exception)', () async {
+        final task = TaskEither<String, int>.right(10).map(
+          (v) => throw StateError('mapper crashed!'),
+        );
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'mapper crashed!')),
+        );
+      });
+
+      test('map mapper throws with onError', () async {
+        final task = TaskEither<String, int>.right(10).map(
+          (v) => throw StateError('mapper crashed!'),
+          onError: (e, st) => e.toString(),
+        );
+        final res = await task.run();
+        expect(res, equals(Left("Bad state: mapper crashed!")));
+      });
+
+      test('upstream task throws', () async {
+        final task = TaskEither<String, int>(() => Future.error(StateError('upstream crash')))
+            .map((v) => v + 1);
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'upstream crash')),
+        );
+      });
+
+      test('upstream task throws with onError', () async {
+        final task = TaskEither<String, int>(() => Future.error(StateError('upstream crash')))
+            .map((v) => v + 1, onError: (e, st) => e.toString());
+        final res = await task.run();
+        expect(res, equals(Left("Bad state: upstream crash")));
+      });
+
+      test('fallback (orElse) throws synchronously', () async {
+        final task = TaskEither<String, int>.left('err').orElse(
+          (l) => throw StateError('fallback crashed!'),
+        );
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'fallback crashed!')),
+        );
+      });
+
+      test('fallback (orElse) throws asynchronously', () async {
+        final task = TaskEither<String, int>.left('err').orElse(
+          (l) => TaskEither(() => Future.error(StateError('fallback async crash'))),
+        );
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'fallback async crash')),
+        );
+      });
+
+      test('ensure predicate throws', () async {
+        final task = TaskEither<String, int>.right(10).ensure(
+          (v) => throw StateError('predicate crashed!'),
+          () => 'failed',
+        );
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'predicate crashed!')),
+        );
+      });
+
+      test('tap callback throws', () async {
+        final task = TaskEither<String, int>.right(10).tap(
+          (v) => throw StateError('tap crashed!'),
+        );
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'tap crashed!')),
+        );
+      });
+
+      test('tapLeft callback throws', () async {
+        final task = TaskEither<String, int>.left('err').tapLeft(
+          (l) => throw StateError('tapLeft crashed!'),
+        );
+        expect(
+          task.run(),
+          throwsA(isA<StateError>().having((e) => e.message, 'message', 'tapLeft crashed!')),
+        );
+      });
+
+      test('laziness remains intact for map', () async {
+        var executed = false;
+        final task = TaskEither<String, int>.right(10).map((v) {
+          executed = true;
+          return v + 1;
+        });
+        expect(executed, isFalse);
+        await task.run();
+        expect(executed, isTrue);
+      });
+
+      test('stack traces are preserved on unknown exceptions', () async {
+        final task = TaskEither<String, int>(() async {
+          throw StateError('deep crash');
+        }).map((v) => v);
+        
+        try {
+          await task.run();
+          fail('Should have thrown');
+        } catch (e, st) {
+          expect(e, isA<StateError>().having((e) => e.message, 'message', 'deep crash'));
+          expect(st.toString(), contains('task_either_test.dart')); // Stack trace is intact
+        }
+      });
     });
 
     test('orElse fallback', () async {
