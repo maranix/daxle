@@ -79,5 +79,54 @@ void main() {
       final task = Task(() async => throw Exception('test error'));
       expect(() => task.run(), throwsA(isA<Exception>()));
     });
+
+    test('map preserves laziness', () async {
+      bool executed = false;
+
+      final task = Task(() async => 42).map((v) {
+        executed = true;
+        return v + 1;
+      });
+
+      expect(executed, false);
+
+      await task.run();
+
+      expect(executed, true);
+    });
+
+    test('map propagates sync exception', () async {
+      final task = Task(() async => 42).map((_) => throw Exception());
+
+      expect(task.run(), throwsException);
+    });
+
+    test('flatMap propagates sync exception', () async {
+      final task = Task(() async => 42).flatMap((_) => throw Exception());
+
+      expect(task.run(), throwsException);
+    });
+
+    test('flatMap propagates async exception', () async {
+      final task = Task(() async => 42).flatMap(
+        (_) => Task(() async {
+          throw Exception();
+        }),
+      );
+
+      expect(task.run(), throwsException);
+    });
+
+    test('map remains lazy', () async {
+      var count = 0;
+
+      final task = Task(() async => ++count).map((v) => v);
+
+      expect(count, 0);
+
+      await task.run();
+
+      expect(count, 1);
+    });
   });
 }
