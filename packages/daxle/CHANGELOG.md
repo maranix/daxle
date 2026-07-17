@@ -1,3 +1,13 @@
+## 3.1.0 (2026-07-17)
+
+- **PERFORMANCE & REFACTORING**:
+  - Improved `TaskEither` and `Task` performance by migrating to `Future.then` to avoid async/await overhead.
+  - Optimized memory allocations and performance in AOT for `Either` and `Option` by using pragma annotations and direct constructor instantiation.
+  - Refactored `Either` and `Option` to delegate combinators directly to their respective subclasses.
+  - Inlined async transformation helpers in `TaskEither` to further reduce runtime overhead.
+- **TESTS**:
+  - Added regression tests for `Task` and `TaskEither` exception handling.
+
 ## 3.0.0 (2026-07-14)
 
 - **BREAKING CHANGES / ARCHITECTURE REDESIGN**:
