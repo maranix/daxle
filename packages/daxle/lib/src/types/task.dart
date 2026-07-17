@@ -39,22 +39,18 @@ final class Task<T> {
   ///
   /// Laziness is preserved. The transformation is only applied when the
   /// returned [Task] is executed.
+  @pragma('vm:prefer-inline')
   Task<R> map<R>(R Function(T value) f) {
-    return Task(() async {
-      final value = await run();
-      return f(value);
-    });
+    return Task(() => run().then(f));
   }
 
   /// Chains another [Task] onto this one.
   ///
   /// Laziness is preserved. The chained task is only executed if and when
   /// the returned [Task] is executed.
+  @pragma('vm:prefer-inline')
   Task<R> flatMap<R>(Task<R> Function(T value) f) {
-    return Task(() async {
-      final value = await run();
-      return await f(value).run();
-    });
+    return Task(() => run().then((value) => f(value).run()));
   }
 
   /// Runs the provided [callback] on the value produced by this [Task]
