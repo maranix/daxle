@@ -96,7 +96,7 @@ final class Some<T> extends Option<T> {
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> map<B>(B Function(T value) f) => .some(f(value));
+  Option<B> map<B>(B Function(T value) f) => Some(f(value));
 
   @override
   @pragma('vm:prefer-inline')
