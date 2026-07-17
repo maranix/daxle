@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+const none = None<Never>();
+
 /// {@template option}
 /// Represents either the presence [Some] or absence [None] of a value of type [T].
 ///
@@ -55,50 +57,29 @@ sealed class Option<T> {
 
   /// Projects this [Option] into a value of type [B] by applying [ifSome]
   /// if a value is present, or [ifNone] if it is not.
-  B fold<B>(B Function() ifNone, B Function(T value) ifSome) {
-    return switch (this) {
-      Some(value: final v) => ifSome(v),
-      None() => ifNone(),
-    };
-  }
+  B fold<B>(B Function() ifNone, B Function(T value) ifSome);
 
   /// Applies [f] to the value inside [Some], returning a new [Option] containing the result.
   ///
   /// Returns [None] if this is a [None].
-  Option<B> map<B>(B Function(T value) f) {
-    return fold(() => None<B>(), (v) => Some(f(v)));
-  }
+  Option<B> map<B>(B Function(T value) f);
 
   /// Applies [f] to the value inside [Some], returning the resulting [Option].
   ///
   /// Returns [None] if this is a [None].
-  Option<B> flatMap<B>(Option<B> Function(T value) f) {
-    return fold(() => None<B>(), (v) => f(v));
-  }
+  Option<B> flatMap<B>(Option<B> Function(T value) f);
 
   /// Returns the value if this is a [Some], otherwise throws [StateError].
-  T get() => switch (this) {
-    Some(:final value) => value,
-    None() => throw StateError('Cannot retrieve value from a None instance'),
-  };
+  T get();
 
   /// Returns the value if this is a [Some], otherwise returns [dflt].
-  T getOrElse(T dflt) => switch (this) {
-    Some(:final value) => value,
-    None() => dflt,
-  };
+  T getOrElse(T dflt);
 
   /// Converts this [Option] to a nullable type.
-  T? toNullable() => switch (this) {
-    Some(:final value) => value,
-    None() => null,
-  };
+  T? toNullable();
 
   /// Filters this [Option], returning [Some] if the value matches [predicate], otherwise returning [None].
-  Option<T> filter(bool Function(T value) predicate) => fold(
-    () => const .none(),
-    (value) => predicate(value) ? this : None<T>(),
-  );
+  Option<T> filter(bool Function(T value) predicate);
 }
 
 /// {@template some}
@@ -109,6 +90,30 @@ final class Some<T> extends Option<T> {
 
   /// {@macro some}
   const Some(this.value);
+
+  @override
+  B fold<B>(B Function() ifNone, B Function(T value) ifSome) => ifSome(value);
+
+  @override
+  @pragma('vm:prefer-inline')
+  Option<B> map<B>(B Function(T value) f) => .some(f(value));
+
+  @override
+  @pragma('vm:prefer-inline')
+  Option<B> flatMap<B>(Option<B> Function(T value) f) => f(value);
+
+  @override
+  T get() => value;
+
+  @override
+  T getOrElse(T dflt) => value;
+
+  @override
+  T? toNullable() => value;
+
+  @override
+  Option<T> filter(bool Function(T value) predicate) =>
+      predicate(value) ? this : None<T>();
 
   @override
   bool operator ==(Object other) =>
@@ -127,6 +132,29 @@ final class Some<T> extends Option<T> {
 final class None<T> extends Option<T> {
   /// {@macro none}
   const None();
+
+  @override
+  B fold<B>(B Function() ifNone, B Function(T value) ifSome) => ifNone();
+
+  @override
+  @pragma('vm:prefer-inline')
+  Option<B> map<B>(B Function(T value) f) => none;
+
+  @override
+  @pragma('vm:prefer-inline')
+  Option<B> flatMap<B>(Option<B> Function(T value) f) => none;
+
+  @override
+  T get() => throw StateError('Cannot retrieve value from a None instance');
+
+  @override
+  T getOrElse(T dflt) => dflt;
+
+  @override
+  T? toNullable() => null;
+
+  @override
+  Option<T> filter(bool Function(T value) predicate) => none;
 
   @override
   bool operator ==(Object other) => other is None<T>;
