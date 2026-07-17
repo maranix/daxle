@@ -66,74 +66,39 @@ sealed class Either<L, R> {
 
   /// Projects this [Either] into a value of type [B] by applying [ifLeft]
   /// if this is a [Left], or [ifRight] if this is a [Right].
-  B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) {
-    return switch (this) {
-      Left(value: final l) => ifLeft(l),
-      Right(value: final r) => ifRight(r),
-    };
-  }
+  B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight);
 
   /// Applies [f] to the value inside [Right], returning a new [Either] containing the result.
   ///
   /// Returns the current [Left] unchanged if this is a [Left].
-  Either<L, B> map<B>(B Function(R right) f) {
-    return fold((l) => Left<L, B>(l), (r) => Right<L, B>(f(r)));
-  }
+  Either<L, B> map<B>(B Function(R right) f);
 
   /// Applies [f] to the value inside [Left], returning a new [Either] containing the result.
   ///
   /// Returns the current [Right] unchanged if this is a [Right].
-  Either<B, R> mapLeft<B>(B Function(L left) f) {
-    return fold((l) => Left<B, R>(f(l)), (r) => Right<B, R>(r));
-  }
+  Either<B, R> mapLeft<B>(B Function(L left) f);
 
   /// Applies [mapLeft] to the error value if this is a [Left], or [mapRight]
   /// to the success value if this is a [Right].
   Either<L2, R2> bimap<L2, R2>(
     L2 Function(L left) mapLeft,
     R2 Function(R right) mapRight,
-  ) {
-    return fold(
-      (l) => Left<L2, R2>(mapLeft(l)),
-      (r) => Right<L2, R2>(mapRight(r)),
-    );
-  }
+  );
 
   /// Applies [f] to the value inside [Right], returning the resulting [Either].
   ///
   /// Returns the current [Left] unchanged if this is a [Left].
-  Either<L, B> flatMap<B>(Either<L, B> Function(R right) f) {
-    return switch (this) {
-      Left(value: final l) => Left<L, B>(l),
-      Right(value: final r) => f(r),
-    };
-  }
+  Either<L, B> flatMap<B>(Either<L, B> Function(R right) f);
 
   /// Runs the provided [callback] on the [Right] value of this [Either] without modifying it.
   ///
   /// The callback is executed only if this [Either] is a [Right].
-  Either<L, R> tap(void Function(R value) callback) {
-    return fold(
-      (l) => this,
-      (r) {
-        callback(r);
-        return this;
-      },
-    );
-  }
+  Either<L, R> tap(void Function(R value) callback);
 
   /// Runs the provided [callback] on the [Left] value of this [Either] without modifying it.
   ///
   /// The callback is executed only if this [Either] is a [Left].
-  Either<L, R> tapLeft(void Function(L error) callback) {
-    return fold(
-      (l) {
-        callback(l);
-        return this;
-      },
-      (r) => this,
-    );
-  }
+  Either<L, R> tapLeft(void Function(L error) callback);
 
   /// Ensures that the [Right] value of this [Either] satisfies the [predicate].
   ///
@@ -143,25 +108,13 @@ sealed class Either<L, R> {
   Either<L, R> ensure(
     bool Function(R value) predicate,
     L Function() onFailure,
-  ) {
-    return fold(
-      (l) => this,
-      (r) => predicate(r) ? this : Left<L, R>(onFailure()),
-    );
-  }
+  );
 
   /// Recovers from a [Left] failure by returning the result of [f].
-  Either<L, R> orElse(Either<L, R> Function(L left) f) {
-    return switch (this) {
-      Left(value: final l) => f(l),
-      Right() => this,
-    };
-  }
+  Either<L, R> orElse(Either<L, R> Function(L left) f);
 
   /// Returns the value inside [Right], or the result of [dflt] if this is a [Left].
-  R getOrElse(R Function(L left) dflt) {
-    return fold(dflt, (r) => r);
-  }
+  R getOrElse(R Function(L left) dflt);
 
   /// Executes an [Iterable] of [Either]s sequentially, collecting their successful results.
   ///
@@ -212,6 +165,47 @@ final class Left<L, R> extends Either<L, R> {
   const Left(this.value);
 
   @override
+  B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) =>
+      ifLeft(value);
+
+  @override
+  Either<L, B> map<B>(B Function(R right) f) => Left<L, B>(value);
+
+  @override
+  Either<B, R> mapLeft<B>(B Function(L left) f) => Left<B, R>(f(value));
+
+  @override
+  Either<L2, R2> bimap<L2, R2>(
+    L2 Function(L left) mapLeft,
+    R2 Function(R right) mapRight,
+  ) => Left<L2, R2>(mapLeft(value));
+
+  @override
+  Either<L, B> flatMap<B>(Either<L, B> Function(R right) f) =>
+      Left<L, B>(value);
+
+  @override
+  Either<L, R> tap(void Function(R value) callback) => this;
+
+  @override
+  Either<L, R> tapLeft(void Function(L error) callback) {
+    callback(value);
+    return this;
+  }
+
+  @override
+  Either<L, R> ensure(
+    bool Function(R value) predicate,
+    L Function() onFailure,
+  ) => this;
+
+  @override
+  Either<L, R> orElse(Either<L, R> Function(L left) f) => f(value);
+
+  @override
+  R getOrElse(R Function(L left) dflt) => dflt(value);
+
+  @override
   bool operator ==(Object other) =>
       identical(this, other) || (other is Left<L, R> && other.value == value);
 
@@ -230,6 +224,46 @@ final class Right<L, R> extends Either<L, R> {
 
   /// {@macro right}
   const Right(this.value);
+
+  @override
+  B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) =>
+      ifRight(value);
+
+  @override
+  Either<L, B> map<B>(B Function(R right) f) => Right<L, B>(f(value));
+
+  @override
+  Either<B, R> mapLeft<B>(B Function(L left) f) => Right<B, R>(value);
+
+  @override
+  Either<L2, R2> bimap<L2, R2>(
+    L2 Function(L left) mapLeft,
+    R2 Function(R right) mapRight,
+  ) => Right<L2, R2>(mapRight(value));
+
+  @override
+  Either<L, B> flatMap<B>(Either<L, B> Function(R right) f) => f(value);
+
+  @override
+  Either<L, R> tap(void Function(R value) callback) {
+    callback(value);
+    return this;
+  }
+
+  @override
+  Either<L, R> tapLeft(void Function(L error) callback) => this;
+
+  @override
+  Either<L, R> ensure(
+    bool Function(R value) predicate,
+    L Function() onFailure,
+  ) => predicate(value) ? this : Left<L, R>(onFailure());
+
+  @override
+  Either<L, R> orElse(Either<L, R> Function(L left) f) => this;
+
+  @override
+  R getOrElse(R Function(L left) dflt) => value;
 
   @override
   bool operator ==(Object other) =>
