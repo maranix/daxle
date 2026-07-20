@@ -1,3 +1,9 @@
+## 3.1.1 (2026-07-20)
+
+- **BUG FIXES**:
+  - Prevented `null` values inside `Some` instances by throwing an `ArgumentError` if `Some` is initialized with `null`.
+  - Fixed `Option.map` to accept `B? Function(T)` and convert `null` return values into `None()` (`Option.fromNullable(f(value))`), preventing `Some(null)` values.
+
 ## 3.1.0 (2026-07-17)
 
 - **PERFORMANCE & REFACTORING**:

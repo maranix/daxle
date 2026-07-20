@@ -12,7 +12,7 @@ Welcome to the **Daxle** monorepo workspace! This repository contains the source
 
 | Package | Path | Description | Version | Pub |
 | :--- | :--- | :--- | :--- | :--- |
-| **daxle** | [`packages/daxle`](packages/daxle/) | Build composable, predictable pipelines. Core toolkit offering `Option`, `Either`, `Task`, `TaskEither`, and `Unit`. | `3.0.0+1` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
+| **daxle** | [`packages/daxle`](packages/daxle/) | Build composable, predictable pipelines. Core toolkit offering `Option`, `Either`, `Task`, `TaskEither`, and `Unit`. | `3.1.1` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
 
 ---
 

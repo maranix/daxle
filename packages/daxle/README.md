@@ -31,7 +31,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^3.1.0
+  daxle: ^3.1.1
 ```
 
 Then run:

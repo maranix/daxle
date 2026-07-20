@@ -25,12 +25,18 @@ void main() {
       expect(Option.fromNullable(42).getOrElse(0), equals(42));
     });
 
-    test('map transforms Some and leaves None unchanged', () {
+    test('Some throws ArgumentError if initialized with null', () {
+      expect(() => Option.some(null as dynamic), throwsArgumentError);
+    });
+
+    test('map transforms Some and converts null returns to None', () {
       final some = Option.some(10).map((v) => v * 2);
       final none = const Option<int>.none().map((v) => v * 2);
+      final nullMapped = Option.some('invalid').map((s) => int.tryParse(s));
 
       expect(some.getOrElse(0), equals(20));
       expect(none.isNone, isTrue);
+      expect(nullMapped.isNone, isTrue);
     });
 
     test('flatMap chains computations', () {

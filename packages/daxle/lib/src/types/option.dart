@@ -24,7 +24,7 @@ sealed class Option<T> {
   /// print(x.isSome); // true
   /// ```
   /// {@endtemplate}
-  const factory Option.some(T value) = Some<T>;
+  factory Option.some(T value) => Some<T>(value);
 
   /// {@template option_none}
   /// Creates an [Option] representing the absence of a value.
@@ -89,14 +89,23 @@ final class Some<T> extends Option<T> {
   final T value;
 
   /// {@macro some}
-  const Some(this.value);
+  const Some._(this.value);
+
+  /// {@macro some}
+  factory Some(T value) {
+    if (value == null) {
+      throw ArgumentError.value(value, 'value', 'Some cannot contain null.');
+    }
+
+    return Some._(value);
+  }
 
   @override
   B fold<B>(B Function() ifNone, B Function(T value) ifSome) => ifSome(value);
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> map<B>(B Function(T value) f) => Some(f(value));
+  Option<B> map<B>(B? Function(T value) f) => .fromNullable(f(value));
 
   @override
   @pragma('vm:prefer-inline')
