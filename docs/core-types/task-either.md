@@ -46,42 +46,37 @@ Future<UserProfile?> getUser(String id) async {
 TaskEither<AppError, UserProfile> getUserSafe(String id) {
   return TaskEither.fromFuture(
     () => api.fetchJson(id),
-    (error, _) => AppError.network(error.toString()), // Trapped
-  ).flatMap((json) => TaskEither.fromEither(
-      Either.tryCatch(
-        () => UserProfile.fromJson(json),
-        (error, _) => AppError.parseError(),
-      )
-  ));
+    (error, _) => AppError.network(error.toString()),
+  ).map(
+    UserProfile.fromJson,
+    onError: (error, _) => AppError.parseError(error),
+  );
 }
 ```
-
 
 ## See it in action
 
 Here is how you lazily read, parse, and validate a JSON file with zero risk of crashing.
 
 ```dart
-import 'dart:convert';
+import 'dart:convert' as convert;
 import 'dart:io';
 import 'package:daxle/daxle.dart';
 
 // 1. Define specific errors
 sealed class ConfigError {}
-class FileNotFound extends ConfigError { }
-class InvalidJson extends ConfigError { }
+class FileNotFound extends ConfigError {}
+class InvalidJson extends ConfigError {}
 
 // 2. Build the lazy, crash-proof pipeline
 TaskEither<ConfigError, Map<String, dynamic>> loadConfig(String path) {
   return TaskEither.fromFuture(
     () => File(path).readAsString(),
-    (_, __) => FileNotFound(),
-  ).flatMap((content) => TaskEither.fromEither(
-      Either.tryCatch(
-        () => jsonDecode(content) as Map<String, dynamic>,
-        (_, __) => InvalidJson(),
-      )
-  ));
+    (_, _) => FileNotFound(),
+  ).map(
+    convert.jsonDecode,
+    onError: (_, __) => InvalidJson(),
+  );
 }
 
 void main() async {
@@ -115,15 +110,12 @@ final failure = TaskEither.left('Denied');
 
 ### Chain Async Tasks (`flatMap`)
 
-Chain dependent tasks together cleanly. If the first task fails, the second one is never executed, and the error safely bypasses the rest of the pipeline.
+Chain dependent asynchronous tasks together cleanly. If the first task fails, the second one is never executed, and the error safely bypasses the rest of the pipeline.
 
 ```dart
-final pipeline = fetchTask.flatMap((response) {
-  return TaskEither.fromFuture(
-    () => saveToDatabase(response.body),
-    (err, _) => 'DB Error: $err',
-  );
-});
+final pipeline = fetchUser(userId)
+    .map((user) => user.id)
+    .flatMap(fetchUserPreferences); // Returns another TaskEither
 ```
 
 ### Transform Data and Errors (`map` / `mapLeft`)

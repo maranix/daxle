@@ -104,5 +104,9 @@ export const Routes = {
       text: 'Data Transformation',
       link: '/cookbook/data-transformation',
     },
+    appInitialization: {
+      text: 'App Initialization',
+      link: '/cookbook/app-initialization',
+    },
   },
 } as const;

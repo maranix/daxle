@@ -112,14 +112,21 @@ Shape your data without constantly checking if it exists. If the `Option` is `No
 final option = Option.some(' 123 ');
 
 // map: Transform the value synchronously
-final doubled = option.map((s) => s.trim()).map(int.parse).map((n) => n * 2); 
+final doubled = option
+    .map((s) => s.trim())
+    .map(int.parse)
+    .map((n) => n * 2); 
 
 // flatMap: Chain into an operation that might also return missing data
-final parsed = option.map((s) => s.trim())
-                     .flatMap((s) => Option.fromNullable(int.tryParse(s)));
+final parsed = option
+    .map((s) => s.trim())
+    .flatMap((s) => Option.fromNullable(int.tryParse(s)));
 
 // filter: Drop the value if it fails your test
-final filtered = option.map((s) => s.trim()).map(int.parse).filter((n) => n > 200);
+final filtered = option
+    .map((s) => s.trim())
+    .map(int.parse)
+    .filter((n) => n > 200);
 ```
 
 ### Extract Safely

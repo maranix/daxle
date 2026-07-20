@@ -113,7 +113,10 @@ Shape your success data confidently. If a step fails, subsequent transformations
 final original = Either.right(' 100 ');
 
 // map: Alter the success value
-final doubled = original.map((s) => s.trim()).map(int.parse).map((n) => n * 2);
+final doubled = original
+    .map((s) => s.trim())
+    .map(int.parse)
+    .map((n) => n * 2);
 
 // flatMap: Chain into another risky operation
 final processed = original
