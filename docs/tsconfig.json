@@ -20,6 +20,7 @@
   "exclude": [
     "node_modules",
     ".vitepress/dist",
-    ".vitepress/cache"
+    ".vitepress/cache",
+    "graphify-out"
   ]
 }
