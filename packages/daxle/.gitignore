@@ -8,3 +8,4 @@ pubspec.lock
 
 # ignore build artifacts
 build
+graphify-out/
