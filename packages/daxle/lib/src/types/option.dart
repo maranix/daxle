@@ -9,9 +9,9 @@ const none = None<Never>();
 /// fluent chaining of operations.
 /// {@endtemplate}
 @immutable
-sealed class Option<T> {
+sealed class const Option<T extends Object>._() {
   /// {@macro option}
-  const Option();
+  factory(T? value) => value != null ? Some(value) : None<T>();
 
   /// {@template option_some}
   /// Creates an [Option] containing a value of type [T].
@@ -24,7 +24,7 @@ sealed class Option<T> {
   /// print(x.isSome); // true
   /// ```
   /// {@endtemplate}
-  factory Option.some(T value) => Some<T>(value);
+  const factory some(T value) = Some<T>;
 
   /// {@template option_none}
   /// Creates an [Option] representing the absence of a value.
@@ -37,13 +37,7 @@ sealed class Option<T> {
   /// print(y.isNone); // true
   /// ```
   /// {@endtemplate}
-  const factory Option.none() = None<T>;
-
-  /// Creates an [Option] from a nullable [value].
-  ///
-  /// Returns [Some] if the value is not null, otherwise [None].
-  factory Option.fromNullable(T? value) =>
-      value != null ? Some(value) : None<T>();
+  const factory none() = None<T>;
 
   /// Creates an [Option] wrapping [value] in [Some] if it matches [predicate], otherwise returning [None].
   factory Option.fromPredicate(T value, bool Function(T value) predicate) =>
@@ -62,12 +56,12 @@ sealed class Option<T> {
   /// Applies [f] to the value inside [Some], returning a new [Option] containing the result.
   ///
   /// Returns [None] if this is a [None].
-  Option<B> map<B>(B Function(T value) f);
+  Option<B> map<B extends Object>(B? Function(T value) f);
 
   /// Applies [f] to the value inside [Some], returning the resulting [Option].
   ///
   /// Returns [None] if this is a [None].
-  Option<B> flatMap<B>(Option<B> Function(T value) f);
+  Option<B> flatMap<B extends Object>(Option<B> Function(T value) f);
 
   /// Returns the value if this is a [Some], otherwise throws [StateError].
   T get();
@@ -85,31 +79,20 @@ sealed class Option<T> {
 /// {@template some}
 /// Represents the presence of a value of type [T].
 /// {@endtemplate}
-final class Some<T> extends Option<T> {
-  final T value;
-
-  /// {@macro some}
-  const Some._(this.value);
-
-  /// {@macro some}
-  factory Some(T value) {
-    if (value == null) {
-      throw ArgumentError.value(value, 'value', 'Some cannot contain null.');
-    }
-
-    return Some._(value);
-  }
+final class const Some<T extends Object>(final T value) extends Option<T> {
+  this : super._();
 
   @override
   B fold<B>(B Function() ifNone, B Function(T value) ifSome) => ifSome(value);
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> map<B>(B? Function(T value) f) => .fromNullable(f(value));
+  Option<B> map<B extends Object>(B? Function(T value) f) => Option(f(value));
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> flatMap<B>(Option<B> Function(T value) f) => f(value);
+  Option<B> flatMap<B extends Object>(Option<B> Function(T value) f) =>
+      f(value);
 
   @override
   T get() => value;
@@ -138,20 +121,20 @@ final class Some<T> extends Option<T> {
 /// {@template none}
 /// Represents the absence of a value.
 /// {@endtemplate}
-final class None<T> extends Option<T> {
+final class const None<T extends Object>() extends Option<T> {
   /// {@macro none}
-  const None();
+  this : super._();
 
   @override
   B fold<B>(B Function() ifNone, B Function(T value) ifSome) => ifNone();
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> map<B>(B Function(T value) f) => none;
+  Option<B> map<B extends Object>(B? Function(T value) f) => none;
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> flatMap<B>(Option<B> Function(T value) f) => none;
+  Option<B> flatMap<B extends Object>(Option<B> Function(T value) f) => none;
 
   @override
   T get() => throw StateError('Cannot retrieve value from a None instance');

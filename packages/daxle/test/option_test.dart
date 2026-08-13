@@ -19,14 +19,10 @@ void main() {
       expect(opt.toNullable(), isNull);
     });
 
-    test('Option.fromNullable maps null to None and non-null to Some', () {
-      expect(Option.fromNullable(null).isNone, isTrue);
-      expect(Option.fromNullable(42).isSome, isTrue);
-      expect(Option.fromNullable(42).getOrElse(0), equals(42));
-    });
-
-    test('Some throws ArgumentError if initialized with null', () {
-      expect(() => Option.some(null as dynamic), throwsArgumentError);
+    test('Option(value) smart constructor maps null to None and non-null to Some', () {
+      expect(Option<int>(null).isNone, isTrue);
+      expect(Option(42).isSome, isTrue);
+      expect(Option(42).getOrElse(0), equals(42));
     });
 
     test('map transforms Some and converts null returns to None', () {
@@ -67,6 +63,42 @@ void main() {
 
       expect(filtered1, equals(Option.some(10)));
       expect(filtered2.isNone, isTrue);
+    });
+
+    test('get() retrieves value on Some and throws StateError on None', () {
+      expect(Option.some(42).get(), equals(42));
+      expect(() => const Option<int>.none().get(), throwsStateError);
+    });
+
+    test('Equality and hashCode', () {
+      expect(Option.some(42), equals(Option.some(42)));
+      expect(Option.some(42), isNot(equals(Option.some(43))));
+      expect(const Option<int>.none(), equals(const Option<int>.none()));
+      expect(Option.some(42).hashCode, equals(42.hashCode));
+      expect(const Option<int>.none().hashCode, equals(0));
+    });
+
+    test('toString representation', () {
+      expect(Option.some(42).toString(), equals('Some(42)'));
+      expect(const Option<int>.none().toString(), equals('None'));
+    });
+
+    test('Pattern matching with Dart switch expressions', () {
+      String describe(Option<int> opt) => switch (opt) {
+            Some(value: final v) => 'Value: $v',
+            None() => 'No value',
+          };
+
+      expect(describe(Option.some(42)), equals('Value: 42'));
+      expect(describe(const Option<int>.none()), equals('No value'));
+    });
+
+    test('Chained map handles null returns mid-stream', () {
+      final res = Option.some('invalid')
+          .map((s) => int.tryParse(s)) // returns None
+          .map((i) => i * 2); // remains None
+
+      expect(res.isNone, isTrue);
     });
   });
 }
