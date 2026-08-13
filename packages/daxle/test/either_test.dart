@@ -228,5 +228,31 @@ void main() {
         equals([1, 2]),
       ); // Stops exactly at the first failure
     });
+
+    test('Equality and hashCode', () {
+      expect(const Right<String, int>(42), equals(const Right<String, int>(42)));
+      expect(const Right<String, int>(42), isNot(equals(const Right<String, int>(43))));
+      expect(const Left<String, int>('err'), equals(const Left<String, int>('err')));
+      expect(const Left<String, int>('err'), isNot(equals(const Left<String, int>('err2'))));
+      expect(const Right<String, String>('err'), isNot(equals(const Left<String, String>('err'))));
+
+      expect(const Right<String, int>(42).hashCode, equals(42.hashCode));
+      expect(const Left<String, int>('err').hashCode, equals('err'.hashCode));
+    });
+
+    test('toString representation', () {
+      expect(const Right<String, int>(42).toString(), equals('Right(42)'));
+      expect(const Left<String, int>('err').toString(), equals('Left(err)'));
+    });
+
+    test('Pattern matching with Dart switch expressions', () {
+      String describe(Either<String, int> either) => switch (either) {
+            Right(value: final v) => 'Success: $v',
+            Left(value: final e) => 'Failure: $e',
+          };
+
+      expect(describe(const Right(42)), equals('Success: 42'));
+      expect(describe(const Left('err')), equals('Failure: err'));
+    });
   });
 }

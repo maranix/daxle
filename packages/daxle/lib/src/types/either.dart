@@ -7,10 +7,7 @@ import 'package:meta/meta.dart';
 /// By convention, [Left] is used for failure/error and [Right] is used for success.
 /// {@endtemplate}
 @immutable
-sealed class Either<L, R> {
-  /// {@macro either}
-  const Either();
-
+sealed class const Either<L, R>() {
   /// {@template either_left}
   /// Creates a [Left] instance of [Either].
   ///
@@ -22,7 +19,7 @@ sealed class Either<L, R> {
   /// print(x.isLeft); // true
   /// ```
   /// {@endtemplate}
-  const factory Either.left(L value) = Left<L, R>;
+  const factory left(L value) = Left<L, R>;
 
   /// {@template either_right}
   /// Creates a [Right] instance of [Either].
@@ -35,28 +32,13 @@ sealed class Either<L, R> {
   /// print(y.isRight); // true
   /// ```
   /// {@endtemplate}
-  const factory Either.right(R value) = Right<L, R>;
+  const factory right(R value) = Right<L, R>;
 
   /// Creates an [Either] based on a boolean [condition].
   ///
   /// Returns [Right] with [right] if true, otherwise [Left] with [left].
-  factory Either.cond(bool condition, R right, L left) =>
+  factory cond(bool condition, R right, L left) =>
       condition ? Right<L, R>(right) : Left<L, R>(left);
-
-  /// Executes [run] synchronously and catches any exceptions.
-  ///
-  /// If [run] completes successfully, returns [Right].
-  /// If [run] throws an exception, passes it to [onError] and returns [Left].
-  static Either<L, R> tryCatch<L, R>(
-    R Function() run,
-    L Function(Object error, StackTrace stackTrace) onError,
-  ) {
-    try {
-      return Right<L, R>(run());
-    } catch (e, st) {
-      return Left<L, R>(onError(e, st));
-    }
-  }
 
   /// Returns `true` if this is a [Left] instance.
   bool get isLeft => this is Left<L, R>;
@@ -153,17 +135,27 @@ sealed class Either<L, R> {
     }
     return Right<L, List<B>>(results);
   }
+
+  /// Executes [run] synchronously and catches any exceptions.
+  ///
+  /// If [run] completes successfully, returns [Right].
+  /// If [run] throws an exception, passes it to [onError] and returns [Left].
+  static Either<L, R> tryCatch<L, R>(
+    R Function() run,
+    L Function(Object error, StackTrace stackTrace) onError,
+  ) {
+    try {
+      return Right<L, R>(run());
+    } catch (e, st) {
+      return Left<L, R>(onError(e, st));
+    }
+  }
 }
 
 /// {@template left}
 /// Represents the Left side of [Either], usually holding an error/failure value.
 /// {@endtemplate}
-final class Left<L, R> extends Either<L, R> {
-  final L value;
-
-  /// {@macro left}
-  const Left(this.value);
-
+final class const Left<L, R>(final L value) extends Either<L, R> {
   @override
   @pragma('vm:prefer-inline')
   B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) =>
@@ -224,12 +216,7 @@ final class Left<L, R> extends Either<L, R> {
 /// {@template right}
 /// Represents the Right side of [Either], usually holding a success value.
 /// {@endtemplate}
-final class Right<L, R> extends Either<L, R> {
-  final R value;
-
-  /// {@macro right}
-  const Right(this.value);
-
+final class const Right<L, R>(final R value) extends Either<L, R> {
   @override
   @pragma('vm:prefer-inline')
   B fold<B>(B Function(L left) ifLeft, B Function(R right) ifRight) =>
