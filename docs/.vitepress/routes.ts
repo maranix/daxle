@@ -12,6 +12,10 @@ export const Routes = {
       text: 'Quick Start',
       link: '/getting-started/quick-start',
     },
+    migration: {
+      text: 'Migration Guide (v4.0.0)',
+      link: '/getting-started/migration',
+    },
   },
   coreTypes: {
     unit: {

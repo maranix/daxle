@@ -43,20 +43,13 @@ This transforms your logic into a flat, declarative pipeline. If any value in th
 ```dart
 import 'package:daxle/daxle.dart';
 
-// Helper to safely extract a map field from another map
-Option<Map<String, dynamic>> getMapField(Map<String, dynamic> map, String key) {
-  final value = map[key];
-  return Option.fromPredicate(
-    value,
-    (v) => v != null && v is Map<String, dynamic>,
-  ).map((v) => v as Map<String, dynamic>);
-}
-
 // Fluent querying of server host with Option
+//
+// Reads like a step-by-step pipeline
 Option<String> getSanitizedServerHostSafe(Map<String, dynamic> config) {
-  return getMapField(config, 'services')
-      .flatMap((services) => getMapField(services, 'server'))
-      .flatMap((server) => Option.fromNullable(server['host'] as String?))
+  return Option<Map<String, dynamic>>(config['services'])
+      .flatMap<Map<String, dynamic>>((services) => services['server'])
+      .flatMap<String>((server) => server['host'])
       .map((host) => host.trim())
       .filter((host) => host.isNotEmpty)
       .filter((host) => !host.startsWith('localhost'));

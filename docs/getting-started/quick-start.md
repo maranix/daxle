@@ -52,7 +52,7 @@ int parsePort(Map<String, String> env) {
 
 This hides your intent behind visual noise. With Daxle, you express this exact logic as a single, readable pipeline using `Option`. 
 
-Watch how Daxle's dot-shorthand (`.fromNullable`) effortlessly wraps the value:
+Watch how Daxle's smart factory constructor (`Option(port)`) effortlessly wraps potential nulls into an `Option`:
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -60,7 +60,7 @@ import 'package:daxle/daxle.dart';
 int parsePort(Map<String, String> env) {
   final port = int.tryParse(env['PORT'] ?? '');
 
-  return .fromNullable(port) // Securely wrap potential nulls
+  return Option(port) // Smart constructor automatically converts null -> None()
       .filter((p) => p >= 1024 && p <= 65535) // Discard invalid ports
       .getOrElse(8080); // Provide the default fallback
 }

@@ -103,6 +103,13 @@ final parsed = Either.tryCatch(
   () => Uri.parse('https://daxle.dev'),
   (error, stackTrace) => 'Invalid URL: $error',
 );
+
+// Conditional evaluation with lazy callbacks (guarantees unchosen branch is never evaluated)
+final divided = Either.cond(
+  b != 0,
+  () => a ~/ b,
+  () => 'Division by zero',
+);
 ```
 
 ### Chain and Transform Data (`map` / `flatMap`)

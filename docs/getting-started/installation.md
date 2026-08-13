@@ -14,8 +14,8 @@ Because Daxle is lightweight and relies only on official Dart packages (like `as
 Daxle leverages modern Dart features like sealed classes, pattern matching, and dot-shorthand constructors. 
 
 To use Daxle, you need:
-* **Dart SDK**: `>= 3.11.0 < 4.0.0`
-* **Flutter SDK**: Any version bundled with Dart 3.11.0 or higher.
+* **Dart SDK**: `>= 3.13.0 < 4.0.0`
+* **Flutter SDK**: Any version bundled with Dart 3.13.0 or higher.
 
 
 ## Add the Dependency
@@ -36,7 +36,7 @@ Or add it manually to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^3.0.0
+  daxle: ^4.0.0
 ```
 
 Then fetch the package:

@@ -5,9 +5,9 @@ node_modules/
 .vitepress/dist/
 .vitepress/cache/
 
-# Graphify outputs
-graphify-out/
-
 # OS files
 .DS_Store
 
+# Symlinks
+AGENTS.md
+graphify-out

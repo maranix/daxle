@@ -126,29 +126,40 @@ final tappedTask = task.tap((data) async {
 });
 ```
 
-### Execute in Batch (`sequence` / `traverse`)
+### Execute in Batch with Concurrency (`sequence` / `traverse`)
 
-Run arrays of tasks efficiently:
+Run collections of tasks with fine-grained worker pool concurrency controls (`Concurrency` extension type):
 
-* `sequence`: Runs a list of tasks one by one, gathering the results.
-* `traverse`: Maps your data into tasks and runs them sequentially.
+* `sequence`: Converts a list of tasks into a single task returning a list of results.
+* `traverse`: Maps your items into tasks and executes them using the specified concurrency mode.
+
+Both methods accept an optional `{Concurrency mode = const .bounded(3)}` parameter:
+* **`Concurrency.bounded(int limit)`** (`.bounded(5)`): Processes tasks in parallel worker chunks of size `limit` (default is 3).
+* **`Concurrency.sequential`** (`.sequential`): Executes tasks 1 by 1 sequentially.
+* **`Concurrency.unbounded`** (`.unbounded`): Runs all tasks simultaneously in parallel.
 
 ```dart
 final tasks = [
   Task(() async => 'Task A'),
   Task(() async => 'Task B'),
+  Task(() async => 'Task C'),
 ];
 
-// Runs Task A, waits, then runs Task B
-final Task<List<String>> batch = Task.sequence(tasks);
-final results = await batch.run(); 
+// Run tasks sequentially (1 by 1)
+final Task<List<String>> sequentialBatch = Task.sequence(tasks, mode: .sequential);
+final results1 = await sequentialBatch.run(); 
 
-// Maps paths to tasks and runs them safely
-final paths = ['log1.txt', 'log2.txt'];
+// Run tasks concurrently in worker batches of 5
+final paths = ['log1.txt', 'log2.txt', 'log3.txt'];
 final Task<List<int>> byteCounts = Task.traverse(
   paths,
   (path) => Task(() => File(path).length()),
+  mode: .bounded(5),
 );
+final results2 = await byteCounts.run();
+
+// Run all tasks in parallel with unlimited concurrency
+final Task<List<String>> parallelBatch = Task.sequence(tasks, mode: .unbounded);
 ```
 
 

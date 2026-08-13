@@ -56,7 +56,7 @@ import 'package:daxle/daxle.dart';
 Option<int> parseValidPort(Map<String, String> env) {
   final port = int.tryParse(env['PORT'] ?? '');
 
-  return .fromNullable(port)
+  return Option(port)
       .filter((p) => p >= 1024 && p <= 65535);
 }
 ```
@@ -86,7 +86,7 @@ Instead of throwing untracked exceptions that could crash your app at runtime, D
 import 'package:daxle/daxle.dart';
 
 Either<String, double> safeDivide(double a, double b) {
-  return .cond(b != 0.0, a / b, 'Division by zero');
+  return .cond(b != 0.0, () => a / b, () => 'Division by zero');
 }
 
 void main() {

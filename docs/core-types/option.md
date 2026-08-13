@@ -47,10 +47,10 @@ int? processInput(String? input) {
 ```dart
 // The Option way: Flat, safe, and readable
 Option<int> processInput(String? input) {
-  return Option.fromNullable(input)
+  return Option(input)
       .map((str) => str.trim())
       .filter((str) => str.isNotEmpty)
-      .flatMap((str) => Option.fromNullable(int.tryParse(str)))
+      .flatMap((str) => Option(int.tryParse(str)))
       .filter((val) => val > 0);
 }
 ```
@@ -92,13 +92,17 @@ void main() {
 
 ### Create an Option
 
+In Daxle v4, `Option<T extends Object>` strictly enforces non-nullable type parameters `T extends Object`. Storing `null` inside `Some` is prohibited.
+
+Use the smart factory constructor `Option(T? value)` to wrap nullable values—it automatically maps `null` to `None()` and non-null values to `Some(value)`.
+
 ```dart
 // 1. Explicit state
 final someVal = Option.some(42);
 final noneVal = const Option.none();
 
-// 2. Wrap a risky nullable API
-final parsed = Option.fromNullable(int.tryParse('abc')); // Safely returns None
+// 2. Smart factory constructor (replaces removed Option.fromNullable)
+final parsed = Option(int.tryParse('abc')); // Safely returns None()
 
 // 3. Build from a condition
 final name = Option.fromPredicate('Dart', (str) => str.isNotEmpty); 
@@ -120,7 +124,7 @@ final doubled = option
 // flatMap: Chain into an operation that might also return missing data
 final parsed = option
     .map((s) => s.trim())
-    .flatMap((s) => Option.fromNullable(int.tryParse(s)));
+    .flatMap((s) => Option(int.tryParse(s)));
 
 // filter: Drop the value if it fails your test
 final filtered = option
@@ -134,7 +138,7 @@ final filtered = option
 Pull your data out safely when you reach the end of the line:
 
 ```dart
-final opt = Option.fromNullable(int.tryParse('bad_data'));
+final opt = Option(int.tryParse('bad_data'));
 
 // 1. Fallback to a default
 final val1 = opt.getOrElse(0); 
@@ -151,7 +155,7 @@ final val2 = opt.fold(
 
 * **Always fold, never get**: Steer clear of `.get()`. If the value is missing, your app will crash. Always use safe extraction like `.fold()` or `.getOrElse()`.
 * **Ditch `isSome` checks**: Calling `if (opt.isSome) { opt.get() }` just recreates the bad habits of standard null checking. Rely on `.map()` and `.flatMap()` to handle the data naturally.
-* **Wrap messy APIs immediately**: When a third-party package gives you nullable data, wrap it in `Option.fromNullable()` right at the boundary.
+* **Wrap messy APIs immediately**: When a third-party package gives you nullable data, wrap it in `Option(value)` right at the boundary.
 
 
 ## Common Mistakes

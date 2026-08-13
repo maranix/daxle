@@ -142,24 +142,31 @@ TaskEither<AppError, String> runPipeline(String configPath) {
 }
 ```
 
-### Executing Tasks Sequentially (`sequence` and `traverse`)
+### Executing Tasks in Batches with Concurrency (`sequence` and `traverse`)
 
-If you have a collection of inputs and want to run an asynchronous operation on each, but need them to run **one after another** rather than concurrently (to avoid overwhelming a database or server), use `TaskEither.traverse`:
+When processing a collection of inputs with asynchronous operations, Daxle provides `Task.sequence`, `Task.traverse`, `TaskEither.sequence`, and `TaskEither.traverse` with built-in `Concurrency` worker pool management.
+
+Pass the optional `mode` parameter to control execution concurrency:
+- `mode: .bounded(3)` *(default)*: Processes tasks in parallel worker chunks of size 3 (or any custom limit).
+- `mode: .sequential`: Processes tasks one by one in strict sequence (1 worker).
+- `mode: .unbounded`: Fires all tasks concurrently without limit.
 
 ```dart
 final filePaths = ['log_a.txt', 'log_b.txt', 'log_c.txt'];
 
 // traverse converts List<String> to a single TaskEither returning List<String>
+// mode: .bounded(2) limits execution to 2 parallel worker tasks at a time
 final TaskEither<AppError, List<String>> batchRead = TaskEither.traverse(
   filePaths,
   (path) => TaskEither.fromFuture(
     () => File(path).readAsString(),
     (err, _) => FileError('Error reading $path: $err'),
   ),
+  mode: .bounded(2),
 );
 
 void main() async {
-  // Executes each read sequentially
+  // Executes batch reads with bounded concurrency
   final result = await batchRead.run();
   
   result.fold(

@@ -156,6 +156,36 @@ final result = await task.fold(
 );
 ```
 
+### Execute in Batch with Concurrency (`sequence` / `traverse`)
+
+Process collections of fallible asynchronous operations with worker pool concurrency controls (`Concurrency` extension type):
+
+* `TaskEither.sequence`: Evaluates a list of `TaskEither` instances and aggregates their results.
+* `TaskEither.traverse`: Maps items into `TaskEither` instances and runs them using the specified worker concurrency mode.
+
+Both methods accept an optional `{Concurrency mode = const .bounded(3)}` parameter (defaults to 3 concurrent workers):
+* `mode: .bounded(limit)`: Runs up to `limit` workers concurrently.
+* `mode: .sequential`: Executes operations one by one sequentially (1 worker).
+* `mode: .unbounded`: Fires all tasks concurrently without limit.
+
+```dart
+final items = [1, 2, 3, 4, 5];
+
+// Traverse items with 3 concurrent workers (default)
+final TaskEither<AppError, List<Data>> batch = TaskEither.traverse(
+  items,
+  (id) => fetchItemSafe(id),
+  mode: .bounded(3),
+);
+
+// Execute sequentially
+final TaskEither<AppError, List<Data>> sequential = TaskEither.traverse(
+  items,
+  (id) => fetchItemSafe(id),
+  mode: .sequential,
+);
+```
+
 
 ## Best Practices
 

@@ -9,6 +9,7 @@ export default defineConfig({
   description: "A functional programming library for Dart with comprehensive documentation, guides, and API reference.",
   lastUpdated: true,
   cleanUrls: true,
+  srcExclude: ['**/AGENTS.md', '**/graphify-out/**'],
   head: [
     ['link', { rel: 'icon', href: '/favicon.png' }]
   ],

@@ -129,7 +129,7 @@ Either<ConfigError, Config> parseConfigLine(String rawLine) {
         final rawPort = parts[1];
         final protocol = parts[2];
         
-        return Option.fromNullable(int.tryParse(rawPort))
+        return Option(int.tryParse(rawPort))
             .fold(
               () => Either.left(MalformedLine()),
               (port) => Either.right(Config(host: host, port: port, protocol: protocol)),

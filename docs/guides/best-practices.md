@@ -86,7 +86,7 @@ TaskEither<ConfigError, Unit> updatePort(String path, String portInput) {
     final parsedPort = int.tryParse(portInput);
     
     // Nested fold introduces unnecessary branch matching
-    return Option.fromNullable(parsedPort).fold(
+    return Option(parsedPort).fold(
       () => TaskEither.left(ConfigError.invalidPort()),
       (port) => saveConfigSafe(config.copyWith(port: port)),
     );
@@ -103,7 +103,7 @@ Instead of folding in the middle, use combinators like `flatMap` and `TaskEither
 TaskEither<ConfigError, Unit> updatePortFlat(String path, String portInput) {
   return loadConfigSafe(path).flatMap((config) {
     return TaskEither.fromEither(
-      Option.fromNullable(int.tryParse(portInput))
+      Option(int.tryParse(portInput))
           .fold(
             () => Either.left(ConfigError.invalidPort()),
             (port) => Either.right(config.copyWith(port: port)),
