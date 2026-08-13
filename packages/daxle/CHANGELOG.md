@@ -12,7 +12,6 @@
     - `Concurrency.bounded(int limit)` (`.bounded(limit)`): Processes tasks in parallel worker chunks of size `limit`.
   - Added optional `{Concurrency mode = const .bounded(3)}` parameter to `Task.sequence`, `Task.traverse`, `TaskEither.sequence`, and `TaskEither.traverse`.
   - Full support for Dart dot-shorthand syntax (`mode: .sequential`, `mode: .unbounded`, `mode: .bounded(5)`).
-  - Exported `src/internal/concurrency.dart` in `lib/daxle.dart`.
 
 - **PERFORMANCE & REFACTORING**:
   - Refactored `Option`, `Unit`, `Either` (`Left`/`Right`), `Task`, and `TaskEither` to leverage Dart 3.13+ primary constructors.

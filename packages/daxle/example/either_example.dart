@@ -6,9 +6,9 @@ int divideStandard(int a, int b) {
   return a ~/ b;
 }
 
-// Daxle: failures represented explicitly as values (using Either.cond)
+// Daxle: failures represented explicitly as lazy values (using Either.cond)
 Either<String, int> divide(int a, int b) {
-  return .cond(b != 0, a ~/ b, 'Cannot divide by zero');
+  return .cond(b != 0, () => a ~/ b, () => 'Cannot divide by zero');
 }
 
 void main() {

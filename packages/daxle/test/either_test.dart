@@ -64,11 +64,59 @@ void main() {
     });
 
     test('Either.cond factory constructor', () {
-      final Either<String, int> condTrue = Either.cond(true, 42, 'error');
-      final Either<String, int> condFalse = Either.cond(false, 42, 'error');
+      final Either<String, int> condTrue = Either.cond(
+        true,
+        () => 42,
+        () => 'error',
+      );
+      final Either<String, int> condFalse = Either.cond(
+        false,
+        () => 42,
+        () => 'error',
+      );
 
       expect(condTrue, equals(const Right<String, int>(42)));
       expect(condFalse, equals(const Left<String, int>('error')));
+    });
+
+    test('Either.cond factory constructor laziness and exception safety', () {
+      var rightCalled = false;
+      var leftCalled = false;
+
+      final resFalse = Either<String, int>.cond(
+        false,
+        () {
+          rightCalled = true;
+          throw Exception('Right callback should not be executed when false');
+        },
+        () {
+          leftCalled = true;
+          return 'lazy error';
+        },
+      );
+
+      expect(resFalse, equals(const Left<String, int>('lazy error')));
+      expect(rightCalled, isFalse);
+      expect(leftCalled, isTrue);
+
+      rightCalled = false;
+      leftCalled = false;
+
+      final resTrue = Either<String, int>.cond(
+        true,
+        () {
+          rightCalled = true;
+          return 42;
+        },
+        () {
+          leftCalled = true;
+          throw Exception('Left callback should not be executed when true');
+        },
+      );
+
+      expect(resTrue, equals(const Right<String, int>(42)));
+      expect(rightCalled, isTrue);
+      expect(leftCalled, isFalse);
     });
 
     test('tryCatch handles success, errors, and propagates stack traces', () {
@@ -230,11 +278,26 @@ void main() {
     });
 
     test('Equality and hashCode', () {
-      expect(const Right<String, int>(42), equals(const Right<String, int>(42)));
-      expect(const Right<String, int>(42), isNot(equals(const Right<String, int>(43))));
-      expect(const Left<String, int>('err'), equals(const Left<String, int>('err')));
-      expect(const Left<String, int>('err'), isNot(equals(const Left<String, int>('err2'))));
-      expect(const Right<String, String>('err'), isNot(equals(const Left<String, String>('err'))));
+      expect(
+        const Right<String, int>(42),
+        equals(const Right<String, int>(42)),
+      );
+      expect(
+        const Right<String, int>(42),
+        isNot(equals(const Right<String, int>(43))),
+      );
+      expect(
+        const Left<String, int>('err'),
+        equals(const Left<String, int>('err')),
+      );
+      expect(
+        const Left<String, int>('err'),
+        isNot(equals(const Left<String, int>('err2'))),
+      );
+      expect(
+        const Right<String, String>('err'),
+        isNot(equals(const Left<String, String>('err'))),
+      );
 
       expect(const Right<String, int>(42).hashCode, equals(42.hashCode));
       expect(const Left<String, int>('err').hashCode, equals('err'.hashCode));
@@ -247,9 +310,9 @@ void main() {
 
     test('Pattern matching with Dart switch expressions', () {
       String describe(Either<String, int> either) => switch (either) {
-            Right(value: final v) => 'Success: $v',
-            Left(value: final e) => 'Failure: $e',
-          };
+        Right(value: final v) => 'Success: $v',
+        Left(value: final e) => 'Failure: $e',
+      };
 
       expect(describe(const Right(42)), equals('Success: 42'));
       expect(describe(const Left('err')), equals('Failure: err'));

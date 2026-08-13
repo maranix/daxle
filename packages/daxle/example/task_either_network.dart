@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:daxle/daxle.dart';
 
 // Mock database exceptions
-class DbException implements Exception {}
+class DbException implements Exception;
 
 Future<String> fetchUserRole(int id) async {
   if (id == 99) throw DbException();
@@ -51,4 +51,16 @@ void main() async {
 
   final finalResult = await failTask.run();
   print('Resolved permissions: $finalResult');
+
+  // Case C: Batch fetch permissions concurrently with a worker limit of 2
+  print('\nBatch fetching permissions for users [1, 2, 3] with Concurrency.bounded(2):');
+  final userIds = [1, 2, 3];
+  final batchTask = TaskEither.traverse(
+    userIds,
+    (id) => getPermissions(id),
+    mode: .bounded(2),
+  );
+
+  final batchResult = await batchTask.run();
+  print('Batch permissions result: $batchResult');
 }

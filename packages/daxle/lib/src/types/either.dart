@@ -37,8 +37,11 @@ sealed class const Either<L, R>() {
   /// Creates an [Either] based on a boolean [condition].
   ///
   /// Returns [Right] with [right] if true, otherwise [Left] with [left].
-  factory cond(bool condition, R right, L left) =>
-      condition ? Right<L, R>(right) : Left<L, R>(left);
+  factory cond(bool condition, R Function() right, L Function() left) =>
+      switch (condition) {
+        true => Right<L, R>(right()),
+        false => Left<L, R>(left()),
+      };
 
   /// Returns `true` if this is a [Left] instance.
   bool get isLeft => this is Left<L, R>;
