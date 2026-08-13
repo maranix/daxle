@@ -2,4 +2,5 @@
 .agent
 
 .dart_tool/
-graphify-out/
+graphify-out
+**/graphify-out
