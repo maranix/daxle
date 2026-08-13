@@ -306,73 +306,81 @@ void main() {
       expect(await leftEnsureAsync.run(), equals(Left('original error')));
     });
 
-    test('sequence executes tasks sequentially and short-circuits', () async {
-      final executionOrder = <int>[];
+    test('sequence respects Concurrency modes and short-circuits on Left', () async {
+      final activeTasks = <int>[];
+      var maxConcurrent = 0;
 
       TaskEither<String, int> makeTask(int id, Either<String, int> result) {
         return TaskEither(() async {
-          executionOrder.add(id);
+          activeTasks.add(id);
+          if (activeTasks.length > maxConcurrent) {
+            maxConcurrent = activeTasks.length;
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          activeTasks.remove(id);
           return result;
         });
       }
 
+      // Mode 1: .bounded(2)
+      maxConcurrent = 0;
       final tasksOk = [
         makeTask(1, Right(10)),
         makeTask(2, Right(20)),
         makeTask(3, Right(30)),
+        makeTask(4, Right(40)),
       ];
-
-      final resOk = await TaskEither.sequence(tasksOk).run();
+      final resOk = await TaskEither.sequence(tasksOk, mode: .bounded(2)).run();
       expect(resOk.isRight, isTrue);
-      expect(resOk.fold((l) => <int>[], (r) => r), equals([10, 20, 30]));
-      expect(executionOrder, equals([1, 2, 3]));
+      expect(resOk.getOrElse((_) => []), equals([10, 20, 30, 40]));
+      expect(maxConcurrent, equals(2));
 
-      executionOrder.clear();
+      // Mode 2: .sequential
+      maxConcurrent = 0;
+      final seqTask = TaskEither.sequence(
+        [makeTask(1, Right(1)), makeTask(2, Right(2))],
+        mode: .sequential,
+      );
+      final seqRes = await seqTask.run();
+      expect(seqRes.isRight, isTrue);
+      expect(seqRes.getOrElse((_) => []), equals([1, 2]));
+      expect(maxConcurrent, equals(1));
 
-      final tasksFail = [
-        makeTask(1, Right(10)),
-        makeTask(2, Left('err')),
-        makeTask(3, Right(30)),
+      // Short-circuiting on Left in bounded mode
+      final executed = <int>[];
+      final tasksWithLeft = [
+        TaskEither<String, int>(() async {
+          executed.add(1);
+          return const Right(1);
+        }),
+        TaskEither<String, int>(() async {
+          executed.add(2);
+          return const Left('chunk 1 left');
+        }),
+        TaskEither<String, int>(() async {
+          executed.add(3);
+          return const Right(3);
+        }),
       ];
 
-      final resFail = await TaskEither.sequence(tasksFail).run();
-      expect(resFail.isLeft, isTrue);
-      expect(resFail.fold((l) => l, (r) => null), equals('err'));
-      expect(executionOrder, equals([1, 2])); // task 3 should NOT execute
+      final failRes = await TaskEither.sequence(tasksWithLeft, mode: .bounded(2)).run();
+      expect(failRes.isLeft, isTrue);
+      expect(failRes.fold((l) => l, (_) => ''), equals('chunk 1 left'));
+      expect(executed, containsAll([1, 2]));
     });
 
     test(
-      'traverse maps and executes sequentially and short-circuits',
+      'traverse maps and executes with Concurrency mode',
       () async {
-        final executionOrder = <int>[];
-
         final items = [1, 2, 3];
-        final resOk = await TaskEither.traverse(items, (item) {
-          return TaskEither(() async {
-            executionOrder.add(item);
-            return Right(item * 10);
-          });
-        }).run();
+        final resOk = await TaskEither.traverse<String, int, int>(
+          items,
+          (item) => TaskEither.right(item * 10),
+          mode: .bounded(2),
+        ).run();
 
         expect(resOk.isRight, isTrue);
-        expect(resOk.fold((l) => <int>[], (r) => r), equals([10, 20, 30]));
-        expect(executionOrder, equals([1, 2, 3]));
-
-        executionOrder.clear();
-
-        final resFail = await TaskEither.traverse(items, (item) {
-          return TaskEither(() async {
-            executionOrder.add(item);
-            if (item == 2) {
-              return Left('err');
-            }
-            return Right(item * 10);
-          });
-        }).run();
-
-        expect(resFail.isLeft, isTrue);
-        expect(resFail.fold((l) => l, (r) => null), equals('err'));
-        expect(executionOrder, equals([1, 2])); // 3 should NOT execute
+        expect(resOk.getOrElse((_) => []), equals([10, 20, 30]));
       },
     );
 

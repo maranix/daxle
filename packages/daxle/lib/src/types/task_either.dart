@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import 'package:daxle/src/internal/concurrency.dart';
+
 import 'either.dart';
 
 /// {@template task_either}
@@ -84,8 +87,8 @@ import 'either.dart';
 ///
 /// ### Combining Independent Tasks (sequence and traverse)
 ///
-/// If you have a collection of tasks and want to run them sequentially,
-/// use `TaskEither.sequence`. If any task fails, execution stops immediately.
+/// If you have a collection of tasks and want to run them with controlled concurrency,
+/// use `TaskEither.sequence`. If any task returns a Left, execution stops.
 ///
 /// ```dart
 /// final tasks = [
@@ -93,7 +96,10 @@ import 'either.dart';
 ///   updateInventory(itemB),
 ///   updateInventory(itemC),
 /// ];
-/// final TaskEither<InventoryError, List<Unit>> result = TaskEither.sequence(tasks);
+/// final TaskEither<InventoryError, List<Unit>> result = TaskEither.sequence(
+///   tasks,
+///   mode: .bounded(2),
+/// );
 /// ```
 ///
 /// Or use `TaskEither.traverse` to map an iterable to tasks and run them:
@@ -103,6 +109,7 @@ import 'either.dart';
 /// final TaskEither<InventoryError, List<Unit>> result = TaskEither.traverse(
 ///   items,
 ///   (item) => updateInventory(item),
+///   mode: .sequential,
 /// );
 /// ```
 ///
@@ -137,52 +144,40 @@ import 'either.dart';
 /// final task = TaskEither.right(42).flatMap((_) => fetchUser(123));
 /// ```
 /// {@endtemplate}
-final class TaskEither<L, R> {
-  final Future<Either<L, R>> Function() _run;
-
-  /// {@macro task_either}
-  const TaskEither(this._run);
-
+final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
   /// {@template task_either_from_either}
   /// Creates a [TaskEither] that immediately returns the provided [either].
   /// {@endtemplate}
-  factory TaskEither.fromEither(Either<L, R> either) =>
-      TaskEither(() => Future.value(either));
+  factory fromEither(Either<L, R> either) => .new(() => .value(either));
 
   /// Creates a [TaskEither] from an eager [Future].
   ///
   /// Catching any exceptions thrown by the future and mapping them to a Left
   /// using the provided [onError] function.
-  factory TaskEither.fromFuture(
+  factory fromFuture(
     Future<R> Function() future,
     L Function(Object error, StackTrace stackTrace) onError,
-  ) {
-    return TaskEither(() async {
-      try {
-        final res = await future();
-        return Right<L, R>(res);
-      } catch (e, st) {
-        return Left<L, R>(onError(e, st));
-      }
-    });
-  }
+  ) => .new(() async {
+    try {
+      final res = await future();
+      return Right<L, R>(res);
+    } catch (e, st) {
+      return Left<L, R>(onError(e, st));
+    }
+  });
 
   /// {@template task_either_left}
   /// Creates a [TaskEither] that resolves to a [Left] with the given [left] value.
   /// {@endtemplate}
-  factory TaskEither.left(L left) =>
-      TaskEither(() => Future.value(Left<L, R>(left)));
+  factory left(L left) => .new(() => .value(Left<L, R>(left)));
 
   /// {@template task_either_right}
   /// Creates a [TaskEither] that resolves to a [Right] with the given [right] value.
   /// {@endtemplate}
-  factory TaskEither.right(R right) =>
-      TaskEither(() => Future.value(Right<L, R>(right)));
+  factory right(R right) => .new(() => .value(Right<L, R>(right)));
 
   /// Runs the underlying asynchronous computation.
   Future<Either<L, R>> run() => _run();
-
-
 
   /// Applies [f] to the success value inside the [Right] of this [TaskEither].
   ///
@@ -197,15 +192,17 @@ final class TaskEither<L, R> {
   TaskEither<L, B> map<B>(
     B Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
-  }) {
-    return TaskEither(() => run().then((either) {
-      return either.map(f);
-    }).catchError((Object e, StackTrace st) {
-      if (onError != null) return Left<L, B>(onError(e, st));
-      if (e is L) return Left<L, B>(e as L);
-      return Future<Either<L, B>>.error(e, st);
-    }));
-  }
+  }) => .new(
+    () => run()
+        .then((either) {
+          return either.map(f);
+        })
+        .catchError((Object e, StackTrace st) {
+          if (onError != null) return Left<L, B>(onError(e, st));
+          if (e is L) return Left<L, B>(e as L);
+          return Future<Either<L, B>>.error(e, st);
+        }),
+  );
 
   /// Applies [mapper] to the error value inside the [Left] of this [TaskEither].
   ///
@@ -214,9 +211,7 @@ final class TaskEither<L, R> {
   @pragma('vm:prefer-inline')
   TaskEither<L2, R> mapLeft<L2>(
     L2 Function(L error) mapper,
-  ) {
-    return TaskEither(() => run().then((either) => either.mapLeft(mapper)));
-  }
+  ) => .new((() => run().then((either) => either.mapLeft(mapper))));
 
   /// Applies [mapLeft] to the error value if this is a [Left], or [mapRight]
   /// to the success value if this is a [Right].
@@ -227,7 +222,9 @@ final class TaskEither<L, R> {
     L2 Function(L error) mapLeft,
     R2 Function(R success) mapRight,
   ) {
-    return TaskEither(() => run().then((either) => either.bimap(mapLeft, mapRight)));
+    return .new(
+      () => run().then((either) => either.bimap(mapLeft, mapRight)),
+    );
   }
 
   /// Chains another [TaskEither] computation onto this one if this one succeeds.
@@ -242,18 +239,20 @@ final class TaskEither<L, R> {
   TaskEither<L, B> flatMap<B>(
     TaskEither<L, B> Function(R right) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
-  }) {
-    return TaskEither(() => run().then((either) {
-      return either.fold(
-        (l) => Future.value(Left<L, B>(l)),
-        (r) => f(r).run(),
-      );
-    }).catchError((Object e, StackTrace st) {
-      if (onError != null) return Left<L, B>(onError(e, st));
-      if (e is L) return Left<L, B>(e as L);
-      return Future<Either<L, B>>.error(e, st);
-    }));
-  }
+  }) => .new(
+    () => run()
+        .then((either) {
+          return either.fold(
+            (l) => Future.value(Left<L, B>(l)),
+            (r) => f(r).run(),
+          );
+        })
+        .catchError((Object e, StackTrace st) {
+          if (onError != null) return Left<L, B>(onError(e, st));
+          if (e is L) return Left<L, B>(e as L);
+          return Future<Either<L, B>>.error(e, st);
+        }),
+  );
 
   /// Runs the provided [callback] on the [Right] value of this [TaskEither] without modifying it.
   ///
@@ -263,15 +262,17 @@ final class TaskEither<L, R> {
   @pragma('vm:prefer-inline')
   TaskEither<L, R> tap(
     FutureOr<void> Function(R value) callback,
-  ) {
-    return TaskEither(() => run().then((either) => either.fold(
-      (l) => Future.value(either),
-      (r) async {
-        await callback(r);
-        return either;
-      },
-    )));
-  }
+  ) => .new(
+    () => run().then(
+      (either) => either.fold(
+        (l) => Future.value(either),
+        (r) async {
+          await callback(r);
+          return either;
+        },
+      ),
+    ),
+  );
 
   /// Runs the provided [callback] on the [Left] value of this [TaskEither] without modifying it.
   ///
@@ -281,15 +282,17 @@ final class TaskEither<L, R> {
   @pragma('vm:prefer-inline')
   TaskEither<L, R> tapLeft(
     FutureOr<void> Function(L error) callback,
-  ) {
-    return TaskEither(() => run().then((either) => either.fold(
-      (l) async {
-        await callback(l);
-        return either;
-      },
-      (r) => Future.value(either),
-    )));
-  }
+  ) => .new(
+    () => run().then(
+      (either) => either.fold(
+        (l) async {
+          await callback(l);
+          return either;
+        },
+        (r) => Future.value(either),
+      ),
+    ),
+  );
 
   /// Ensures that the [Right] value of this [TaskEither] satisfies the [predicate].
   ///
@@ -303,15 +306,17 @@ final class TaskEither<L, R> {
   TaskEither<L, R> ensure(
     FutureOr<bool> Function(R value) predicate,
     L Function() onFailure,
-  ) {
-    return TaskEither(() => run().then((either) => either.fold(
-      (l) => Future.value(either),
-      (r) async {
-        final isValid = await predicate(r);
-        return isValid ? either : Left<L, R>(onFailure());
-      },
-    )));
-  }
+  ) => .new(
+    () => run().then(
+      (either) => either.fold(
+        (l) => Future.value(either),
+        (r) async {
+          final isValid = await predicate(r);
+          return isValid ? either : Left<L, R>(onFailure());
+        },
+      ),
+    ),
+  );
 
   /// Recovers from a [Left] failure by returning the result of [f].
   ///
@@ -322,18 +327,20 @@ final class TaskEither<L, R> {
   TaskEither<L, R> orElse(
     TaskEither<L, R> Function(L left) f, {
     L Function(Object error, StackTrace stackTrace)? onError,
-  }) {
-    return TaskEither(() => run().then((either) {
-      return either.fold(
-        (l) => f(l).run(),
-        (r) => Future.value(either),
-      );
-    }).catchError((Object e, StackTrace st) {
-      if (onError != null) return Left<L, R>(onError(e, st));
-      if (e is L) return Left<L, R>(e as L);
-      return Future<Either<L, R>>.error(e, st);
-    }));
-  }
+  }) => .new(
+    () => run()
+        .then((either) {
+          return either.fold(
+            (l) => f(l).run(),
+            (r) => Future.value(either),
+          );
+        })
+        .catchError((Object e, StackTrace st) {
+          if (onError != null) return Left<L, R>(onError(e, st));
+          if (e is L) return Left<L, R>(e as L);
+          return Future<Either<L, R>>.error(e, st);
+        }),
+  );
 
   /// Projects this [TaskEither] into a value of type [B] by running the computation
   /// and applying [ifLeft] if a failure occurred, or [ifRight] if successful.
@@ -358,36 +365,36 @@ final class TaskEither<L, R> {
     return either.fold(ifLeft, ifRight);
   }
 
-  /// Executes an [Iterable] of [TaskEither]s sequentially, collecting their successful results.
+  /// Executes an [Iterable] of [TaskEither]s according to [mode], collecting their successful results.
   ///
+  /// Default mode is `const .bounded(3)`.
   /// If any task returns a [Left], execution stops immediately and that error is returned.
   /// Otherwise, returns a [Right] containing a list of all successful values.
   static TaskEither<L, List<R>> sequence<L, R>(
-    Iterable<TaskEither<L, R>> tasks,
-  ) {
-    return TaskEither(() async {
-      final results = <R>[];
-      for (final task in tasks) {
-        final either = await task.run();
-        switch (either) {
-          case Left(value: final l):
-            return Left<L, List<R>>(l);
-          case Right(value: final r):
-            results.add(r);
-        }
+    Iterable<TaskEither<L, R>> tasks, {
+    Concurrency mode = const .bounded(3),
+  }) => .new(() async {
+    final eithers = await mode.process(tasks.map((t) => t.run));
+    final results = <R>[];
+    for (final either in eithers) {
+      switch (either) {
+        case Left(value: final l):
+          return Left<L, List<R>>(l);
+        case Right(value: final r):
+          results.add(r);
       }
-      return Right<L, List<R>>(results);
-    });
-  }
+    }
+    return Right<L, List<R>>(results);
+  });
 
-  /// Maps each element of [items] to a [TaskEither] using [mapper], and executes them sequentially.
+  /// Maps each element of [items] to a [TaskEither] using [mapper], executing them according to [mode].
   ///
+  /// Default mode is `const .bounded(3)`.
   /// If any task returns a [Left], execution stops immediately and that error is returned.
   /// Otherwise, returns a [Right] containing a list of all mapped values.
   static TaskEither<L, List<B>> traverse<L, A, B>(
     Iterable<A> items,
-    TaskEither<L, B> Function(A) mapper,
-  ) {
-    return TaskEither.sequence(items.map(mapper));
-  }
+    TaskEither<L, B> Function(A item) mapper, {
+    Concurrency mode = const .bounded(3),
+  }) => sequence(items.map(mapper), mode: mode);
 }
