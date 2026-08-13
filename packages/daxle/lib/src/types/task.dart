@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:daxle/src/internal/concurrency.dart';
+import 'package:daxle/src/util/concurrency.dart';
 
 /// {@template task}
 /// Represents a lazy asynchronous computation that produces a value of type [T].
