@@ -3,9 +3,7 @@
 /// to represent the absence of a meaningful value (similar to void but usable
 /// as a generic type parameter).
 /// {@endtemplate}
-final class Unit {
-  const Unit._();
-
+final class const Unit._() {
   @override
   String toString() => '()';
 }
