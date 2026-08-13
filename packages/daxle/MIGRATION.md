@@ -45,6 +45,30 @@ final results = await TaskEither.sequence(tasks, mode: .unbounded).run();
 final results = await TaskEither.traverse(items, (item) => process(item), mode: .bounded(5)).run();
 ```
 
+## 3. `Either.cond` Lazy Callback Signature
+
+`Either.cond` has been updated to accept lazy evaluation callbacks `(bool condition, R Function() right, L Function() left)` instead of eager values `(bool condition, R right, L left)`.
+
+### Why this change was made:
+Eager value parameters caused early-evaluation bugs where throwing expressions (e.g., `a ~/ b` when `b == 0` or `json.decode(str)`) evaluated synchronously at the call site before entering `Either.cond`, throwing unhandled runtime exceptions. Lazy callbacks fix this issue by guaranteeing that the unchosen branch is never evaluated.
+
+### How to migrate:
+Wrap `right` and `left` arguments in parameterless callbacks `() => ...`:
+
+**Before (v3):**
+```dart
+Either<String, int> divide(int a, int b) {
+  return Either.cond(b != 0, a ~/ b, 'Cannot divide by zero'); // Throws exception when b == 0!
+}
+```
+
+**After (v4):**
+```dart
+Either<String, int> divide(int a, int b) {
+  return Either.cond(b != 0, () => a ~/ b, () => 'Cannot divide by zero'); // Lazy and safe!
+}
+```
+
 ---
 
 # Daxle v3 Migration Guide

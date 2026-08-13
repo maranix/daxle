@@ -3,6 +3,7 @@
 - **BREAKING CHANGES**:
   - `Option<T extends Object>` now strictly enforces non-nullable type parameter `T extends Object`. Storing `null` inside `Some` is prohibited.
   - Removed `Option.fromNullable(T? value)`. Use the smart factory constructor `Option(T? value)` instead, which automatically maps `null` to `None()` and non-null values to `Some(value)`.
+  - Changed `Either.cond` signature from `(bool condition, R right, L left)` to lazy callbacks `(bool condition, R Function() right, L Function() left)` to fix eager early-evaluation bugs and guarantee that unchosen branches (e.g., throwing expressions like `a ~/ b`) are never executed.
   - Primary constructors are now used across all core types (`Unit`, `Option`, `Either`, `Task`, `TaskEither`).
 
 - **NEW FEATURES**:
