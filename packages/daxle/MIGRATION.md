@@ -1,3 +1,52 @@
+# Daxle v4 Migration Guide
+
+Daxle v4 introduces strict non-nullability for `Option<T extends Object>`, smart constructor initialization, primary constructor migration, and fine-grained `Concurrency` control for `Task` and `TaskEither` operations.
+
+## 1. `Option<T extends Object>` Non-nullability & `Option.fromNullable` Removal
+
+`Option<T extends Object>` now enforces that `T` is non-nullable (`T extends Object`). Storing `null` inside `Some` is prohibited.
+`Option.fromNullable` has been removed. Use the smart factory constructor `Option(T? value)` instead.
+
+### How to migrate:
+- Replace `Option.fromNullable(value)` with `Option(value)`.
+- The smart constructor `Option(value)` automatically evaluates `value`: if `null`, it returns `None()`; if non-null, it returns `Some(value)`.
+
+**Before (v3):**
+```dart
+String? nullableName = getName();
+final option = Option.fromNullable(nullableName);
+```
+
+**After (v4):**
+```dart
+String? nullableName = getName();
+final option = Option(nullableName);
+```
+
+## 2. Concurrency Modes in `Task` and `TaskEither`
+
+`Task.sequence`, `Task.traverse`, `TaskEither.sequence`, and `TaskEither.traverse` now accept an optional `Concurrency mode` parameter with default value `const .bounded(3)`.
+
+### How to migrate:
+Existing calls to `sequence` and `traverse` will work out-of-the-box using the default bounded concurrency of 3 workers. If you want sequential execution (v3 behavior) or unlimited parallelism, pass the explicit mode parameter:
+
+**Sequential Execution (1 worker):**
+```dart
+final results = await Task.sequence(tasks, mode: .sequential).run();
+```
+
+**Unbounded Parallel Execution:**
+```dart
+final results = await TaskEither.sequence(tasks, mode: .unbounded).run();
+```
+
+**Custom Worker Limit (e.g. 5 workers):**
+```dart
+final results = await TaskEither.traverse(items, (item) => process(item), mode: .bounded(5)).run();
+```
+
+---
+
 # Daxle v3 Migration Guide
 
 Daxle v3 focuses on simplifying the library by removing overlapping abstractions and strictly separating responsibilities. If you are migrating from v2, this guide will help you update your codebase.

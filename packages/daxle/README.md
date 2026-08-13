@@ -18,10 +18,10 @@ Dart's type system is great, but runtime exceptions and complex asynchronous wor
 Instead of throwing exceptions that might crash your app in production, use `Either<L, R>` to make failures an explicit part of your function signature. The compiler will force you to handle both success and error states.
 
 ### Compose Values with Option
-While Dart's null safety is excellent, `Option<T>` takes it further by allowing you to chain operations functionally. Replace imperative `if (val != null)` checks with clean, declarative pipelines that gracefully handle missing data.
+While Dart's null safety is excellent, `Option<T extends Object>` takes it further by allowing you to chain operations functionally. Replace imperative `if (val != null)` checks with clean, declarative pipelines that gracefully handle missing data without `null` leaking into your `Some` instances.
 
-### Compose Async Workflows Cleanly
-Instead of nesting `await` and `try/catch` blocks, use `TaskEither` to chain asynchronous operations. If any step fails, the chain short-circuits gracefully without throwing exceptions.
+### Controlled Concurrency for Async Pipelines
+Instead of nesting `await` and `try/catch` blocks or running uncontrolled parallel futures, use `TaskEither` and `Task` with built-in `Concurrency` controls (`.sequential`, `.unbounded`, `.bounded(limit)`).
 
 ---
 
@@ -31,7 +31,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^3.1.1
+  daxle: ^4.0.0
 ```
 
 Then run:
@@ -51,8 +51,9 @@ An alternative to nullable values (`T?`). Represents either the presence of a va
 import 'package:daxle/daxle.dart';
 
 void main() {
-  final Option<int> someValue = .some(42);
-  final Option<int> noValue = const .none();
+  // Smart constructor Option(value) converts null -> None() and non-null -> Some(value):
+  final Option<int> someValue = Option(42);
+  final Option<int> noValue = Option(null);
 
   // Exhaustive pattern matching enforced at compile-time!
   final message = switch (someValue) {
@@ -84,8 +85,8 @@ void main() {
 }
 ```
 
-### Chain Async Operations Safely with `TaskEither<L, R>`
-A lazy, asynchronous computation that returns an `Either<L, R>`. It embeds the `Either` state at each step, short-circuiting on failure.
+### Chain Async Operations & Manage Concurrency with `TaskEither<L, R>`
+A lazy, asynchronous computation that returns an `Either<L, R>`. It embeds the `Either` state at each step, short-circuiting on failure and managing parallel worker limits cleanly.
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -107,6 +108,12 @@ void main() async {
 
   // The computation doesn't start until you run it
   final Either<String, String> result = await task.run();
+
+  // Run multiple independent tasks concurrently in batches of 3:
+  final batchResult = await TaskEither.sequence(
+    [fetchUser(1), fetchUser(2), fetchUser(3)],
+    mode: .bounded(3),
+  ).run();
 }
 ```
 
@@ -114,7 +121,7 @@ void main() async {
 
 ## Ready to build safer apps?
 
-Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Unit`, `Async Utilities`, and advanced combinators. 
+Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Concurrency`, `Unit`, `Async Utilities`, and advanced combinators. 
 
 ---
 

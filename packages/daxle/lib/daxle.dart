@@ -5,20 +5,21 @@
 /// declarative pipelines. Inspired by languages like Rust and Haskell,
 /// it brings robust functional primitives to modern Dart.
 ///
-/// This library exports five core types and essential async utilities:
+/// This library exports five core types, concurrency controls, and essential async utilities:
 ///
 /// - [Option]: For composing optional values without imperative state checks.
 /// - [Either]: For explicit, type-safe error handling and branching.
-/// - [Task]: For composing lazy, asynchronous workflows.
-/// - [TaskEither]: For chaining asynchronous operations that can fail, with automatic short-circuiting.
+/// - [Task]: For composing lazy, asynchronous workflows with controlled concurrency.
+/// - [TaskEither]: For chaining asynchronous operations that can fail, with automatic short-circuiting and controlled concurrency.
 /// - [Unit]: For representing the absence of a meaningful value.
+/// - [Concurrency]: Extension type for fine-grained async worker pool limits (`sequential`, `unbounded`, `bounded(limit)`).
 /// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
 ///
 /// ---
 ///
-/// ## `Option<T>`
+/// ## `Option<T extends Object>`
 ///
-/// Compose optional values functionally. An instance of [Option] is either `Some`
+/// Compose optional non-nullable values functionally. An instance of [Option] is either `Some`
 /// (containing a value) or `None` (indicating absence). It allows you to chain
 /// operations and handle missing data declaratively, avoiding messy `if` checks.
 ///
@@ -35,7 +36,8 @@
 /// }
 ///
 /// void main() {
-///   final user = findUser('123');
+///   // Smart constructor converts null to None() and non-null to Some(value):
+///   final user = Option(findUser('123').toNullable());
 ///   final userName = user.getOrElse('Guest');
 ///   print('User: $userName'); // Prints: User: Alice
 ///
@@ -80,7 +82,6 @@
 ///   // Construct using boolean condition:
 ///   final auth = .cond(true, 'Authorized User', 'Access Denied');
 ///
-///
 ///   result.fold(
 ///     (error) => print('Error: $error'),
 ///     (value) => print('Value: $value'), // Prints: Value: 123
@@ -95,6 +96,16 @@
 /// Compose deferred asynchronous workflows. Unlike a `Future`, a [Task] is lazy
 /// and won't execute until you call `.run()`. This allows you to construct
 /// complex async pipelines before execution begins.
+///
+/// Execute collections of tasks with controlled worker limits via `Task.sequence` or `Task.traverse`:
+///
+/// ```dart
+/// final tasks = [fetchA(), fetchB(), fetchC()];
+///
+/// // Process concurrently with a worker pool limit of 2:
+/// final batch = Task.sequence(tasks, mode: .bounded(2));
+/// final results = await batch.run();
+/// ```
 ///
 /// **Note**: [Task] does not provide explicit failure handling. If the underlying computation throws,
 /// the exception propagates naturally. For explicit failure handling, use [TaskEither].
@@ -119,16 +130,16 @@
 /// ---
 ///
 /// ## `TaskEither<L, R>`
-
 ///
 /// Chain async operations safely without nesting. [TaskEither] represents a lazy,
-/// asynchronous computation that can fail (`Future<Either<L, R>>`), offering three major advantages:
+/// asynchronous computation that can fail (`Future<Either<L, R>>`), offering four major advantages:
 ///
 /// 1. **Lazy Execution**: Unlike eager Futures, [TaskEither] only runs when `.run()`
 ///    is called, allowing you to easily build retries or fallbacks.
 /// 2. **Short-Circuiting**: It embeds the [Either] state at each step. Any step
 ///    resolving to a [Left] short-circuits the pipeline gracefully.
-/// 3. **Exception Guarding**: `TaskEither.fromFuture` automatically catches
+/// 3. **Controlled Concurrency**: Run batches of tasks with `.sequential`, `.unbounded`, or `.bounded(limit)` modes.
+/// 4. **Exception Guarding**: `TaskEither.fromFuture` automatically catches
 ///    runtime exceptions and maps them to a safe [Left] value.
 ///
 /// ### Example:
@@ -156,8 +167,25 @@
 ///     (error) => print('Failed: $error'),
 ///     (config) => print('Success: $config'),
 ///   );
+///
+///   // Execute independent tasks concurrently in batches of 3:
+///   final batchResult = await TaskEither.sequence(
+///     [fetchUser(1), fetchUser(2), fetchUser(3)],
+///     mode: .bounded(3),
+///   ).run();
 /// }
 /// ```
+///
+/// ---
+///
+/// ## `Concurrency`
+///
+/// Fine-grained control over asynchronous worker limits when using `Task.sequence`,
+/// `Task.traverse`, `TaskEither.sequence`, or `TaskEither.traverse`:
+///
+/// - `Concurrency.sequential` (or `.sequential`): Runs tasks 1 by 1 sequentially.
+/// - `Concurrency.unbounded` (or `.unbounded`): Executes all tasks simultaneously in parallel.
+/// - `Concurrency.bounded(int limit)` (or `.bounded(3)`): Executes tasks in worker chunks of size `limit`.
 ///
 /// ---
 ///
@@ -213,12 +241,12 @@
 /// ```
 library;
 
+export 'src/internal/concurrency.dart';
+export 'src/types/either.dart';
 export 'src/types/option.dart';
-export 'src/types/unit.dart';
 export 'src/types/task.dart';
 export 'src/types/task_either.dart';
-export 'src/types/either.dart';
-export 'src/internal/concurrency.dart';
+export 'src/types/unit.dart';
 
 // Export some useful utilities from `async` package
 export 'package:async/async.dart'

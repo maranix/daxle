@@ -1,3 +1,27 @@
+## 4.0.0 (2026-08-13)
+
+- **BREAKING CHANGES**:
+  - `Option<T extends Object>` now strictly enforces non-nullable type parameter `T extends Object`. Storing `null` inside `Some` is prohibited.
+  - Removed `Option.fromNullable(T? value)`. Use the smart factory constructor `Option(T? value)` instead, which automatically maps `null` to `None()` and non-null values to `Some(value)`.
+  - Primary constructors are now used across all core types (`Unit`, `Option`, `Either`, `Task`, `TaskEither`).
+
+- **NEW FEATURES**:
+  - Introduced `Concurrency` extension type (`extension type const Concurrency._(int limit)`) to manage worker pool concurrency:
+    - `Concurrency.sequential` (`.sequential`, limit 1): Executes tasks 1 by 1 sequentially.
+    - `Concurrency.unbounded` (`.unbounded`, limit 0): Runs all tasks simultaneously in parallel.
+    - `Concurrency.bounded(int limit)` (`.bounded(limit)`): Processes tasks in parallel worker chunks of size `limit`.
+  - Added optional `{Concurrency mode = const .bounded(3)}` parameter to `Task.sequence`, `Task.traverse`, `TaskEither.sequence`, and `TaskEither.traverse`.
+  - Full support for Dart dot-shorthand syntax (`mode: .sequential`, `mode: .unbounded`, `mode: .bounded(5)`).
+  - Exported `src/internal/concurrency.dart` in `lib/daxle.dart`.
+
+- **PERFORMANCE & REFACTORING**:
+  - Refactored `Option`, `Unit`, `Either` (`Left`/`Right`), `Task`, and `TaskEither` to leverage Dart 3.13+ primary constructors.
+  - Defensive snapshotting (`items.toList()`) in `Concurrency.process` prevents `ConcurrentModificationError` when iterables are mutated across asynchronous boundaries.
+  - Eager failure short-circuiting (`eagerError: true`) stops processing immediately when an operation fails.
+
+- **TESTS**:
+  - Expanded test suite to 91 comprehensive tests covering `Concurrency` getters, bounds checking, chunking, exception propagation, and `Task`/`TaskEither` integration.
+
 ## 3.1.1 (2026-07-20)
 
 - **BUG FIXES**:
