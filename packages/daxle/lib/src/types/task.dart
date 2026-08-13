@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:daxle/src/internal/concurrency.dart';
+
 /// {@template task}
 /// Represents a lazy asynchronous computation that produces a value of type [T].
 ///
@@ -26,12 +28,7 @@ import 'dart:async';
 /// final result = await task.run(); // Now it runs.
 /// ```
 /// {@endtemplate}
-final class Task<T> {
-  final Future<T> Function() _run;
-
-  /// {@macro task}
-  const Task(this._run);
-
+final class const Task<T>(final Future<T> Function() _run) {
   /// Executes the deferred asynchronous computation.
   Future<T> run() => _run();
 
@@ -40,18 +37,20 @@ final class Task<T> {
   /// Laziness is preserved. The transformation is only applied when the
   /// returned [Task] is executed.
   @pragma('vm:prefer-inline')
-  Task<R> map<R>(R Function(T value) f) {
-    return Task(() => run().then(f));
-  }
+  Task<R> map<R>(R Function(T value) f) => .new(
+    () => run().then(f),
+  );
 
   /// Chains another [Task] onto this one.
   ///
   /// Laziness is preserved. The chained task is only executed if and when
   /// the returned [Task] is executed.
   @pragma('vm:prefer-inline')
-  Task<R> flatMap<R>(Task<R> Function(T value) f) {
-    return Task(() => run().then((value) => f(value).run()));
-  }
+  Task<R> flatMap<R>(Task<R> Function(T value) f) => .new(
+    () => run().then(
+      (value) => f(value).run(),
+    ),
+  );
 
   /// Runs the provided [callback] on the value produced by this [Task]
   /// without modifying it.
@@ -59,37 +58,28 @@ final class Task<T> {
   /// The callback may be synchronous or asynchronous.
   /// Laziness is preserved. The callback is only executed when the
   /// returned [Task] is executed.
-  Task<T> tap(FutureOr<void> Function(T value) callback) {
-    return Task(() async {
-      final value = await run();
-      await callback(value);
-      return value;
-    });
-  }
+  Task<T> tap(FutureOr<void> Function(T value) callback) => .new(() async {
+    final value = await run();
+    await callback(value);
+    return value;
+  });
 
-  /// Executes an [Iterable] of [Task]s sequentially, collecting their results.
+  /// Executes an [Iterable] of [Task]s according to [mode], collecting their results in order.
   ///
-  /// The tasks are executed one after another in order. If any task throws
-  /// an exception, execution stops and the exception propagates immediately.
-  static Task<List<R>> sequence<R>(Iterable<Task<R>> tasks) {
-    return Task(() async {
-      final results = <R>[];
-      for (final task in tasks) {
-        results.add(await task.run());
-      }
-      return results;
-    });
-  }
+  /// Default mode is `const .bounded(3)`.
+  /// If any task throws an exception, execution fails eagerly and the exception propagates.
+  static Task<List<R>> sequence<R>(
+    Iterable<Task<R>> tasks, {
+    Concurrency mode = const .bounded(3),
+  }) => Task(() => mode.process(tasks.map((t) => t.run)));
 
-  /// Maps each element of [items] to a [Task] using [mapper], and executes
-  /// them sequentially.
+  /// Maps each element of [items] to a [Task] using [mapper], executing them according to [mode].
   ///
-  /// The tasks are executed one after another in order. If any task throws
-  /// an exception, execution stops and the exception propagates immediately.
+  /// Default mode is `const .bounded(3)`.
+  /// If any task throws an exception, execution fails eagerly and the exception propagates.
   static Task<List<B>> traverse<A, B>(
     Iterable<A> items,
-    Task<B> Function(A item) mapper,
-  ) {
-    return Task.sequence(items.map(mapper));
-  }
+    Task<B> Function(A item) mapper, {
+    Concurrency mode = const .bounded(3),
+  }) => sequence(items.map(mapper), mode: mode);
 }

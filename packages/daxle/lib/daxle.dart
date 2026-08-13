@@ -218,6 +218,7 @@ export 'src/types/unit.dart';
 export 'src/types/task.dart';
 export 'src/types/task_either.dart';
 export 'src/types/either.dart';
+export 'src/internal/concurrency.dart';
 
 // Export some useful utilities from `async` package
 export 'package:async/async.dart'
