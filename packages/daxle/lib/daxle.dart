@@ -38,7 +38,7 @@
 /// void main() {
 ///   // Smart constructor converts null to None() and non-null to Some(value):
 ///   final user = Option(findUser('123').toNullable());
-///   final userName = user.getOrElse('Guest');
+///   final userName = user.getOrElse(() => 'Guest');
 ///   print('User: $userName'); // Prints: User: Alice
 ///
 ///   // Construct using predicate:

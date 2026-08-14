@@ -22,7 +22,7 @@ void main() {
 
   // Retrieve port using Option
   final port = getPort(config);
-  final activePort = port.getOrElse(80);
+  final activePort = port.getOrElse(() => 80);
   print('Active Port: $activePort');
 
   // Verify predicate parsing

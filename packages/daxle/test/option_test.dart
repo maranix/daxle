@@ -7,7 +7,7 @@ void main() {
       final opt = Option.some(42);
       expect(opt.isSome, isTrue);
       expect(opt.isNone, isFalse);
-      expect(opt.getOrElse(0), equals(42));
+      expect(opt.getOrElse(() => 0), equals(42));
       expect(opt.toNullable(), equals(42));
     });
 
@@ -15,14 +15,35 @@ void main() {
       final opt = const Option.none();
       expect(opt.isSome, isFalse);
       expect(opt.isNone, isTrue);
-      expect(opt.getOrElse(0), equals(0));
+      expect(opt.getOrElse(() => 0), equals(0));
       expect(opt.toNullable(), isNull);
     });
 
     test('Option(value) smart constructor maps null to None and non-null to Some', () {
       expect(Option<int>(null).isNone, isTrue);
       expect(Option(42).isSome, isTrue);
-      expect(Option(42).getOrElse(0), equals(42));
+      expect(Option(42).getOrElse(() => 0), equals(42));
+    });
+
+    test('getOrElse is lazy and evaluates fallback only when None', () {
+      var fallbackCalled = false;
+      final some = Option.some(100);
+      final someResult = some.getOrElse(() {
+        fallbackCalled = true;
+        throw StateError('Should not be called for Some');
+      });
+
+      expect(someResult, equals(100));
+      expect(fallbackCalled, isFalse);
+
+      final none = const Option<int>.none();
+      final noneResult = none.getOrElse(() {
+        fallbackCalled = true;
+        return 999;
+      });
+
+      expect(noneResult, equals(999));
+      expect(fallbackCalled, isTrue);
     });
 
     test('map transforms Some and converts null returns to None', () {
@@ -30,7 +51,7 @@ void main() {
       final none = const Option<int>.none().map((v) => v * 2);
       final nullMapped = Option.some('invalid').map((s) => int.tryParse(s));
 
-      expect(some.getOrElse(0), equals(20));
+      expect(some.getOrElse(() => 0), equals(20));
       expect(none.isNone, isTrue);
       expect(nullMapped.isNone, isTrue);
     });
@@ -39,7 +60,7 @@ void main() {
       final some = Option.some(10).flatMap((v) => Option.some(v * 2));
       final none = Option.some(10).flatMap((v) => const Option<int>.none());
 
-      expect(some.getOrElse(0), equals(20));
+      expect(some.getOrElse(() => 0), equals(20));
       expect(none.isNone, isTrue);
     });
 

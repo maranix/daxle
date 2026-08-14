@@ -66,8 +66,8 @@ sealed class const Option<T extends Object>._() {
   /// Returns the value if this is a [Some], otherwise throws [StateError].
   T get();
 
-  /// Returns the value if this is a [Some], otherwise returns [dflt].
-  T getOrElse(T dflt);
+  /// Returns the value if this is a [Some], otherwise evaluates and returns the result of [dflt].
+  T getOrElse(T Function() dflt);
 
   /// Converts this [Option] to a nullable type.
   T? toNullable();
@@ -98,7 +98,8 @@ final class const Some<T extends Object>(final T value) extends Option<T> {
   T get() => value;
 
   @override
-  T getOrElse(T dflt) => value;
+  @pragma('vm:prefer-inline')
+  T getOrElse(T Function() dflt) => value;
 
   @override
   T? toNullable() => value;
@@ -140,7 +141,8 @@ final class const None<T extends Object>() extends Option<T> {
   T get() => throw StateError('Cannot retrieve value from a None instance');
 
   @override
-  T getOrElse(T dflt) => dflt;
+  @pragma('vm:prefer-inline')
+  T getOrElse(T Function() dflt) => dflt();
 
   @override
   T? toNullable() => null;

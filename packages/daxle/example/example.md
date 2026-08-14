@@ -15,7 +15,7 @@ void main() async {
   print(mapped); // Some(The answer is 42)
 
   // Retrieve values safely
-  final int val = noValue.getOrElse(0); // Returns 0
+  final int val = noValue.getOrElse(() => 0); // Returns 0
 
   // Exhaustive pattern matching (enforced at compile-time!)
   final message = switch (someValue) {
