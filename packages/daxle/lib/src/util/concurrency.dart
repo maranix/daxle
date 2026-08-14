@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:meta/meta.dart';
 
 /// {@template concurrency}
@@ -8,7 +10,7 @@ import 'package:meta/meta.dart';
 ///
 /// - [Concurrency.sequential]: Executes tasks strictly one after another (1 active task).
 /// - [Concurrency.unbounded]: Executes all tasks simultaneously in parallel without limits.
-/// - [Concurrency.bounded]: Executes tasks in parallel using a worker pool limited to [limit] active tasks.
+/// - [Concurrency.bounded]: Executes tasks in parallel using a worker pool limited to [poolSize] active tasks.
 ///
 /// ### Examples using Dot-Shorthand Syntax:
 /// ```dart
@@ -23,7 +25,7 @@ import 'package:meta/meta.dart';
 /// ```
 /// {@endtemplate}
 @immutable
-extension type const Concurrency._(int limit) {
+extension type const Concurrency._(int poolSize) {
   /// Strictly sequential execution (1 active task at a time).
   ///
   /// Tasks are executed in strict order. Task N+1 will not begin until Task N completes.
@@ -34,24 +36,75 @@ extension type const Concurrency._(int limit) {
   /// All tasks are dispatched to the event loop simultaneously.
   static const Concurrency unbounded = Concurrency._(0);
 
-  /// Creates a bounded concurrency strategy with a worker pool of [limit] active tasks.
-  const factory Concurrency.bounded(int limit) = Concurrency._;
+  /// Creates a bounded concurrency strategy with a worker pool of [poolSize] active tasks.
+  const factory Concurrency.bounded(int poolSize) = Concurrency._;
 
-  /// Whether execution is strictly sequential (limit == 1).
-  bool get isSequential => limit == 1;
+  /// Whether execution is strictly sequential (poolSize == 1).
+  bool get isSequential => poolSize == 1;
 
-  /// Whether execution is unbounded parallel (limit == 0).
-  bool get isUnbounded => limit == 0;
+  /// Whether execution is unbounded parallel (poolSize == 0).
+  bool get isUnbounded => poolSize == 0;
 
-  /// Whether execution is bounded with a worker pool limit (limit >= 2).
-  bool get isBounded => limit > 1;
+  /// Whether execution is bounded with a worker pool poolSize (poolSize >= 2).
+  bool get isBounded => poolSize > 1;
 
   Future<List<R>> process<R>(Iterable<Future<R> Function()> items) async {
-    if (limit < 0) {
+    _validateLimit();
+
+    final jobs = items.toList();
+    if (jobs.isEmpty) return [];
+
+    // There is no need to split [items] into chunks of [poolSize] if it is unbounded
+    if (isUnbounded) return _processJobsUnbounded(jobs);
+    if (isSequential) return _processJobsSequential(jobs);
+
+    return _processJobsBounded(jobs);
+  }
+
+  Future<List<R>> _processJobsUnbounded<R>(
+    Iterable<Future<R> Function()> jobs,
+  ) async => Future.wait(jobs.map((j) => j()), eagerError: true);
+
+  Future<List<R>> _processJobsSequential<R>(
+    Iterable<Future<R> Function()> jobs,
+  ) async {
+    final results = <R>[];
+
+    for (final j in jobs) {
+      results.add(await j());
+    }
+
+    return results;
+  }
+
+  Future<List<R>> _processJobsBounded<R>(
+    Iterable<Future<R> Function()> jobs,
+  ) async {
+    final SplayTreeMap<int, R> results = .new();
+
+    final iter = jobs.indexed.iterator;
+
+    await Future.wait(
+      .generate(poolSize, (_) async {
+        while (iter.moveNext()) {
+          final (index, job) = iter.current;
+
+          final result = await job();
+          results.putIfAbsent(index, () => result);
+        }
+      }),
+      eagerError: true,
+    );
+
+    return results.values.toList();
+  }
+
+  void _validateLimit() {
+    if (poolSize < 0) {
       throw ArgumentError.value(
-        limit,
-        'limit',
-        'Invalid concurrency limit. '
+        poolSize,
+        'poolSize',
+        'Invalid concurrent pool size. '
             '\n'
             'For 1 active task, use Concurrency.sequential.'
             '\n'
@@ -60,37 +113,5 @@ extension type const Concurrency._(int limit) {
             'For unbounded active task, use Concurrency.unbounded.',
       );
     }
-
-    // There is no need to split [items] into chunks of [limit] if it is unbounded
-    if (isUnbounded) {
-      return await Future.wait(items.map((i) => i()), eagerError: true);
-    }
-
-    final itemsList = items.toList();
-    final totalLength = itemsList.length;
-    final chunks = <Iterable<Future<R> Function()>>[];
-
-    for (int i = 0; i < totalLength; i += limit) {
-      try {
-        RangeError.checkValidRange(i, i + limit, totalLength);
-        chunks.add(itemsList.sublist(i, i + limit));
-      } on RangeError {
-        chunks.add(itemsList.sublist(i));
-        break;
-      }
-    }
-
-    final results = <R>[];
-
-    for (final chunk in chunks) {
-      results.addAll(
-        await Future.wait(
-          chunk.map((c) => c()),
-          eagerError: true,
-        ),
-      );
-    }
-
-    return results;
   }
 }

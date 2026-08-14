@@ -200,7 +200,7 @@ void main() {
       expect(bounded.isSequential, isFalse);
       expect(bounded.isUnbounded, isFalse);
       expect(bounded.isBounded, isTrue);
-      expect(bounded.limit, equals(5));
+      expect(bounded.poolSize, equals(5));
     });
 
     test('sequence with empty input returns empty list', () async {

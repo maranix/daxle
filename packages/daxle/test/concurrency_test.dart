@@ -9,7 +9,7 @@ void main() {
         expect(mode.isSequential, isTrue);
         expect(mode.isUnbounded, isFalse);
         expect(mode.isBounded, isFalse);
-        expect(mode.limit, equals(1));
+        expect(mode.poolSize, equals(1));
       });
 
       test('unbounded getters', () {
@@ -17,7 +17,7 @@ void main() {
         expect(mode.isSequential, isFalse);
         expect(mode.isUnbounded, isTrue);
         expect(mode.isBounded, isFalse);
-        expect(mode.limit, equals(0));
+        expect(mode.poolSize, equals(0));
       });
 
       test('bounded getters', () {
@@ -25,10 +25,10 @@ void main() {
         expect(mode.isSequential, isFalse);
         expect(mode.isUnbounded, isFalse);
         expect(mode.isBounded, isTrue);
-        expect(mode.limit, equals(4));
+        expect(mode.poolSize, equals(4));
       });
 
-      test('negative limit throws ArgumentError in process', () {
+      test('negative poolSize throws ArgumentError in process', () {
         const mode = Concurrency.bounded(-1);
         expect(() => mode.process([]), throwsArgumentError);
       });
@@ -101,79 +101,88 @@ void main() {
         expect(maxConcurrent, equals(4));
       });
 
-      test('bounded(2) processes items in chunks of 2 with exact division', () async {
-        final activeTasks = <int>[];
-        var maxConcurrent = 0;
+      test(
+        'bounded(2) processes items in chunks of 2 with exact division',
+        () async {
+          final activeTasks = <int>[];
+          var maxConcurrent = 0;
 
-        Future<int> makeTask(int id) async {
-          activeTasks.add(id);
-          if (activeTasks.length > maxConcurrent) {
-            maxConcurrent = activeTasks.length;
+          Future<int> makeTask(int id) async {
+            activeTasks.add(id);
+            if (activeTasks.length > maxConcurrent) {
+              maxConcurrent = activeTasks.length;
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            activeTasks.remove(id);
+            return id;
           }
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          activeTasks.remove(id);
-          return id;
-        }
 
-        final tasks = [
-          () => makeTask(1),
-          () => makeTask(2),
-          () => makeTask(3),
-          () => makeTask(4),
-        ];
+          final tasks = [
+            () => makeTask(1),
+            () => makeTask(2),
+            () => makeTask(3),
+            () => makeTask(4),
+          ];
 
-        final result = await const Concurrency.bounded(2).process(tasks);
-        expect(result, equals([1, 2, 3, 4]));
-        expect(maxConcurrent, equals(2));
-      });
+          final result = await const Concurrency.bounded(2).process(tasks);
+          expect(result, equals([1, 2, 3, 4]));
+          expect(maxConcurrent, equals(2));
+        },
+      );
 
-      test('bounded(2) processes items in chunks of 2 with remainder tail', () async {
-        final activeTasks = <int>[];
-        var maxConcurrent = 0;
+      test(
+        'bounded(2) processes items in chunks of 2 with remainder tail',
+        () async {
+          final activeTasks = <int>[];
+          var maxConcurrent = 0;
 
-        Future<int> makeTask(int id) async {
-          activeTasks.add(id);
-          if (activeTasks.length > maxConcurrent) {
-            maxConcurrent = activeTasks.length;
+          Future<int> makeTask(int id) async {
+            activeTasks.add(id);
+            if (activeTasks.length > maxConcurrent) {
+              maxConcurrent = activeTasks.length;
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            activeTasks.remove(id);
+            return id;
           }
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          activeTasks.remove(id);
-          return id;
-        }
 
-        final tasks = [
-          () => makeTask(1),
-          () => makeTask(2),
-          () => makeTask(3),
-          () => makeTask(4),
-          () => makeTask(5),
-        ];
+          final tasks = [
+            () => makeTask(1),
+            () => makeTask(2),
+            () => makeTask(3),
+            () => makeTask(4),
+            () => makeTask(5),
+          ];
 
-        final result = await const Concurrency.bounded(2).process(tasks);
-        expect(result, equals([1, 2, 3, 4, 5]));
-        expect(maxConcurrent, equals(2));
-      });
+          final result = await const Concurrency.bounded(2).process(tasks);
+          expect(result, equals([1, 2, 3, 4, 5]));
+          expect(maxConcurrent, equals(2));
+        },
+      );
     });
 
     group('exception handling & laziness', () {
-      test('process propagates exceptions eagerly and halts subsequent execution', () async {
-        var chunk2Executed = false;
+      test(
+        'process propagates exceptions eagerly and halts subsequent execution',
+        () async {
+          var chunk2Executed = false;
 
-        final tasks = [
-          () async => 1,
-          () async => throw StateError('chunk 1 failed'),
-          () async {
-            chunk2Executed = true;
-            return 3;
-          },
-        ];
+          final tasks = [
+            () async => 1,
+            () async => throw StateError('chunk 1 failed'),
+            () async {
+              chunk2Executed = true;
+              return 3;
+            },
+          ];
 
-        expect(
-          () => const Concurrency.bounded(2).process(tasks),
-          throwsA(isA<StateError>()),
-        );
-        expect(chunk2Executed, isFalse);
-      });
+          expect(
+            () => const Concurrency.bounded(2).process(tasks),
+            throwsA(isA<StateError>()),
+          );
+          expect(chunk2Executed, isFalse);
+        },
+      );
 
       test('process defers execution of subsequent chunks until previous chunk completes', () async {
         final log = <String>[];
@@ -197,7 +206,10 @@ void main() {
 
         final results = await task.run();
         expect(results, equals([1, 2]));
-        expect(log, equals(['chunk1-start', 'chunk1-end', 'chunk2-start', 'chunk2-end']));
+        expect(
+          log,
+          equals(['chunk1-start', 'chunk1-end', 'chunk2-start', 'chunk2-end']),
+        );
       });
     });
   });
