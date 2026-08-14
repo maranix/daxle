@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:daxle/daxle.dart';
 import 'package:test/test.dart';
 
@@ -404,6 +406,57 @@ void main() {
         onError: (e, st) => 'caught',
       );
       expect(await task.run(), equals(Left('caught')));
+    });
+
+    test('pure Left pass-through does not enqueue intermediate microtasks', () async {
+      final log = <String>[];
+
+      // 4-step pipeline on Left: flatMap -> tap -> ensure -> map
+      final task = TaskEither<String, int>.left('err')
+          .flatMap((r) => TaskEither.right(r + 1))
+          .tap((r) => log.add('tap'))
+          .ensure((r) => r > 0, () => 'invalid')
+          .map((r) => r * 10);
+
+      scheduleMicrotask(() => log.add('microtask-1'));
+
+      final future = task.run().then((res) {
+        log.add('pipeline-done');
+        return res;
+      });
+
+      scheduleMicrotask(() => log.add('microtask-2'));
+
+      final result = await future;
+      await Future<void>.delayed(Duration.zero);
+      expect(result, equals(const Left('err')));
+      // Proves all 4 combinators resolved synchronously in a single turn without intermediate microtasks:
+      expect(log, equals(['microtask-1', 'pipeline-done', 'microtask-2']));
+    });
+
+    test('pure Right pass-through on tapLeft does not enqueue intermediate microtasks', () async {
+      final log = <String>[];
+
+      // 3-step pipeline on Right: tapLeft -> tapLeft -> map
+      final task = TaskEither<String, int>.right(42)
+          .tapLeft((err) => log.add('tapLeft-1'))
+          .tapLeft((err) => log.add('tapLeft-2'))
+          .map((r) => r + 1);
+
+      scheduleMicrotask(() => log.add('microtask-1'));
+
+      final future = task.run().then((res) {
+        log.add('pipeline-done');
+        return res;
+      });
+
+      scheduleMicrotask(() => log.add('microtask-2'));
+
+      final result = await future;
+      await Future<void>.delayed(Duration.zero);
+      expect(result, equals(const Right(43)));
+      // Proves tapLeft steps resolved synchronously in a single turn:
+      expect(log, equals(['microtask-1', 'pipeline-done', 'microtask-2']));
     });
   });
 }
