@@ -1,7 +1,5 @@
 import 'package:meta/meta.dart';
 
-const none = None<Never>();
-
 /// {@template option}
 /// Represents either the presence [Some] or absence [None] of a value of type [T].
 ///
@@ -131,11 +129,12 @@ final class const None<T extends Object>() extends Option<T> {
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> map<B extends Object>(B? Function(T value) f) => none;
+  Option<B> map<B extends Object>(B? Function(T value) f) => None<B>();
 
   @override
   @pragma('vm:prefer-inline')
-  Option<B> flatMap<B extends Object>(Option<B> Function(T value) f) => none;
+  Option<B> flatMap<B extends Object>(Option<B> Function(T value) f) =>
+      None<B>();
 
   @override
   T get() => throw StateError('Cannot retrieve value from a None instance');
@@ -148,10 +147,10 @@ final class const None<T extends Object>() extends Option<T> {
   T? toNullable() => null;
 
   @override
-  Option<T> filter(bool Function(T value) predicate) => none;
+  Option<T> filter(bool Function(T value) predicate) => this;
 
   @override
-  bool operator ==(Object other) => other is None<T>;
+  bool operator ==(Object other) => other is None;
 
   @override
   int get hashCode => 0;

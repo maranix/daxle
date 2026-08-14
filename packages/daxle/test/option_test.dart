@@ -121,5 +121,45 @@ void main() {
 
       expect(res.isNone, isTrue);
     });
+
+    test('None constructors and combinators return empty None', () {
+      expect(Option<int>(null).isNone, isTrue);
+      expect(Option<String>(null).isNone, isTrue);
+      expect(Option.fromPredicate(3, (x) => x > 5).isNone, isTrue);
+      expect(Option.some(3).filter((x) => x > 5).isNone, isTrue);
+      expect(const Option<int>.none().filter((_) => true).isNone, isTrue);
+
+      final Option<int> noneOpt = const Option.none();
+      expect(noneOpt.map((x) => x * 2).isNone, isTrue);
+      expect(noneOpt.flatMap((x) => Option.some(x * 2)).isNone, isTrue);
+    });
+
+    test('Cross-type equality for None instances', () {
+      expect(const None<Never>(), equals(const Option<int>.none()));
+      expect(const None<Never>(), equals(Option<String>(null)));
+      expect(const None<int>(), equals(const None<String>()));
+      expect(Option<double>(null), equals(Option<bool>(null)));
+    });
+
+    test('Pipeline type-safety is preserved across chained operations', () {
+      final Option<int> opt = Option(null);
+
+      // Statically typed transformations: int -> String -> int -> String
+      final Option<String> pipeline = opt
+          .map((int i) => 'Value: $i')
+          .filter((String s) => s.isNotEmpty)
+          .map((String s) => s.length)
+          .map((int len) => 'Length is $len');
+
+      expect(pipeline.isNone, isTrue);
+      expect(pipeline, equals(const Option<String>.none()));
+      expect(pipeline.getOrElse(() => 'Default'), equals('Default'));
+
+      final description = switch (pipeline) {
+        Some(value: final str) => str,
+        None() => 'No value',
+      };
+      expect(description, equals('No value'));
+    });
   });
 }
