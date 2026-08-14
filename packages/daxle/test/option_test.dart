@@ -19,11 +19,14 @@ void main() {
       expect(opt.toNullable(), isNull);
     });
 
-    test('Option(value) smart constructor maps null to None and non-null to Some', () {
-      expect(Option<int>(null).isNone, isTrue);
-      expect(Option(42).isSome, isTrue);
-      expect(Option(42).getOrElse(() => 0), equals(42));
-    });
+    test(
+      'Option(value) smart constructor maps null to None and non-null to Some',
+      () {
+        expect(Option<int>(null).isNone, isTrue);
+        expect(Option(42).isSome, isTrue);
+        expect(Option(42).getOrElse(() => 0), equals(42));
+      },
+    );
 
     test('getOrElse is lazy and evaluates fallback only when None', () {
       var fallbackCalled = false;
@@ -106,9 +109,9 @@ void main() {
 
     test('Pattern matching with Dart switch expressions', () {
       String describe(Option<int> opt) => switch (opt) {
-            Some(value: final v) => 'Value: $v',
-            None() => 'No value',
-          };
+        Some(value: final v) => 'Value: $v',
+        None() => 'No value',
+      };
 
       expect(describe(Option.some(42)), equals('Value: 42'));
       expect(describe(const Option<int>.none()), equals('No value'));

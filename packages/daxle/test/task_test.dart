@@ -129,63 +129,66 @@ void main() {
       expect(count, 1);
     });
 
-    test('single run() on chained pipeline executes root exactly once', () async {
-      var rootRunCount = 0;
-      var map1Count = 0;
-      var map2Count = 0;
-      var flatMapCount = 0;
-      var tapCount = 0;
+    test(
+      'single run() on chained pipeline executes root exactly once',
+      () async {
+        var rootRunCount = 0;
+        var map1Count = 0;
+        var map2Count = 0;
+        var flatMapCount = 0;
+        var tapCount = 0;
 
-      final rootTask = Task(() async {
-        rootRunCount++;
-        return 10;
-      });
+        final rootTask = Task(() async {
+          rootRunCount++;
+          return 10;
+        });
 
-      final pipeline = rootTask
-          .map((x) {
-            map1Count++;
-            return x + 5;
-          })
-          .map((y) {
-            map2Count++;
-            return y * 2;
-          })
-          .flatMap((z) {
-            flatMapCount++;
-            return Task(() async => z + 100);
-          })
-          .tap((v) {
-            tapCount++;
-          });
+        final pipeline = rootTask
+            .map((x) {
+              map1Count++;
+              return x + 5;
+            })
+            .map((y) {
+              map2Count++;
+              return y * 2;
+            })
+            .flatMap((z) {
+              flatMapCount++;
+              return Task(() async => z + 100);
+            })
+            .tap((v) {
+              tapCount++;
+            });
 
-      // Before run, nothing is executed
-      expect(rootRunCount, equals(0));
-      expect(map1Count, equals(0));
-      expect(map2Count, equals(0));
-      expect(flatMapCount, equals(0));
-      expect(tapCount, equals(0));
+        // Before run, nothing is executed
+        expect(rootRunCount, equals(0));
+        expect(map1Count, equals(0));
+        expect(map2Count, equals(0));
+        expect(flatMapCount, equals(0));
+        expect(tapCount, equals(0));
 
-      // Call run() ONCE
-      final result1 = await pipeline.run();
-      expect(result1, equals(130));
+        // Call run() ONCE
+        final result1 = await pipeline.run();
+        expect(result1, equals(130));
 
-      // Each step executed EXACTLY ONCE
-      expect(rootRunCount, equals(1));
-      expect(map1Count, equals(1));
-      expect(map2Count, equals(1));
-      expect(flatMapCount, equals(1));
-      expect(tapCount, equals(1));
+        // Each step executed EXACTLY ONCE
+        expect(rootRunCount, equals(1));
+        expect(map1Count, equals(1));
+        expect(map2Count, equals(1));
+        expect(flatMapCount, equals(1));
+        expect(tapCount, equals(1));
 
-      // Calling run() a SECOND time re-executes the pipeline
-      final result2 = await pipeline.run();
-      expect(result2, equals(130));
+        // Calling run() a SECOND time re-executes the pipeline
+        final result2 = await pipeline.run();
+        expect(result2, equals(130));
 
-      expect(rootRunCount, equals(2));
-      expect(map1Count, equals(2));
-      expect(map2Count, equals(2));
-      expect(flatMapCount, equals(2));
-      expect(tapCount, equals(2));
-    });
+        expect(rootRunCount, equals(2));
+        expect(map1Count, equals(2));
+        expect(map2Count, equals(2));
+        expect(flatMapCount, equals(2));
+        expect(tapCount, equals(2));
+      },
+    );
 
     test('Concurrency mode getters', () {
       expect(Concurrency.sequential.isSequential, isTrue);
@@ -235,57 +238,63 @@ void main() {
       expect(maxConcurrent, equals(1));
     });
 
-    test('sequence with Concurrency.unbounded mode runs all simultaneously', () async {
-      final activeTasks = <int>[];
-      var maxConcurrent = 0;
+    test(
+      'sequence with Concurrency.unbounded mode runs all simultaneously',
+      () async {
+        final activeTasks = <int>[];
+        var maxConcurrent = 0;
 
-      Task<int> makeTask(int id) {
-        return Task(() async {
-          activeTasks.add(id);
-          if (activeTasks.length > maxConcurrent) {
-            maxConcurrent = activeTasks.length;
-          }
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          activeTasks.remove(id);
-          return id;
-        });
-      }
+        Task<int> makeTask(int id) {
+          return Task(() async {
+            activeTasks.add(id);
+            if (activeTasks.length > maxConcurrent) {
+              maxConcurrent = activeTasks.length;
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            activeTasks.remove(id);
+            return id;
+          });
+        }
 
-      final task = Task.sequence(
-        [makeTask(1), makeTask(2), makeTask(3)],
-        mode: .unbounded,
-      );
-      final result = await task.run();
+        final task = Task.sequence(
+          [makeTask(1), makeTask(2), makeTask(3)],
+          mode: .unbounded,
+        );
+        final result = await task.run();
 
-      expect(result, equals([1, 2, 3]));
-      expect(maxConcurrent, equals(3));
-    });
+        expect(result, equals([1, 2, 3]));
+        expect(maxConcurrent, equals(3));
+      },
+    );
 
-    test('sequence with Concurrency.bounded(2) processes in chunks of 2', () async {
-      final activeTasks = <int>[];
-      var maxConcurrent = 0;
+    test(
+      'sequence with Concurrency.bounded(2) processes in chunks of 2',
+      () async {
+        final activeTasks = <int>[];
+        var maxConcurrent = 0;
 
-      Task<int> makeTask(int id) {
-        return Task(() async {
-          activeTasks.add(id);
-          if (activeTasks.length > maxConcurrent) {
-            maxConcurrent = activeTasks.length;
-          }
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          activeTasks.remove(id);
-          return id;
-        });
-      }
+        Task<int> makeTask(int id) {
+          return Task(() async {
+            activeTasks.add(id);
+            if (activeTasks.length > maxConcurrent) {
+              maxConcurrent = activeTasks.length;
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            activeTasks.remove(id);
+            return id;
+          });
+        }
 
-      final task = Task.sequence(
-        [makeTask(1), makeTask(2), makeTask(3), makeTask(4), makeTask(5)],
-        mode: .bounded(2),
-      );
-      final result = await task.run();
+        final task = Task.sequence(
+          [makeTask(1), makeTask(2), makeTask(3), makeTask(4), makeTask(5)],
+          mode: .bounded(2),
+        );
+        final result = await task.run();
 
-      expect(result, equals([1, 2, 3, 4, 5]));
-      expect(maxConcurrent, equals(2));
-    });
+        expect(result, equals([1, 2, 3, 4, 5]));
+        expect(maxConcurrent, equals(2));
+      },
+    );
 
     test('sequence propagates exception eagerly in bounded mode', () async {
       final executed = <int>[];

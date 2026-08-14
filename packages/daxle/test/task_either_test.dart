@@ -28,30 +28,42 @@ void main() {
     });
 
     test('TaskEither flatMap exception catching', () async {
-      final task = TaskEither<String, int>.fromFuture(
-        () async => 42,
-        (e, st) => e.toString(),
-      ).flatMap((_) => TaskEither<String, int>.fromFuture(
-            () async => throw Exception('oops'),
+      final task =
+          TaskEither<String, int>.fromFuture(
+            () async => 42,
             (e, st) => e.toString(),
-          ));
+          ).flatMap(
+            (_) => TaskEither<String, int>.fromFuture(
+              () async => throw Exception('oops'),
+              (e, st) => e.toString(),
+            ),
+          );
 
       final res = await task.run();
       expect(res.isLeft, isTrue);
       expect(res.fold((l) => l, (r) => ''), contains('Exception: oops'));
     });
 
-    test('TaskEither combinators propagate exceptions thrown in onError', () async {
-      final task = TaskEither<String, int>.right(10).map(
-        (v) => throw Exception('map crashed!'),
-        onError: (e, st) => throw StateError('onError crashed!'),
-      );
+    test(
+      'TaskEither combinators propagate exceptions thrown in onError',
+      () async {
+        final task = TaskEither<String, int>.right(10).map(
+          (v) => throw Exception('map crashed!'),
+          onError: (e, st) => throw StateError('onError crashed!'),
+        );
 
-      expect(
-        task.run(),
-        throwsA(isA<StateError>().having((e) => e.message, 'message', 'onError crashed!')),
-      );
-    });
+        expect(
+          task.run(),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'onError crashed!',
+            ),
+          ),
+        );
+      },
+    );
 
     test('map and flatMap', () async {
       final task = TaskEither.right(
@@ -99,7 +111,13 @@ void main() {
         );
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'mapper crashed!')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'mapper crashed!',
+            ),
+          ),
         );
       });
 
@@ -113,17 +131,25 @@ void main() {
       });
 
       test('upstream task throws', () async {
-        final task = TaskEither<String, int>(() => Future.error(StateError('upstream crash')))
-            .map((v) => v + 1);
+        final task = TaskEither<String, int>(
+          () => Future.error(StateError('upstream crash')),
+        ).map((v) => v + 1);
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'upstream crash')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'upstream crash',
+            ),
+          ),
         );
       });
 
       test('upstream task throws with onError', () async {
-        final task = TaskEither<String, int>(() => Future.error(StateError('upstream crash')))
-            .map((v) => v + 1, onError: (e, st) => e.toString());
+        final task = TaskEither<String, int>(
+          () => Future.error(StateError('upstream crash')),
+        ).map((v) => v + 1, onError: (e, st) => e.toString());
         final res = await task.run();
         expect(res, equals(Left("Bad state: upstream crash")));
       });
@@ -134,17 +160,31 @@ void main() {
         );
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'fallback crashed!')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'fallback crashed!',
+            ),
+          ),
         );
       });
 
       test('fallback (orElse) throws asynchronously', () async {
         final task = TaskEither<String, int>.left('err').orElse(
-          (l) => TaskEither(() => Future.error(StateError('fallback async crash'))),
+          (l) => TaskEither(
+            () => Future.error(StateError('fallback async crash')),
+          ),
         );
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'fallback async crash')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'fallback async crash',
+            ),
+          ),
         );
       });
 
@@ -155,7 +195,13 @@ void main() {
         );
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'predicate crashed!')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'predicate crashed!',
+            ),
+          ),
         );
       });
 
@@ -165,7 +211,13 @@ void main() {
         );
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'tap crashed!')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'tap crashed!',
+            ),
+          ),
         );
       });
 
@@ -175,7 +227,13 @@ void main() {
         );
         expect(
           task.run(),
-          throwsA(isA<StateError>().having((e) => e.message, 'message', 'tapLeft crashed!')),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              'tapLeft crashed!',
+            ),
+          ),
         );
       });
 
@@ -194,13 +252,19 @@ void main() {
         final task = TaskEither<String, int>(() async {
           throw StateError('deep crash');
         }).map((v) => v);
-        
+
         try {
           await task.run();
           fail('Should have thrown');
         } catch (e, st) {
-          expect(e, isA<StateError>().having((e) => e.message, 'message', 'deep crash'));
-          expect(st.toString(), contains('task_either_test.dart')); // Stack trace is intact
+          expect(
+            e,
+            isA<StateError>().having((e) => e.message, 'message', 'deep crash'),
+          );
+          expect(
+            st.toString(),
+            contains('task_either_test.dart'),
+          ); // Stack trace is intact
         }
       });
     });
@@ -308,75 +372,83 @@ void main() {
       expect(await leftEnsureAsync.run(), equals(Left('original error')));
     });
 
-    test('sequence respects Concurrency modes and short-circuits on Left', () async {
-      final activeTasks = <int>[];
-      var maxConcurrent = 0;
+    test(
+      'sequence respects Concurrency modes and short-circuits on Left',
+      () async {
+        final activeTasks = <int>[];
+        var maxConcurrent = 0;
 
-      TaskEither<String, int> makeTask(int id, Either<String, int> result) {
-        return TaskEither(() async {
-          activeTasks.add(id);
-          if (activeTasks.length > maxConcurrent) {
-            maxConcurrent = activeTasks.length;
-          }
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          activeTasks.remove(id);
-          return result;
-        });
-      }
+        TaskEither<String, int> makeTask(int id, Either<String, int> result) {
+          return TaskEither(() async {
+            activeTasks.add(id);
+            if (activeTasks.length > maxConcurrent) {
+              maxConcurrent = activeTasks.length;
+            }
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            activeTasks.remove(id);
+            return result;
+          });
+        }
 
-      // Mode 1: .bounded(2)
-      maxConcurrent = 0;
-      final tasksOk = [
-        makeTask(1, Right(10)),
-        makeTask(2, Right(20)),
-        makeTask(3, Right(30)),
-        makeTask(4, Right(40)),
-      ];
-      final resOk = await TaskEither.sequence(tasksOk, mode: .bounded(2)).run();
-      expect(resOk.isRight, isTrue);
-      expect(resOk.getOrElse((_) => []), equals([10, 20, 30, 40]));
-      expect(maxConcurrent, equals(2));
+        // Mode 1: .bounded(2)
+        maxConcurrent = 0;
+        final tasksOk = [
+          makeTask(1, Right(10)),
+          makeTask(2, Right(20)),
+          makeTask(3, Right(30)),
+          makeTask(4, Right(40)),
+        ];
+        final resOk = await TaskEither.sequence(
+          tasksOk,
+          mode: .bounded(2),
+        ).run();
+        expect(resOk.isRight, isTrue);
+        expect(resOk.getOrElse((_) => []), equals([10, 20, 30, 40]));
+        expect(maxConcurrent, equals(2));
 
-      // Mode 2: .sequential
-      maxConcurrent = 0;
-      final seqTask = TaskEither.sequence(
-        [makeTask(1, Right(1)), makeTask(2, Right(2))],
-        mode: .sequential,
-      );
-      final seqRes = await seqTask.run();
-      expect(seqRes.isRight, isTrue);
-      expect(seqRes.getOrElse((_) => []), equals([1, 2]));
-      expect(maxConcurrent, equals(1));
+        // Mode 2: .sequential
+        maxConcurrent = 0;
+        final seqTask = TaskEither.sequence(
+          [makeTask(1, Right(1)), makeTask(2, Right(2))],
+          mode: .sequential,
+        );
+        final seqRes = await seqTask.run();
+        expect(seqRes.isRight, isTrue);
+        expect(seqRes.getOrElse((_) => []), equals([1, 2]));
+        expect(maxConcurrent, equals(1));
 
-      // Short-circuiting on Left in bounded mode
-      final executed = <int>[];
-      final tasksWithLeft = [
-        TaskEither<String, int>(() async {
-          executed.add(1);
-          await Future<void>.delayed(const Duration(milliseconds: 20));
-          return const Right(1);
-        }),
-        TaskEither<String, int>(() async {
-          executed.add(2);
-          await Future<void>.delayed(const Duration(milliseconds: 5));
-          return const Left('task 2 left');
-        }),
-        TaskEither<String, int>(() async {
-          executed.add(3);
-          return const Right(3);
-        }),
-        TaskEither<String, int>(() async {
-          executed.add(4);
-          return const Right(4);
-        }),
-      ];
+        // Short-circuiting on Left in bounded mode
+        final executed = <int>[];
+        final tasksWithLeft = [
+          TaskEither<String, int>(() async {
+            executed.add(1);
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            return const Right(1);
+          }),
+          TaskEither<String, int>(() async {
+            executed.add(2);
+            await Future<void>.delayed(const Duration(milliseconds: 5));
+            return const Left('task 2 left');
+          }),
+          TaskEither<String, int>(() async {
+            executed.add(3);
+            return const Right(3);
+          }),
+          TaskEither<String, int>(() async {
+            executed.add(4);
+            return const Right(4);
+          }),
+        ];
 
-      final failRes =
-          await TaskEither.sequence(tasksWithLeft, mode: .bounded(2)).run();
-      expect(failRes.isLeft, isTrue);
-      expect(failRes.fold((l) => l, (_) => ''), equals('task 2 left'));
-      expect(executed, equals([1, 2])); // Tasks 3 and 4 were never started
-    });
+        final failRes = await TaskEither.sequence(
+          tasksWithLeft,
+          mode: .bounded(2),
+        ).run();
+        expect(failRes.isLeft, isTrue);
+        expect(failRes.fold((l) => l, (_) => ''), equals('task 2 left'));
+        expect(executed, equals([1, 2])); // Tasks 3 and 4 were never started
+      },
+    );
 
     test(
       'traverse maps and executes with Concurrency mode',
@@ -415,31 +487,34 @@ void main() {
       expect(await task.run(), equals(Left('caught')));
     });
 
-    test('pure Left pass-through does not enqueue intermediate microtasks', () async {
-      final log = <String>[];
+    test(
+      'pure Left pass-through does not enqueue intermediate microtasks',
+      () async {
+        final log = <String>[];
 
-      // 4-step pipeline on Left: flatMap -> tap -> ensure -> map
-      final task = TaskEither<String, int>.left('err')
-          .flatMap((r) => TaskEither.right(r + 1))
-          .tap((r) => log.add('tap'))
-          .ensure((r) => r > 0, () => 'invalid')
-          .map((r) => r * 10);
+        // 4-step pipeline on Left: flatMap -> tap -> ensure -> map
+        final task = TaskEither<String, int>.left('err')
+            .flatMap((r) => TaskEither.right(r + 1))
+            .tap((r) => log.add('tap'))
+            .ensure((r) => r > 0, () => 'invalid')
+            .map((r) => r * 10);
 
-      scheduleMicrotask(() => log.add('microtask-1'));
+        scheduleMicrotask(() => log.add('microtask-1'));
 
-      final future = task.run().then((res) {
-        log.add('pipeline-done');
-        return res;
-      });
+        final future = task.run().then((res) {
+          log.add('pipeline-done');
+          return res;
+        });
 
-      scheduleMicrotask(() => log.add('microtask-2'));
+        scheduleMicrotask(() => log.add('microtask-2'));
 
-      final result = await future;
-      await Future<void>.delayed(Duration.zero);
-      expect(result, equals(const Left('err')));
-      // Proves all 4 combinators resolved synchronously in a single turn without intermediate microtasks:
-      expect(log, equals(['microtask-1', 'pipeline-done', 'microtask-2']));
-    });
+        final result = await future;
+        await Future<void>.delayed(Duration.zero);
+        expect(result, equals(const Left('err')));
+        // Proves all 4 combinators resolved synchronously in a single turn without intermediate microtasks:
+        expect(log, equals(['microtask-1', 'pipeline-done', 'microtask-2']));
+      },
+    );
 
     test('pure Right pass-through on tapLeft does not enqueue intermediate microtasks', () async {
       final log = <String>[];
