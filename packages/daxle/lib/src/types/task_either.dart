@@ -241,12 +241,12 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) => .new(
     () => run()
-        .then((either) {
-          return either.fold(
-            (l) => Future.value(Left<L, B>(l)),
-            (r) => f(r).run(),
-          );
-        })
+        .then<Either<L, B>>(
+          (either) => switch (either) {
+            Left(value: final l) => Left<L, B>(l),
+            Right(value: final r) => f(r).run(),
+          },
+        )
         .catchError((Object e, StackTrace st) {
           if (onError != null) return Left<L, B>(onError(e, st));
           if (e is L) return Left<L, B>(e as L);
@@ -263,14 +263,14 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
   TaskEither<L, R> tap(
     FutureOr<void> Function(R value) callback,
   ) => .new(
-    () => run().then(
-      (either) => either.fold(
-        (l) => Future.value(either),
-        (r) async {
-          await callback(r);
-          return either;
-        },
-      ),
+    () => run().then<Either<L, R>>(
+      (either) => switch (either) {
+        Left() => either,
+        Right(value: final r) => () async {
+            await callback(r);
+            return either;
+          }(),
+      },
     ),
   );
 
@@ -283,14 +283,14 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
   TaskEither<L, R> tapLeft(
     FutureOr<void> Function(L error) callback,
   ) => .new(
-    () => run().then(
-      (either) => either.fold(
-        (l) async {
-          await callback(l);
-          return either;
-        },
-        (r) => Future.value(either),
-      ),
+    () => run().then<Either<L, R>>(
+      (either) => switch (either) {
+        Right() => either,
+        Left(value: final l) => () async {
+            await callback(l);
+            return either;
+          }(),
+      },
     ),
   );
 
@@ -307,14 +307,14 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
     FutureOr<bool> Function(R value) predicate,
     L Function() onFailure,
   ) => .new(
-    () => run().then(
-      (either) => either.fold(
-        (l) => Future.value(either),
-        (r) async {
-          final isValid = await predicate(r);
-          return isValid ? either : Left<L, R>(onFailure());
-        },
-      ),
+    () => run().then<Either<L, R>>(
+      (either) => switch (either) {
+        Left() => either,
+        Right(value: final r) => () async {
+            final isValid = await predicate(r);
+            return isValid ? either : Left<L, R>(onFailure());
+          }(),
+      },
     ),
   );
 
@@ -329,12 +329,12 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
     L Function(Object error, StackTrace stackTrace)? onError,
   }) => .new(
     () => run()
-        .then((either) {
-          return either.fold(
-            (l) => f(l).run(),
-            (r) => Future.value(either),
-          );
-        })
+        .then<Either<L, R>>(
+          (either) => switch (either) {
+            Left(value: final l) => f(l).run(),
+            Right() => either,
+          },
+        )
         .catchError((Object e, StackTrace st) {
           if (onError != null) return Left<L, R>(onError(e, st));
           if (e is L) return Left<L, R>(e as L);
