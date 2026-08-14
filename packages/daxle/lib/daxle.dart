@@ -136,9 +136,11 @@
 ///
 /// 1. **Lazy Execution**: Unlike eager Futures, [TaskEither] only runs when `.run()`
 ///    is called, allowing you to easily build retries or fallbacks.
-/// 2. **Short-Circuiting**: It embeds the [Either] state at each step. Any step
-///    resolving to a [Left] short-circuits the pipeline gracefully.
-/// 3. **Controlled Concurrency**: Run batches of tasks with `.sequential`, `.unbounded`, or `.bounded(limit)` modes.
+/// 2. **Short-Circuiting & Early Failure Abort**: It embeds the [Either] state at each step.
+///    In chained pipelines or concurrent collections (`sequence`/`traverse`), any failure ([Left])
+///    stops execution immediately and cancels unstarted pending tasks to save resources.
+/// 3. **Dynamic Sliding-Window Concurrency**: Run concurrent task collections using a worker
+///    pool (`.bounded(poolSize)`), strictly one-by-one (`.sequential`), or in parallel (`.unbounded`).
 /// 4. **Exception Guarding**: `TaskEither.fromFuture` automatically catches
 ///    runtime exceptions and maps them to a safe [Left] value.
 ///
@@ -168,7 +170,8 @@
 ///     (config) => print('Success: $config'),
 ///   );
 ///
-///   // Execute independent tasks concurrently in batches of 3:
+///   // Execute tasks concurrently with a sliding-window worker pool of 3.
+///   // If any task yields a Left, remaining queued tasks are aborted immediately:
 ///   final batchResult = await TaskEither.sequence(
 ///     [fetchUser(1), fetchUser(2), fetchUser(3)],
 ///     mode: .bounded(3),
@@ -180,12 +183,15 @@
 ///
 /// ## `Concurrency`
 ///
-/// Fine-grained control over asynchronous worker limits when using `Task.sequence`,
+/// Fine-grained control over asynchronous worker scheduling when using `Task.sequence`,
 /// `Task.traverse`, `TaskEither.sequence`, or `TaskEither.traverse`:
 ///
-/// - `Concurrency.sequential` (or `.sequential`): Runs tasks 1 by 1 sequentially.
-/// - `Concurrency.unbounded` (or `.unbounded`): Executes all tasks simultaneously in parallel.
-/// - `Concurrency.bounded(int limit)` (or `.bounded(3)`): Executes tasks in worker chunks of size `limit`.
+/// - `Concurrency.sequential` (or `.sequential`): Runs tasks 1 by 1 in strict sequence.
+/// - `Concurrency.unbounded` (or `.unbounded`): Dispatches all tasks simultaneously in parallel without limits.
+/// - `Concurrency.bounded(int poolSize)` (or `.bounded(3)`): Executes tasks using a **sliding-window worker pool**.
+///   Fast tasks never wait for slow tasks; available workers immediately pull the next task from the queue.
+/// - **Early Termination (`shouldStop`)**: Halts worker queue consumption as soon as a stop condition is met,
+///   protecting your system from running redundant operations when a failure or target state is reached.
 ///
 /// ---
 ///

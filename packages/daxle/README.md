@@ -20,8 +20,8 @@ Instead of throwing exceptions that might crash your app in production, use `Eit
 ### Compose Values with Option
 While Dart's null safety is excellent, `Option<T extends Object>` takes it further by allowing you to chain operations functionally. Replace imperative `if (val != null)` checks with clean, declarative pipelines that gracefully handle missing data without `null` leaking into your `Some` instances.
 
-### Controlled Concurrency for Async Pipelines
-Instead of nesting `await` and `try/catch` blocks or running uncontrolled parallel futures, use `TaskEither` and `Task` with built-in `Concurrency` controls (`.sequential`, `.unbounded`, `.bounded(limit)`).
+### Sliding-Window Concurrency & Early-Abort Protection
+Instead of running unbounded parallel futures that overload your backend, or static batch chunks that leave workers idle, use `TaskEither` and `Task` with built-in `Concurrency` controls (`.sequential`, `.unbounded`, `.bounded(poolSize)`). In bounded mode, a dynamic sliding-window worker pool ensures fast tasks never wait for slow tasks. If any task fails, unstarted queued tasks are **canceled immediately** to save network requests and computing resources.
 
 ---
 
@@ -109,7 +109,8 @@ void main() async {
   // The computation doesn't start until you run it
   final Either<String, String> result = await task.run();
 
-  // Run multiple independent tasks concurrently in batches of 3:
+  // Run multiple tasks with a sliding-window worker pool of 3.
+  // If any task returns a Left, pending unstarted tasks are canceled immediately:
   final batchResult = await TaskEither.sequence(
     [fetchUser(1), fetchUser(2), fetchUser(3)],
     mode: .bounded(3),

@@ -353,22 +353,29 @@ void main() {
       final tasksWithLeft = [
         TaskEither<String, int>(() async {
           executed.add(1);
+          await Future<void>.delayed(const Duration(milliseconds: 20));
           return const Right(1);
         }),
         TaskEither<String, int>(() async {
           executed.add(2);
-          return const Left('chunk 1 left');
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+          return const Left('task 2 left');
         }),
         TaskEither<String, int>(() async {
           executed.add(3);
           return const Right(3);
         }),
+        TaskEither<String, int>(() async {
+          executed.add(4);
+          return const Right(4);
+        }),
       ];
 
-      final failRes = await TaskEither.sequence(tasksWithLeft, mode: .bounded(2)).run();
+      final failRes =
+          await TaskEither.sequence(tasksWithLeft, mode: .bounded(2)).run();
       expect(failRes.isLeft, isTrue);
-      expect(failRes.fold((l) => l, (_) => ''), equals('chunk 1 left'));
-      expect(executed, containsAll([1, 2]));
+      expect(failRes.fold((l) => l, (_) => ''), equals('task 2 left'));
+      expect(executed, equals([1, 2])); // Tasks 3 and 4 were never started
     });
 
     test(

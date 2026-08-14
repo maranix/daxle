@@ -211,6 +211,64 @@ void main() {
           equals(['chunk1-start', 'chunk1-end', 'chunk2-start', 'chunk2-end']),
         );
       });
+
+      test('shouldStop halts sequential execution immediately', () async {
+        final executed = <int>[];
+        final tasks = [
+          () async {
+            executed.add(1);
+            return 1;
+          },
+          () async {
+            executed.add(2);
+            return 2;
+          },
+          () async {
+            executed.add(3);
+            return 3;
+          },
+        ];
+
+        final results = await Concurrency.sequential.process(
+          tasks,
+          shouldStop: (res) => res == 2,
+        );
+
+        expect(results, equals([1, 2]));
+        expect(executed, equals([1, 2])); // Task 3 was never called
+      });
+
+      test('shouldStop halts bounded worker pool from pulling unstarted jobs', () async {
+        final executed = <int>[];
+        final tasks = [
+          () async {
+            executed.add(1);
+            await Future<void>.delayed(const Duration(milliseconds: 20));
+            return 1;
+          },
+          () async {
+            executed.add(2);
+            await Future<void>.delayed(const Duration(milliseconds: 5));
+            return 2; // stops queue
+          },
+          () async {
+            executed.add(3);
+            return 3;
+          },
+          () async {
+            executed.add(4);
+            return 4;
+          },
+        ];
+
+        final results = await const Concurrency.bounded(2).process(
+          tasks,
+          shouldStop: (res) => res == 2,
+        );
+
+        expect(results, containsAll([1, 2]));
+        expect(executed, equals([1, 2])); // Tasks 3 and 4 were never started
+      });
     });
   });
 }

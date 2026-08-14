@@ -267,9 +267,9 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
       (either) => switch (either) {
         Left() => either,
         Right(value: final r) => () async {
-            await callback(r);
-            return either;
-          }(),
+          await callback(r);
+          return either;
+        }(),
       },
     ),
   );
@@ -287,9 +287,9 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
       (either) => switch (either) {
         Right() => either,
         Left(value: final l) => () async {
-            await callback(l);
-            return either;
-          }(),
+          await callback(l);
+          return either;
+        }(),
       },
     ),
   );
@@ -311,9 +311,9 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
       (either) => switch (either) {
         Left() => either,
         Right(value: final r) => () async {
-            final isValid = await predicate(r);
-            return isValid ? either : Left<L, R>(onFailure());
-          }(),
+          final isValid = await predicate(r);
+          return isValid ? either : Left<L, R>(onFailure());
+        }(),
       },
     ),
   );
@@ -367,14 +367,24 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
 
   /// Executes an [Iterable] of [TaskEither]s according to [mode], collecting their successful results.
   ///
-  /// Default mode is `const .bounded(3)`.
-  /// If any task returns a [Left], execution stops immediately and that error is returned.
-  /// Otherwise, returns a [Right] containing a list of all successful values.
+  /// Default mode is `const .bounded(3)` (dynamic sliding-window worker pool).
+  ///
+  /// ### Early Abort on Failure
+  /// If any task returns a [Left] failure, the worker queue halts immediately.
+  /// Any unstarted pending tasks in the queue are canceled and will **never be executed**,
+  /// saving network requests, database writes, and CPU resources.
+  ///
+  /// Results are preserved in the original order, and the first encountered [Left]
+  /// is returned. If all tasks succeed, returns a [Right] containing a list of all values.
   static TaskEither<L, List<R>> sequence<L, R>(
     Iterable<TaskEither<L, R>> tasks, {
     Concurrency mode = const .bounded(3),
   }) => .new(() async {
-    final eithers = await mode.process(tasks.map((t) => t.run));
+    final eithers = await mode.process(
+      tasks.map((t) => t.run),
+      shouldStop: (either) => either.isLeft,
+    );
+
     final results = <R>[];
     for (final either in eithers) {
       switch (either) {
@@ -389,8 +399,12 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
 
   /// Maps each element of [items] to a [TaskEither] using [mapper], executing them according to [mode].
   ///
-  /// Default mode is `const .bounded(3)`.
-  /// If any task returns a [Left], execution stops immediately and that error is returned.
+  /// Default mode is `const .bounded(3)` (dynamic sliding-window worker pool).
+  ///
+  /// ### Early Abort on Failure
+  /// If any mapped task returns a [Left], the worker queue halts immediately and
+  /// pending unstarted items are never mapped or executed.
+  ///
   /// Otherwise, returns a [Right] containing a list of all mapped values.
   static TaskEither<L, List<B>> traverse<L, A, B>(
     Iterable<A> items,

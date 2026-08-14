@@ -48,17 +48,39 @@ extension type const Concurrency._(int poolSize) {
   /// Whether execution is bounded with a worker pool poolSize (poolSize >= 2).
   bool get isBounded => poolSize > 1;
 
-  Future<List<R>> process<R>(Iterable<Future<R> Function()> items) async {
+  /// Executes [items] according to this concurrency strategy and returns the collected results.
+  ///
+  /// - **Sliding-Window Worker Pool**: In [isBounded] mode, tasks are dispatched through
+  ///   a dynamic worker pool of size [poolSize]. As soon as any worker completes a task,
+  ///   it immediately pulls the next pending task from the queue without waiting for slower
+  ///   tasks in other slots.
+  /// - **Deterministic Ordering**: Results are always collected and returned in the exact
+  ///   original order of the input [items].
+  /// - **Early-Exit Support ([shouldStop])**: If [shouldStop] is provided and evaluates to `true`
+  ///   for any completed task result:
+  ///   - In [isSequential] mode, execution halts immediately after the matching task.
+  ///   - In [isBounded] mode, the worker queue is immediately locked, preventing any unstarted
+  ///     pending tasks from being dispatched or executed.
+  ///   - Tasks already in-flight will finish, and all collected results are returned.
+  Future<List<R>> process<R>(
+    Iterable<Future<R> Function()> items, {
+    bool Function(R)? shouldStop,
+  }) async {
     _validateLimit();
 
     final jobs = items.toList();
     if (jobs.isEmpty) return [];
 
     // There is no need to split [items] into chunks of [poolSize] if it is unbounded
-    if (isUnbounded) return _processJobsUnbounded(jobs);
-    if (isSequential) return _processJobsSequential(jobs);
+    if (isUnbounded) {
+      return _processJobsUnbounded(jobs);
+    }
 
-    return _processJobsBounded(jobs);
+    if (isSequential) {
+      return _processJobsSequential(jobs, shouldStop: shouldStop);
+    }
+
+    return _processJobsBounded(jobs, shouldStop: shouldStop);
   }
 
   Future<List<R>> _processJobsUnbounded<R>(
@@ -66,37 +88,49 @@ extension type const Concurrency._(int poolSize) {
   ) async => Future.wait(jobs.map((j) => j()), eagerError: true);
 
   Future<List<R>> _processJobsSequential<R>(
-    Iterable<Future<R> Function()> jobs,
-  ) async {
-    final results = <R>[];
+    Iterable<Future<R> Function()> jobs, {
+    bool Function(R)? shouldStop,
+  }) async {
+    final jobResults = <R>[];
 
     for (final j in jobs) {
-      results.add(await j());
+      final result = await j();
+
+      jobResults.add(result);
+
+      if (shouldStop?.call(result) ?? false) return jobResults;
     }
 
-    return results;
+    return jobResults;
   }
 
   Future<List<R>> _processJobsBounded<R>(
-    Iterable<Future<R> Function()> jobs,
-  ) async {
-    final SplayTreeMap<int, R> results = .new();
+    Iterable<Future<R> Function()> jobs, {
+    bool Function(R)? shouldStop,
+  }) async {
+    final SplayTreeMap<int, R> jobResults = .new();
 
     final iter = jobs.indexed.iterator;
+    var isStopped = false;
 
     await Future.wait(
       .generate(poolSize, (_) async {
-        while (iter.moveNext()) {
+        while (!isStopped && iter.moveNext()) {
           final (index, job) = iter.current;
 
           final result = await job();
-          results.putIfAbsent(index, () => result);
+          jobResults.putIfAbsent(index, () => result);
+
+          if (shouldStop?.call(result) ?? false) {
+            isStopped = true;
+            break;
+          }
         }
       }),
       eagerError: true,
     );
 
-    return results.values.toList();
+    return jobResults.values.toList();
   }
 
   void _validateLimit() {
