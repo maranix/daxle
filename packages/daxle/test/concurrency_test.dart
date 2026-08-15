@@ -273,5 +273,55 @@ void main() {
         },
       );
     });
+
+    group('dispatch', () {
+      test('dispatches items to worker function and preserves order', () async {
+        final items = [10, 20, 30, 40, 50];
+        final results = await const Concurrency.bounded(2).dispatch(
+          items,
+          (item) async => item * 2,
+        );
+
+        expect(results, equals([20, 40, 60, 80, 100]));
+      });
+
+      test('supports function tear-offs directly', () async {
+        Future<String> stringify(int n) async => 'item_$n';
+
+        final items = [1, 2, 3];
+        final results = await Concurrency.sequential.dispatch(
+          items,
+          stringify,
+        );
+
+        expect(results, equals(['item_1', 'item_2', 'item_3']));
+      });
+
+      test('respects shouldStop in dispatch', () async {
+        final executed = <int>[];
+        final items = [1, 2, 3, 4, 5];
+
+        final results = await Concurrency.sequential.dispatch(
+          items,
+          (item) async {
+            executed.add(item);
+            return item;
+          },
+          shouldStop: (res) => res == 3,
+        );
+
+        expect(results, equals([1, 2, 3]));
+        expect(executed, equals([1, 2, 3]));
+      });
+
+      test('empty input returns empty list in dispatch', () async {
+        final results = await const Concurrency.bounded(3).dispatch<int, int>(
+          [],
+          (item) async => item,
+        );
+        expect(results, isEmpty);
+      });
+    });
   });
 }
+

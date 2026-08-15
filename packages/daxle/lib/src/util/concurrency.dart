@@ -83,6 +83,32 @@ extension type const Concurrency._(int poolSize) {
     return _processJobsBounded(jobs, shouldStop: shouldStop);
   }
 
+  /// Dispatches [items] to be processed by [worker] according to this concurrency strategy.
+  ///
+  /// This eliminates higher-order closure boilerplate (e.g. `items.map((i) => () => asyncOp(i))`)
+  /// and supports clean function tear-offs.
+  ///
+  /// Results are collected and returned in the exact original order of the input [items].
+  ///
+  /// Example:
+  /// ```dart
+  /// final users = await Concurrency.bounded(3).dispatch(
+  ///   userIds,
+  ///   (id) => api.fetchUser(id),
+  /// );
+  ///
+  /// // Or with direct function tear-off:
+  /// final users = await Concurrency.bounded(3).dispatch(userIds, api.fetchUser);
+  /// ```
+  Future<List<R>> dispatch<T, R>(
+    Iterable<T> items,
+    Future<R> Function(T item) worker, {
+    bool Function(R)? shouldStop,
+  }) => process(
+    items.map((item) => () => worker(item)),
+    shouldStop: shouldStop,
+  );
+
   Future<List<R>> _processJobsUnbounded<R>(
     Iterable<Future<R> Function()> jobs,
   ) async => Future.wait(jobs.map((j) => j()), eagerError: true);

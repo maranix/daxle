@@ -16,6 +16,8 @@
     - `Concurrency.sequential` (`.sequential`, limit 1): Executes tasks 1 by 1 sequentially.
     - `Concurrency.unbounded` (`.unbounded`, limit 0): Runs all tasks simultaneously in parallel.
     - `Concurrency.bounded(int limit)` (`.bounded(limit)`): Processes tasks in parallel worker chunks of size `limit`.
+    - Added `Concurrency.dispatch(items, worker)` for cleanly executing collections of raw async operations without double-closure boilerplate.
+    - Added `Concurrency.process(thunks)` for executing zero-argument task functions directly with early-stop (`shouldStop`) capability.
   - Added optional `{Concurrency mode = const .bounded(3)}` parameter to `Task.sequence`, `Task.traverse`, `TaskEither.sequence`, and `TaskEither.traverse`.
   - Full support for Dart dot-shorthand syntax (`mode: .sequential`, `mode: .unbounded`, `mode: .bounded(5)`).
   - Added `flatMapFuture` to `TaskEither` and `Task` for seamlessly chaining raw asynchronous `Future` computations (and function tear-offs) without nested constructor boilerplate.

@@ -255,13 +255,13 @@
 ///
 /// ## `Concurrency`
 ///
-/// Fine-grained control over asynchronous worker scheduling when using `Task.sequence`,
-/// `Task.traverse`, `TaskEither.sequence`, or `TaskEither.traverse`:
+/// Fine-grained control over asynchronous worker scheduling across the event loop:
 ///
 /// - `Concurrency.sequential` (or `.sequential`): Runs tasks 1 by 1 in strict sequence.
 /// - `Concurrency.unbounded` (or `.unbounded`): Dispatches all tasks simultaneously in parallel without limits.
 /// - `Concurrency.bounded(int poolSize)` (or `.bounded(3)`): Executes tasks using a **sliding-window worker pool**.
 ///   Fast tasks never wait for slow tasks; available workers immediately pull the next task from the queue.
+/// - **Standalone `dispatch` & `process`**: Use `concurrency.dispatch(items, worker)` to process raw collections without `Task`/`TaskEither` boilerplate, or `concurrency.process(thunks)` for zero-arg task closures.
 /// - **Early Termination (`shouldStop`)**: Halts worker queue consumption as soon as a stop condition is met,
 ///   protecting your system from running redundant operations when a failure or target state is reached.
 ///

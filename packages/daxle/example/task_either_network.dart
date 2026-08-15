@@ -70,10 +70,9 @@ void main() async {
   print(
     '\nBatch fetching permissions for users [1, 2, 3] with Concurrency.bounded(2):',
   );
-  final userIds = [1, 2, 3];
-  final batchTask = TaskEither.traverse(
+  final userIds = List.generate(3, (i) => getPermissions(i + 1));
+  final batchTask = TaskEither.sequence(
     userIds,
-    (id) => getPermissions(id),
     mode: .bounded(2),
   );
 
