@@ -5,13 +5,14 @@
 /// declarative pipelines. Inspired by languages like Rust and Haskell,
 /// it brings robust functional primitives to modern Dart.
 ///
-/// This library exports five core types, concurrency controls, and essential async utilities:
+/// This library exports six core types, concurrency controls, and essential async utilities:
 ///
 /// - [Option]: For composing optional values without imperative state checks.
 /// - [Either]: For explicit, type-safe error handling and branching.
 /// - [Task]: For composing lazy, asynchronous workflows with controlled concurrency.
 /// - [TaskEither]: For chaining asynchronous operations that can fail, with automatic short-circuiting and controlled concurrency.
 /// - [Unit]: For representing the absence of a meaningful value.
+/// - [QueryMap]: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
 /// - [Concurrency]: Extension type for fine-grained async worker pool limits (`sequential`, `unbounded`, `bounded(limit)`).
 /// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
 ///
@@ -176,6 +177,77 @@
 ///     [fetchUser(1), fetchUser(2), fetchUser(3)],
 ///     mode: .bounded(3),
 ///   ).run();
+/// }
+/// ```
+///
+/// ---
+///
+/// ## `QueryMap`
+///
+/// Safely extract nested properties from structured [Map]s and their embedded lists.
+/// `QueryMap` is a zero-cost extension type erased at compile-time that replaces
+/// fragile manual map cast chains with type-safe path queries.
+///
+/// ### Supported Query Notations:
+///
+/// - **Dot Notation (Nested Maps)**: Query nested string map keys like `'services.server.host'`.
+/// - **Bracket Notation (Embedded Lists)**: Access list elements and multidimensional arrays embedded within maps, e.g. `'users[0].name'` or `'matrix[0][2]'`.
+/// - **Key Lists / Iterable Paths (Non-String Keys)**: Use iterable paths like `['cluster', 101, 'status']` or `['flags', true]` to query map keys that are not strings.
+///
+/// ### Safe by Design:
+///
+/// - **Type Safety**: `query.get<T>(path)` validates types at runtime. If the value does not match type `T`, it returns `null` without throwing a `TypeError`.
+/// - **Bounds & Parsing Safety**: Missing keys, null intermediate nodes, out-of-bounds array indices, or malformed brackets safely evaluate to `null` without throwing `RangeError` or `FormatException`.
+/// - **Presence Detection**: `query.has(path)` distinguishes between a missing key and an existing key whose value is `null`, `false`, `0`, or empty.
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// void main() {
+///   final payload = {
+///     'services': {
+///       'server': {'host': 'https://api.internal', 'port': 8080, 'active': true},
+///       'database': null,
+///     },
+///     'users': [
+///       {'id': 1, 'name': 'Alice', 'roles': ['admin', 'dev']},
+///     ],
+///     'matrix': [
+///       [10, 20],
+///       [30, 40],
+///     ],
+///     'cluster': {
+///       101: {'status': 'healthy'},
+///     },
+///   };
+///
+///   final query = QueryMap(payload);
+///
+///   // 1. Dot notation for nested maps:
+///   final host = query.get<String>('services.server.host'); // 'https://api.internal'
+///   final port = query.get<int>('services.server.port'); // 8080
+///
+///   // 2. Bracket notation for embedded lists and multidimensional matrices:
+///   final userName = query.get<String>('users[0].name'); // 'Alice'
+///   final firstRole = query.get<String>('users[0].roles[0]'); // 'admin'
+///   final matrixCell = query.get<int>('matrix[1][0]'); // 30
+///
+///   // 3. Key lists for non-string map keys:
+///   final status = query.get<String>(['cluster', 101, 'status']); // 'healthy'
+///
+///   // 4. Safe failure handling (no exceptions thrown):
+///   final invalidType = query.get<int>('services.server.host'); // null (value is a String)
+///   final outOfBounds = query.get<String>('users[99].name'); // null
+///
+///   // 5. Presence checking (distinguishes explicit null from missing keys):
+///   query.has('services.database'); // true (key exists with null value)
+///   query.has('services.cache'); // false (key does not exist)
+///
+///   // 6. Seamless composition with Option:
+///   final serverHost = Option(query.get<String>('services.server.host'))
+///       .getOrElse(() => 'https://fallback.internal');
 /// }
 /// ```
 ///

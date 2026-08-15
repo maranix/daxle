@@ -20,6 +20,7 @@ Daxle provides lightweight primitives designed specifically for Dart 3+ sealed c
 - **`Either<L, R>`**: Encapsulates operations that can fail, turning untyped exceptions into explicit, compile-time enforced types.
 - **`Task<T>` & `TaskEither<L, R>`**: Handles lazy async evaluation, controlled concurrency, and failure recovery pipelines.
 - **`Unit`**: Represents void operations as explicit functional returns.
+- **`QueryMap`**: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
 
 ---
 
@@ -39,10 +40,12 @@ Future<User> fetchUser(String id) async {
 ```dart
 // Failure and success are explicit in the return type signature
 TaskEither<NetworkError, User> fetchUser(String id) =>
-    TaskEither.tryCatch(
-      () => api.get('/users/$id').then((r) => User.fromJson(r.data)),
+    TaskEither.fromFuture(
+      () => api.get('/users/$id')),
       (error, stack) => NetworkError.from(error),
-    );
+    )
+    .tap((r) => print("Response: ${r.body}"));
+    .map((r) => User.fromJson(r.body));
 ```
 
 ---
@@ -51,7 +54,7 @@ TaskEither<NetworkError, User> fetchUser(String id) =>
 
 | Package | Path | Description | Version | Pub |
 | :--- | :--- | :--- | :--- | :--- |
-| **daxle** | [`packages/daxle`](packages/daxle/) | Core functional toolkit containing `Option`, `Either`, `Task`, `TaskEither`, and `Unit`. | `4.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
+| **daxle** | [`packages/daxle`](packages/daxle/) | Core functional toolkit containing `Option`, `Either`, `Task`, `TaskEither`, `Unit`, and `QueryMap`. | `4.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
 
 ---
 
@@ -65,6 +68,9 @@ While Dart null safety prevents accessing null references, operating on optional
 
 ### Controlled Async Execution
 `Task` and `TaskEither` enable lazy async computation with built-in concurrency controls (`sequential`, `bounded`, `unbounded`), ensuring predictable execution without unhandled async rejections.
+
+### Zero-Cost Nested Map Traversal
+`QueryMap` provides compile-time zero-cost nested map querying using dot and bracket notations, eliminating brittle manual casting and avoiding unhandled `TypeError`s or index `RangeError`s.
 
 ---
 

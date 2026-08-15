@@ -23,6 +23,9 @@ While Dart's null safety is excellent, `Option<T extends Object>` takes it furth
 ### Sliding-Window Concurrency & Early-Abort Protection
 Instead of running unbounded parallel futures that overload your backend, or static batch chunks that leave workers idle, use `TaskEither` and `Task` with built-in `Concurrency` controls (`.sequential`, `.unbounded`, `.bounded(poolSize)`). In bounded mode, a dynamic sliding-window worker pool ensures fast tasks never wait for slow tasks. If any task fails, unstarted queued tasks are **canceled immediately** to save network requests and computing resources.
 
+### Zero-Cost Nested Map Querying with QueryMap
+Traversing deeply nested JSON payloads or configuration maps manually requires tedious null checks and risky casting (`map['data']?['users']?[0]?['email'] as String?`), which can throw unhandled `TypeError`s or `RangeError`s in production. `QueryMap` provides a zero-cost compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key lists that gracefully returns `null` on missing paths or type mismatches.
+
 ---
 
 ## Installation
@@ -118,11 +121,63 @@ void main() async {
 }
 ```
 
+### Safely Query Nested Maps & Embedded Lists with `QueryMap`
+Wrap any `Map` at zero runtime cost to query deeply nested properties, embedded lists, and multi-dimensional matrices using dot notation, bracket indexing, or key lists.
+
+```dart
+import 'package:daxle/daxle.dart';
+
+void main() {
+  final payload = {
+    'services': {
+      'server': {'host': 'https://api.internal', 'port': 8080},
+      'database': null,
+    },
+    'users': [
+      {'name': 'Alice', 'roles': ['admin', 'dev']},
+    ],
+    'matrix': [
+      [10, 20],
+      [30, 40],
+    ],
+    'cluster': {
+      101: {'status': 'healthy'},
+    },
+  };
+
+  final query = QueryMap(payload);
+
+  // 1. Dot notation for nested maps:
+  final host = query.get<String>('services.server.host'); // 'https://api.internal'
+  final port = query.get<int>('services.server.port'); // 8080
+
+  // 2. Bracket notation for embedded lists and matrices:
+  final userName = query.get<String>('users[0].name'); // 'Alice'
+  final firstRole = query.get<String>('users[0].roles[0]'); // 'admin'
+  final matrixCell = query.get<int>('matrix[1][0]'); // 30
+
+  // 3. Key lists for non-string map keys:
+  final status = query.get<String>(['cluster', 101, 'status']); // 'healthy'
+
+  // 4. Safe failure handling (no exceptions thrown):
+  final wrongType = query.get<int>('services.server.host'); // null (value is a String)
+  final outOfBounds = query.get<String>('users[99].name'); // null
+
+  // 5. Presence checking (distinguishes explicit null from missing keys):
+  query.has('services.database'); // true (key exists with null value)
+  query.has('services.cache'); // false (key does not exist)
+
+  // 6. Seamless composition with Option:
+  final serverHost = Option(query.get<String>('services.server.host'))
+      .getOrElse(() => 'https://fallback.internal');
+}
+```
+
 ---
 
 ## Ready to build safer apps?
 
-Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Concurrency`, `Unit`, `Async Utilities`, and advanced combinators. 
+Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Concurrency`, `Unit`, `Async Utilities`, `QueryMap`, and advanced combinators. 
 
 ---
 

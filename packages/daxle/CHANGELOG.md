@@ -6,6 +6,12 @@
   - Changed `Either.cond` signature from `(bool condition, R right, L left)` to lazy callbacks `(bool condition, R Function() right, L Function() left)` to fix eager early-evaluation bugs and guarantee that unchosen branches (e.g., throwing expressions like `a ~/ b`) are never executed.
 
 - **NEW FEATURES**:
+  - Introduced `QueryMap` zero-cost extension type (`extension type const QueryMap(Map<Object?, Object?> map)`) for type-safe nested map and array querying:
+    - Dot notation for nested maps (`query.get<String>('services.server.host')`).
+    - Bracket notation for single and multi-dimensional lists (`query.get<String>('users[0].name')`, `query.get<int>('matrix[0][2]')`).
+    - Key lists / Iterable paths for non-string keys (`query.get<String>(['cluster', 101, 'status'])`).
+    - Type-safe retrieval via `query.get<T>(path)` returning `null` on type mismatch without throwing `TypeError`.
+    - Key presence checking via `query.has(path)` (differentiating explicit `null` from missing keys).
   - Introduced `Concurrency` extension type (`extension type const Concurrency._(int limit)`) to manage worker pool concurrency:
     - `Concurrency.sequential` (`.sequential`, limit 1): Executes tasks 1 by 1 sequentially.
     - `Concurrency.unbounded` (`.unbounded`, limit 0): Runs all tasks simultaneously in parallel.
