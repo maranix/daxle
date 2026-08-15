@@ -56,7 +56,6 @@ void main() {
     'emptyList': <dynamic>[],
   };
 
-  /*
   group('QueryMap - get', () {
     group('Dot Notation Traversal (Maps Only)', () {
       test('extracts shallow and nested fields', () {
@@ -129,12 +128,15 @@ void main() {
         );
       });
 
-      test('returns null if separate integer index is passed in key list for list', () {
-        final query = QueryMap(sampleMap);
-        // Individual indexing notation ['numbers', 1] is invalid
-        expect(query.get<int>(['numbers', 1]), isNull);
-        expect(query.get<int>(['numbers', '1']), isNull);
-      });
+      test(
+        'returns null if separate integer index is passed in key list for list',
+        () {
+          final query = QueryMap(sampleMap);
+          // Individual indexing notation ['numbers', 1] is invalid
+          expect(query.get<int>(['numbers', 1]), isNull);
+          expect(query.get<int>(['numbers', '1']), isNull);
+        },
+      );
 
       test('handles custom Iterable paths', () {
         final query = QueryMap(sampleMap);
@@ -335,7 +337,6 @@ void main() {
       );
     });
   });
-  */
 
   group('QueryMap - has', () {
     group('Dot Notation Traversal (Maps Only)', () {
