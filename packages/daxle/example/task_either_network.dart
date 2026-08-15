@@ -26,18 +26,31 @@ Future<List<String>> getPermissionsStandard(int id) async {
   }
 }
 
-// Daxle: Declarative, lazy pipeline mapping errors to a safe Left
+// Daxle Approach 1: Chaining raw Futures directly using flatMapFuture (tear-off supported)
 TaskEither<String, List<String>> getPermissions(int id) {
   return .fromFuture(
     () => fetchUserRole(id),
     (err, _) => 'Failed to fetch user role: $err',
-  ).flatMap(
-    (role) => .fromFuture(
-      () => fetchRolePermissions(role),
-      (err, _) => 'Failed to fetch role permissions: $err',
-    ),
+  ).flatMapFuture(
+    fetchRolePermissions,
+    onError: (err, _) => 'Failed to fetch role permissions: $err',
   );
 }
+
+// Daxle Approach 2 (Idiomatic): Lifting functions at the API boundary
+TaskEither<String, String> getUserRole(int id) => .fromFuture(
+  () => fetchUserRole(id),
+  (err, _) => 'Failed to fetch user role: $err',
+);
+
+TaskEither<String, List<String>> getRolePermissions(String role) => .fromFuture(
+  () => fetchRolePermissions(role),
+  (err, _) => 'Failed to fetch role permissions: $err',
+);
+
+// Composing boundary functions is a clean, 1-line tear-off:
+TaskEither<String, List<String>> getPermissionsIdiomatic(int id) =>
+    getUserRole(id).flatMap(getRolePermissions);
 
 void main() async {
   // Case A: Successful retrieval

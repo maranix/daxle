@@ -18,6 +18,7 @@
     - `Concurrency.bounded(int limit)` (`.bounded(limit)`): Processes tasks in parallel worker chunks of size `limit`.
   - Added optional `{Concurrency mode = const .bounded(3)}` parameter to `Task.sequence`, `Task.traverse`, `TaskEither.sequence`, and `TaskEither.traverse`.
   - Full support for Dart dot-shorthand syntax (`mode: .sequential`, `mode: .unbounded`, `mode: .bounded(5)`).
+  - Added `flatMapFuture` to `TaskEither` and `Task` for seamlessly chaining raw asynchronous `Future` computations (and function tear-offs) without nested constructor boilerplate.
 
 - **PERFORMANCE & REFACTORING**:
   - Defensive snapshotting (`items.toList()`) in `Concurrency.process` prevents `ConcurrentModificationError` when iterables are mutated across asynchronous boundaries.

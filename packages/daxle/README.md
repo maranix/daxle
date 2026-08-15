@@ -105,9 +105,12 @@ TaskEither<String, String> fetchConfig(String role) => .fromFuture(
 );
 
 void main() async {
-  // Chain dependent async computations without nesting:
+  // Chain dependent async computations with clean tear-offs:
   final task = fetchUser(42)
-      .flatMap((user) => fetchConfig(user));
+      .flatMap(fetchConfig);
+
+  // Or directly chain raw Future functions using flatMapFuture:
+  // final rawTask = fetchUser(42).flatMapFuture(rawApiCall, onError: (e, _) => 'Error: $e');
 
   // The computation doesn't start until you run it
   final Either<String, String> result = await task.run();

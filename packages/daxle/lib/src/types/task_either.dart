@@ -113,12 +113,14 @@ import 'either.dart';
 /// );
 /// ```
 ///
-/// ### When to use `map` vs `flatMap`
+/// ### When to use `map` vs `flatMap` vs `flatMapFuture`
 ///
 /// - Use `map` to transform a successful value synchronously:
 ///   `task.map((user) => user.email)`
 /// - Use `flatMap` to chain a nested asynchronous computation that returns a `TaskEither`:
 ///   `task.flatMap((user) => fetchUserPreferences(user.id))`
+/// - Use `flatMapFuture` to directly chain a raw `Future` function and catch exceptions without nested constructors:
+///   `task.flatMapFuture(rawApiCall, onError: (err, _) => DomainError(err))`
 ///
 /// ### Common Anti-patterns
 ///
@@ -252,6 +254,24 @@ final class const TaskEither<L, R>(final Future<Either<L, R>> Function() _run) {
           if (e is L) return Left<L, B>(e as L);
           return Future<Either<L, B>>.error(e, st);
         }),
+  );
+
+  /// Chains a raw [Future] computation onto this [TaskEither] if this computation succeeds.
+  ///
+  /// If this [TaskEither] resolves to a [Left], the failure is propagated and [f]
+  /// is not executed.
+  ///
+  /// Any exceptions thrown during upstream computation, by [f], or by the returned [Future]
+  /// are caught and mapped to a [Left] using the provided [onError] function.
+  ///
+  /// Laziness is preserved.
+  @pragma('vm:prefer-inline')
+  TaskEither<L, B> flatMapFuture<B>(
+    Future<B> Function(R right) f, {
+    required L Function(Object error, StackTrace stackTrace) onError,
+  }) => flatMap(
+    (r) => .fromFuture(() => f(r), onError),
+    onError: onError,
   );
 
   /// Runs the provided [callback] on the [Right] value of this [TaskEither] without modifying it.

@@ -73,6 +73,80 @@ void main() {
       expect(await task.run(), equals(Right(25)));
     });
 
+    group('flatMapFuture', () {
+      test('successfully chains raw future onto Right', () async {
+        final task = TaskEither<String, int>.right(10).flatMapFuture(
+          (val) async => val * 2,
+          onError: (e, st) => 'failed: $e',
+        );
+
+        expect(await task.run(), equals(Right(20)));
+      });
+
+      test('supports function tear-offs', () async {
+        Future<String> format(int v) async => 'v: $v';
+
+        final task = TaskEither<String, int>.right(42).flatMapFuture(
+          format,
+          onError: (e, st) => 'failed',
+        );
+
+        expect(await task.run(), equals(Right('v: 42')));
+      });
+
+      test('preserves upstream Left without calling future callback', () async {
+        var called = false;
+        final task = TaskEither<String, int>.left('original error').flatMapFuture(
+          (val) async {
+            called = true;
+            return val * 2;
+          },
+          onError: (e, st) => 'mapped error',
+        );
+
+        final result = await task.run();
+        expect(result, equals(Left('original error')));
+        expect(called, isFalse);
+      });
+
+      test('catches asynchronous exceptions in future callback', () async {
+        final task = TaskEither<String, int>.right(10).flatMapFuture(
+          (val) async => throw Exception('async crash'),
+          onError: (e, st) => 'caught: $e',
+        );
+
+        final result = await task.run();
+        expect(result.isLeft, isTrue);
+        expect(result.fold((l) => l, (r) => ''), contains('caught: Exception: async crash'));
+      });
+
+      test('catches synchronous exceptions thrown inside future closure', () async {
+        final task = TaskEither<String, int>.right(10).flatMapFuture(
+          (val) => throw StateError('sync crash'),
+          onError: (e, st) => 'caught sync: $e',
+        );
+
+        final result = await task.run();
+        expect(result.isLeft, isTrue);
+        expect(result.fold((l) => l, (r) => ''), contains('caught sync: Bad state: sync crash'));
+      });
+
+      test('preserves laziness until run is called', () async {
+        var executed = false;
+        final task = TaskEither<String, int>.right(10).flatMapFuture(
+          (val) async {
+            executed = true;
+            return val;
+          },
+          onError: (e, st) => 'err',
+        );
+
+        expect(executed, isFalse);
+        await task.run();
+        expect(executed, isTrue);
+      });
+    });
+
     test('mapLeft transforms errors', () async {
       final taskRight = TaskEither<String, int>.right(
         42,

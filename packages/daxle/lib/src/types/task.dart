@@ -52,6 +52,15 @@ final class const Task<T>(final Future<T> Function() _run) {
     ),
   );
 
+  /// Chains a raw [Future] computation onto this [Task].
+  ///
+  /// Laziness is preserved. The computation is only executed if and when
+  /// the returned [Task] is executed.
+  @pragma('vm:prefer-inline')
+  Task<R> flatMapFuture<R>(Future<R> Function(T value) f) => .new(
+    () => run().then(f),
+  );
+
   /// Runs the provided [callback] on the value produced by this [Task]
   /// without modifying it.
   ///

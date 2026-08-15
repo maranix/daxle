@@ -26,6 +26,12 @@ void main() {
       expect(await task.run(), 42);
     });
 
+    test('flatMapFuture chains raw future computations', () async {
+      Future<int> doubleAsync(int x) async => x * 2;
+      final task = Task(() async => 21).flatMapFuture(doubleAsync);
+      expect(await task.run(), 42);
+    });
+
     test('tap executes side effects without modifying value', () async {
       var sideEffect = 0;
       final task = Task(() async => 42).tap((x) {

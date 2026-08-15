@@ -163,7 +163,7 @@
 /// void main() async {
 ///   // Chain dependent async computations without nested awaits or try-catch blocks:
 ///   final result = await fetchUser(42)
-///       .flatMap((user) => fetchConfig(user))
+///       .flatMap(fetchConfig) // Clean tear-off composition
 ///       .run();
 ///
 ///   result.fold(
