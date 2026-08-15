@@ -79,8 +79,9 @@ TaskEither<LogError, LogReport> processSingleLog(String path) {
 
 // 3. Transform and process the entire collection
 TaskEither<LogError, List<LogReport>> processAllLogs(List<String> paths) {
-  // traverse executes each processSingleLog sequentially
-  return TaskEither.traverse(paths, processSingleLog);
+  // traverse processes tasks with sliding-window concurrency (mode: .bounded(3) by default)
+  // If any log fails to process, remaining unstarted tasks abort immediately:
+  return TaskEither.traverse(paths, processSingleLog, mode: .bounded(3));
 }
 ```
 
@@ -110,5 +111,5 @@ void main() async {
 ## Why You'll Love This Approach
 
 * **Format Everything in One Step (`bimap`)**: Transform your success values and your errors at the exact same time. You can easily turn domain errors into user-friendly status messages before they leave your system.
-* **Save Resources with Sequential Control**: `TaskEither.traverse` runs tasks one by one. If a critical task fails, execution stops immediately. You never waste I/O resources processing files when a dependency is already broken.
-* **Ditch Manual List Operations**: Daxle does the heavy lifting. It automatically folds your list of tasks (`List<TaskEither>`) into a single task returning a list of values. Your code stays perfectly clean.
+* **Controlled Concurrency & Early-Abort Protection**: `TaskEither.traverse` manages execution with sliding-window worker pools. If a task fails, unstarted queued tasks abort immediately, preventing wasted I/O and network overhead.
+* **Ditch Manual List Operations**: Daxle does the heavy lifting. It automatically folds your collection into a single task returning a list of values, preserving original list ordering deterministically.

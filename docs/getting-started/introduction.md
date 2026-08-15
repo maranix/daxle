@@ -47,7 +47,7 @@ Daxle focuses on **practical software engineering**. It gives you the tools to w
 Our documentation guides you from your first steps to advanced mastery:
 
 * **[Getting Started](./installation)**: Install Daxle and build your first type-safe pipeline in the Quick Start guide.
-* **[Core Types](/core-types/option)**: Learn the motivation and best practices behind `Unit`, `Option`, `Either`, `Task`, and `TaskEither`.
+* **[Core Types](/core-types/option)**: Learn the motivation and best practices behind `Unit`, `Option`, `Either`, `Task`, `TaskEither`, `QueryMap`, and `Concurrency`.
 * **[Utilities](/utilities/future-group)**: Discover helpful asynchronous utilities re-exported by Daxle.
 * **[Guides](/guides/error-handling)**: Master advanced error-handling strategies and complex asynchronous composition.
 * **[Cookbook](/cookbook/working-with-optional-values)**: See Daxle in action with real-world recipes for input validation, networking, and state management.

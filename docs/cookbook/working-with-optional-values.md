@@ -34,22 +34,22 @@ String? getSanitizedServerHost(Map<String, dynamic> config) {
 ```
 
 
-## The Solution: Flat Query Pipelines with Option
+## The Solution: Seamless Querying with QueryMap and Option
 
-Stop fighting nulls manually. Wrap your data in an `Option` and chain your logic using `flatMap`, `map`, and `filter`. 
+Stop fighting nulls manually. Wrap your data in a zero-cost `QueryMap` to extract the nested property, then wrap the result in an `Option` to chain your validation rules using `map` and `filter`.
 
-This transforms your logic into a flat, declarative pipeline. If any value in the chain is null—or fails your validation rules—Daxle automatically short-circuits to `None`.
+This transforms messy nested checks into a clean, declarative pipeline. If the path is missing, of the wrong type, or fails your validation rules, Daxle automatically short-circuits to `None`.
 
 ```dart
 import 'package:daxle/daxle.dart';
 
-// Fluent querying of server host with Option
+// Fluent querying of server host with QueryMap & Option
 //
 // Reads like a step-by-step pipeline
 Option<String> getSanitizedServerHostSafe(Map<String, dynamic> config) {
-  return Option<Map<String, dynamic>>(config['services'])
-      .flatMap<Map<String, dynamic>>((services) => services['server'])
-      .flatMap<String>((server) => server['host'])
+  final query = QueryMap(config);
+
+  return Option(query.get<String>('services.server.host'))
       .map((host) => host.trim())
       .filter((host) => host.isNotEmpty)
       .filter((host) => !host.startsWith('localhost'));

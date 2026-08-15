@@ -95,35 +95,41 @@ final Future<String> future = task.run();
 final result = await future;
 ```
 
-### Chain and Transform (`map` / `flatMap`)
+### Chain and Transform (`map` / `flatMap` / `flatMapFuture`)
 
-Shape your data as it flows through the pipeline. None of these transformations run until you call `run()`.
+Shape and chain your asynchronous operations lazily. None of these transformations execute until you trigger the pipeline with `run()`.
 
 ```dart
-final readTask = Task(() async => '{"id": 100, "status": "active"}');
+// 1. map: Apply synchronous transformations once the async task produces a value
+final fetchDiskUsage = Task(() async => 1024 * 1024 * 850); // 850 MB in bytes
 
-// map: Shape the output synchronously
-final statusTask = readTask.map((json) => json.contains('active') ? 'ONLINE' : 'OFFLINE');
+final diskReport = fetchDiskUsage
+    .map((bytes) => bytes / (1024 * 1024))
+    .map((mb) => 'Disk Usage: ${mb.toStringAsFixed(1)} MB');
 
-// flatMap: Chain to another async Task seamlessly
-final notifyTask = statusTask.flatMap((status) {
-  return Task(() async {
-    await sendStatusUpdate(status);
-    return 'Notification sent';
-  });
-});
+// 2. flatMap: Chain dependent Task instances without nesting Task<Task<T>>
+Task<String> fetchAuthToken() => Task(() => authService.generateToken());
+Task<DashboardData> fetchDashboard(String token) => Task(() => api.getDashboard(token));
+
+final loadDashboard = fetchAuthToken()
+    .flatMap(fetchDashboard); // Clean tear-off composition
+
+// 3. flatMapFuture: Directly chain raw Future APIs (e.g. disk/DB writes) without Task boilerplate
+final persistPipeline = loadDashboard
+    .flatMapFuture((dashboard) => secureStorage.write(
+      key: 'cached_dashboard',
+      value: dashboard.toJson(),
+    ));
 ```
 
 ### Add Safe Side Effects (`tap`)
 
-Log data or update variables without disrupting your pipeline:
+Perform observational side-effects (such as logging or metrics) without interrupting or modifying data flow:
 
 ```dart
-final task = Task(() async => 'Log message data');
-
-final tappedTask = task.tap((data) async {
-  print('Writing to system log: $data');
-});
+final syncTask = Task(() => syncDatabaseChanges())
+    .tap((count) => logger.info('Successfully synced $count records'))
+    .map((count) => 'Sync complete: $count records');
 ```
 
 ### Execute in Batch with Concurrency (`sequence` / `traverse`)
@@ -180,8 +186,9 @@ final Task<List<String>> parallelBatch = Task.sequence(tasks, mode: .unbounded);
   
   // PREFER: True lazy execution
   final task = Task(() => myAsyncCall());
+  final task = Task(myAsyncCall);
   ```
-* **Forgetting the trigger**: Because `Task` is lazy, writing `task.map(...)` does nothing on its own. You must call `await task.run()` to start the engine.
+* **Forgetting the trigger**: Because `Task` is lazy, writing `task.map(...)` does nothing on its own. You must call `await task.run()` to start the execution.
 * **Ignoring errors**: `Task` does not catch exceptions automatically. If you expect your async work to fail, upgrade to `TaskEither`.
 
 
@@ -200,4 +207,5 @@ final Task<List<String>> parallelBatch = Task.sequence(tasks, mode: .unbounded);
 ## Related Types
 
 * [TaskEither](task-either) - The fail-safe variant of `Task`.
+* [Concurrency](concurrency) - Detailed guide on sliding-window worker pool execution strategies.
 * [Either](either) - The synchronous counterpart for success/failure modeling.

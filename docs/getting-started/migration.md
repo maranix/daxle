@@ -18,6 +18,8 @@ This guide outlines breaking changes and migration steps to upgrade your codebas
 | **`Option.fromNullable`** | Removed. Use the smart factory constructor `Option(T? value)` instead. | Breaking API Change |
 | **`Concurrency` Control** | Introduced `Concurrency` extension type (`.sequential`, `.unbounded`, `.bounded(limit)`). Default mode is `const .bounded(3)`. | New Feature |
 | **`Either.cond`** | Signature updated to accept lazy callbacks `(bool condition, R Function() right, L Function() left)`. | Breaking API Change |
+| **`QueryMap`** | Zero-cost extension type for type-safe nested map, embedded list, and non-string key queries. | New Feature |
+| **`flatMapFuture`** | Added to `Task` and `TaskEither` for chaining raw `Future` computations without nested constructors. | New Feature |
 | **Primary Constructors** | All core types (`Unit`, `Option`, `Either`, `Task`, `TaskEither`) now leverage Dart 3.13+ primary constructors. | Performance & Internal Refactor |
 
 ---

@@ -38,6 +38,14 @@ export const Routes = {
       text: 'TaskEither',
       link: '/core-types/task-either',
     },
+    queryMap: {
+      text: 'QueryMap',
+      link: '/core-types/query-map',
+    },
+    concurrency: {
+      text: 'Concurrency',
+      link: '/core-types/concurrency',
+    },
   },
   utilities: {
     futureGroup: {

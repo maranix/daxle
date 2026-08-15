@@ -108,14 +108,26 @@ final success = TaskEither.right('All good');
 final failure = TaskEither.left('Denied');
 ```
 
-### Chain Async Tasks (`flatMap`)
+### Chain Async Tasks (`flatMap` / `flatMapFuture`)
 
-Chain dependent asynchronous tasks together cleanly. If the first task fails, the second one is never executed, and the error safely bypasses the rest of the pipeline.
+Chain dependent asynchronous tasks together cleanly. If an upstream task yields a `Left` failure, downstream steps are safely bypassed.
+
+* **`flatMap`**: Use when chaining another function that returns a `TaskEither` (e.g. internal repositories or domain services).
+* **`flatMapFuture`**: Use when chaining a raw standard Dart `Future` API (e.g. `sharedPreferences.setString`, `File.writeAsString`, or raw HTTP calls) and mapping any thrown exceptions into your typed error.
 
 ```dart
-final pipeline = fetchUser(userId)
-    .map((user) => user.id)
-    .flatMap(fetchUserPreferences); // Returns another TaskEither
+// 1. flatMap: Chain another TaskEither service call
+TaskEither<AuthError, SessionToken> login(String email, String pass) => ...;
+TaskEither<AuthError, UserProfile> fetchProfile(SessionToken token) => ...;
+
+final profilePipeline = login('alex@company.io', 'secret123')
+    .flatMap(fetchProfile); // If login fails, fetchProfile is skipped automatically
+
+// 2. flatMapFuture: Directly chain a raw Future API with automatic exception mapping
+final cachedSessionPipeline = profilePipeline.flatMapFuture(
+  (profile) => secureStorage.write(key: 'session_user', value: profile.id), // Raw Future<void>
+  onError: (error, _) => AuthError.storageFailed('Could not cache session: $error'),
+);
 ```
 
 ### Transform Data and Errors (`map` / `mapLeft`)
@@ -160,30 +172,48 @@ final result = await task.fold(
 
 Process collections of fallible asynchronous operations with worker pool concurrency controls (`Concurrency` extension type):
 
-* `TaskEither.sequence`: Evaluates a list of `TaskEither` instances and aggregates their results.
-* `TaskEither.traverse`: Maps items into `TaskEither` instances and runs them using the specified worker concurrency mode.
+* **`TaskEither.sequence`**: Takes an `Iterable` of **existing `TaskEither` instances** and runs them.
+* **`TaskEither.traverse`**: Takes an `Iterable` of **plain data items** (e.g. `List<String>`), maps each item with a function returning a `TaskEither`, and executes them.
 
 Both methods accept an optional `{Concurrency mode = const .bounded(3)}` parameter (defaults to 3 concurrent workers):
-* `mode: .bounded(limit)`: Runs up to `limit` workers concurrently.
+* `mode: .bounded(limit)`: Runs up to `limit` workers concurrently using a sliding-window pool. If any task returns a `Left`, pending unstarted tasks are canceled immediately.
 * `mode: .sequential`: Executes operations one by one sequentially (1 worker).
 * `mode: .unbounded`: Fires all tasks concurrently without limit.
 
 ```dart
-final items = [1, 2, 3, 4, 5];
+// 1. TaskEither.sequence: For a collection of DIFFERENT existing TaskEither operations
+final healthCheckTasks = [
+  checkDatabaseConnection(), // TaskEither<HealthError, ServiceStatus>
+  checkCacheServer(),        // TaskEither<HealthError, ServiceStatus>
+  checkPaymentGateway(),     // TaskEither<HealthError, ServiceStatus>
+];
 
-// Traverse items with 3 concurrent workers (default)
-final TaskEither<AppError, List<Data>> batch = TaskEither.traverse(
-  items,
-  (id) => fetchItemSafe(id),
-  mode: .bounded(3),
+// Runs health checks concurrently with a worker pool of 3.
+// If any check fails, remaining unstarted checks are aborted and Left is returned:
+final TaskEither<HealthError, List<ServiceStatus>> healthPipeline =
+    TaskEither.sequence(healthCheckTasks, mode: .bounded(3));
+
+final healthResult = await healthPipeline.run();
+
+
+// 2. TaskEither.traverse: For a list of PLAIN DATA items mapped to a TaskEither
+final fileNames = ['invoice_01.pdf', 'invoice_02.pdf', 'invoice_03.pdf'];
+
+// Downloads files 2 at a time. If one download fails, remaining queued files are aborted:
+final TaskEither<StorageError, List<File>> downloadBatch = TaskEither.traverse(
+  fileNames,
+  downloadInvoice, // (String) -> TaskEither<StorageError, File>
+  mode: .bounded(2),
 );
 
-// Execute sequentially
-final TaskEither<AppError, List<Data>> sequential = TaskEither.traverse(
-  items,
-  (id) => fetchItemSafe(id),
+// Or process sequentially (1 at a time) when order is strictly required:
+final TaskEither<StorageError, List<File>> sequentialDownloads = TaskEither.traverse(
+  fileNames,
+  downloadInvoice,
   mode: .sequential,
 );
+
+final downloadedFiles = await downloadBatch.run();
 ```
 
 
@@ -204,11 +234,13 @@ final TaskEither<AppError, List<Data>> sequential = TaskEither.traverse(
   
   // PREFER: Complete laziness
   final task = TaskEither.fromFuture(() => api.getData(), ...);
+  final task = TaskEither.fromFuture(api.ping, ...);
   ```
 * **Forgetting to pull the trigger**: Writing `.flatMap()` builds the pipeline, but does not execute it. You must call `await task.run()` or `.fold()` to actually run the code.
 
 
 ## Related Types
 
+* [Concurrency](concurrency) - Detailed guide on sliding-window worker pool execution and early failure aborts.
 * [Either](either) - The synchronous version of `TaskEither`.
 * [Task](task) - Use this for asynchronous logic that is guaranteed not to fail.

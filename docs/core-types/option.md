@@ -50,7 +50,7 @@ Option<int> processInput(String? input) {
   return Option(input)
       .map((str) => str.trim())
       .filter((str) => str.isNotEmpty)
-      .flatMap((str) => Option(int.tryParse(str)))
+      .map(int.tryParse)
       .filter((val) => val > 0);
 }
 ```
@@ -68,7 +68,7 @@ Option<String> getValue(String logLine, String key) {
   final prefix = '$key=';
   if (!logLine.contains(prefix)) return const Option.none();
   
-  final value = logLine.split(prefix).last.split(' ').first;
+  final value = logLine.split(prefix).last.split(' ').firstOrNull;
   return Option.some(value);
 }
 
@@ -113,24 +113,30 @@ final name = Option.fromPredicate('Dart', (str) => str.isNotEmpty);
 Shape your data without constantly checking if it exists. If the `Option` is `None`, these methods safely skip execution.
 
 ```dart
-final option = Option.some(' 123 ');
+// 1. map: Transform an existing value synchronously (e.g. normalize an email for an avatar URL)
+final rawEmail = Option('  Raman.Dev@Company.io  ');
+final avatarUrl = rawEmail
+    .map((email) => email.trim())
+    .map((email) => email.toLowerCase())
+    .map((email) => 'https://avatars.internal/u/$email'); 
+// Some('https://avatars.internal/u/raman.dev@company.io')
 
-// map: Transform the value synchronously
-final doubled = option
-    .map((s) => s.trim())
-    .map(int.parse)
-    .map((n) => n * 2); 
+// 2. flatMap: Chain operations where subsequent lookups may also return missing data
+Option<String> findSessionToken(String userId) => Option('tok_sec_9842');
+Option<String> fetchUserRole(String token) => Option('admin');
 
-// flatMap: Chain into an operation that might also return missing data
-final parsed = option
-    .map((s) => s.trim())
-    .flatMap((s) => Option(int.tryParse(s)));
+final activeRole = Option('usr_42')
+    .flatMap(findSessionToken)
+    .flatMap(fetchUserRole); 
+// Some('admin')
 
-// filter: Drop the value if it fails your test
-final filtered = option
-    .map((s) => s.trim())
-    .map(int.parse)
-    .filter((n) => n > 200);
+// 3. filter: Discard a valid value if it fails a business rule or constraint check
+final enteredPromo = Option('spring_sale_2026');
+final validatedPromo = enteredPromo
+    .map((code) => code.toUpperCase())
+    .filter((code) => code.startsWith('SPRING_'))
+    .filter((code) => !code.contains('EXPIRED')); 
+// Some('SPRING_SALE_2026')
 ```
 
 ### Extract Safely
@@ -166,5 +172,6 @@ final val2 = opt.fold(
 
 ## Related Types
 
+* [QueryMap](query-map) - Safely extract nested values from JSON maps and pass them into `Option`.
 * [Unit](unit) - Use `Option<Unit>` to signify an action that might happen, but returns no data.
 * [Either](either) - Upgrade to `Either` if you need to know *why* the data is missing (by capturing a specific error).
