@@ -31,12 +31,12 @@ TaskEither<String, List<String>> getPermissions(int id) {
   return .fromFuture(
     () => fetchUserRole(id),
     (err, _) => 'Failed to fetch user role: $err',
-  ).flatMap((role) {
-    return .fromFuture(
+  ).flatMap(
+    (role) => .fromFuture(
       () => fetchRolePermissions(role),
       (err, _) => 'Failed to fetch role permissions: $err',
-    );
-  });
+    ),
+  );
 }
 
 void main() async {
@@ -46,7 +46,7 @@ void main() async {
 
   // Case B: Fail and recover with default values using orElse
   final failTask = getPermissions(99).orElse((err) {
-    print('  [Fallback] Error occurred: $err. Returning guest permissions.');
+    print('[Fallback] Error occurred: $err. Returning guest permissions.');
     return .right(['read']);
   });
 
@@ -65,5 +65,13 @@ void main() async {
   );
 
   final batchResult = await batchTask.run();
-  print('Batch permissions result: $batchResult');
+
+  switch (batchResult) {
+    case Left(value: final msg):
+      print('Batch permissions error: $msg');
+      break;
+    case Right(value: final data):
+      print('Batch permissions result: $data');
+      break;
+  }
 }
