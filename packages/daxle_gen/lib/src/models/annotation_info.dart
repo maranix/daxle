@@ -26,6 +26,33 @@ class DeserializeInfo {
   });
 }
 
+/// Parsed metadata for `@EqualsAndHashCode`.
+class EqualsAndHashCodeInfo {
+  final Set<String> ignoreFields;
+
+  const EqualsAndHashCodeInfo({
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@Stringify`.
+class StringifyInfo {
+  final Set<String> ignoreFields;
+
+  const StringifyInfo({
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@CopyWith`.
+class CopyWithInfo {
+  final Set<String> ignoreFields;
+
+  const CopyWithInfo({
+    this.ignoreFields = const {},
+  });
+}
+
 /// Parsed metadata for `@SerializeEnum`.
 class SerializeEnumInfo {
   final String? valueField;

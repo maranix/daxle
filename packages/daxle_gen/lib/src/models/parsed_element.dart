@@ -1,4 +1,5 @@
 import 'package:daxle/daxle.dart';
+
 import 'annotation_info.dart';
 import 'parsed_type.dart';
 
@@ -50,6 +51,15 @@ class ParsedField {
       config.ignoreDeserialize ||
       (classDeserialize?.ignoreFields.contains(name) ?? false);
 
+  bool isIgnoredForEquals(EqualsAndHashCodeInfo? info) =>
+      info?.ignoreFields.contains(name) ?? false;
+
+  bool isIgnoredForStringify(StringifyInfo? info) =>
+      info?.ignoreFields.contains(name) ?? false;
+
+  bool isIgnoredForCopyWith(CopyWithInfo? info) =>
+      info?.ignoreFields.contains(name) ?? false;
+
   String get jsonKey => config.serializeKey ?? config.deserializeKey ?? name;
   String get serializeKey => config.effectiveSerializeKey ?? name;
   String get deserializeKey => config.effectiveDeserializeKey ?? name;
@@ -90,6 +100,9 @@ class ParsedConstructorParam {
       config.ignoreDeserialize ||
       (classDeserialize?.ignoreFields.contains(name) ?? false);
 
+  bool isIgnoredForCopyWith(CopyWithInfo? info) =>
+      info?.ignoreFields.contains(name) ?? false;
+
   String get jsonKey => config.deserializeKey ?? config.serializeKey ?? name;
   String get deserializeKey => config.effectiveDeserializeKey ?? name;
 }
@@ -102,6 +115,9 @@ class ParsedClass {
   final List<String> interfaces;
   final SerializeInfo? serialize;
   final DeserializeInfo? deserialize;
+  final EqualsAndHashCodeInfo? equalsAndHashCode;
+  final StringifyInfo? stringify;
+  final CopyWithInfo? copyWith;
   final String? customDiscriminatorName;
   final List<ParsedField> fields;
   final List<ParsedConstructorParam> constructorParams;
@@ -115,6 +131,9 @@ class ParsedClass {
     this.interfaces = const [],
     this.serialize,
     this.deserialize,
+    this.equalsAndHashCode,
+    this.stringify,
+    this.copyWith,
     this.customDiscriminatorName,
     required this.fields,
     required this.constructorParams,
@@ -124,6 +143,9 @@ class ParsedClass {
 
   bool get shouldSerialize => serialize != null;
   bool get shouldDeserialize => deserialize != null;
+  bool get shouldEqualsAndHashCode => equalsAndHashCode != null;
+  bool get shouldStringify => stringify != null;
+  bool get shouldCopyWith => copyWith != null;
 
   bool isSubclassOf(String parentName) =>
       superclass == parentName || interfaces.contains(parentName);
@@ -182,6 +204,7 @@ class ParsedEnum {
   final String name;
   final SerializeEnumInfo? serialize;
   final DeserializeEnumInfo? deserialize;
+  final StringifyInfo? stringify;
   final String? valueFieldName;
   final ParsedType? valueFieldType;
   final List<ParsedEnumConstant> constants;
@@ -190,6 +213,7 @@ class ParsedEnum {
     required this.name,
     this.serialize,
     this.deserialize,
+    this.stringify,
     this.valueFieldName,
     this.valueFieldType,
     required this.constants,
@@ -197,6 +221,7 @@ class ParsedEnum {
 
   bool get shouldSerialize => serialize != null;
   bool get shouldDeserialize => deserialize != null;
+  bool get shouldStringify => stringify != null;
 }
 
 /// Represents an entire parsed Dart file.
@@ -216,8 +241,17 @@ class ParsedFile {
   });
 
   bool get hasDaxleAnnotations =>
-      classes.any((c) => c.shouldSerialize || c.shouldDeserialize) ||
-      enums.any((e) => e.shouldSerialize || e.shouldDeserialize);
+      classes.any(
+        (c) =>
+            c.shouldSerialize ||
+            c.shouldDeserialize ||
+            c.shouldEqualsAndHashCode ||
+            c.shouldStringify ||
+            c.shouldCopyWith,
+      ) ||
+      enums.any(
+        (e) => e.shouldSerialize || e.shouldDeserialize || e.shouldStringify,
+      );
 
   bool get hasDaxlePartDirective =>
       partDirectives.any((p) => p.endsWith('.daxle.dart'));

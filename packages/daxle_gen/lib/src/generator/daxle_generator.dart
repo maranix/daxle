@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
 
 import '../cache/content_cache.dart';
@@ -37,9 +38,9 @@ class DaxleGenerator {
     DaxleAstParser? parser,
     FileGenerator? fileGenerator,
     ContentCache? cache,
-  })  : parser = parser ?? const DaxleAstParser(),
-        fileGenerator = fileGenerator ?? FileGenerator(),
-        cache = cache ?? ContentCache();
+  }) : parser = parser ?? const DaxleAstParser(),
+       fileGenerator = fileGenerator ?? FileGenerator(),
+       cache = cache ?? ContentCache();
 
   /// Runs code generation across [targetPath] with glob filtering.
   Future<GenerationResult> run({
@@ -65,7 +66,10 @@ class DaxleGenerator {
         throw ArgumentError('Target does not exist: $targetPath');
       }
 
-      await for (final entity in targetDir.list(recursive: true, followLinks: false)) {
+      await for (final entity in targetDir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File && entity.path.endsWith('.dart')) {
           if (globFilter.matches(entity.path)) {
             filesToProcess.add(entity);
@@ -90,7 +94,13 @@ class DaxleGenerator {
       if (!content.contains('serialize') &&
           !content.contains('Serialize') &&
           !content.contains('deserialize') &&
-          !content.contains('Deserialize')) {
+          !content.contains('Deserialize') &&
+          !content.contains('equalsAndHashCode') &&
+          !content.contains('EqualsAndHashCode') &&
+          !content.contains('stringify') &&
+          !content.contains('Stringify') &&
+          !content.contains('copyWith') &&
+          !content.contains('CopyWith')) {
         continue;
       }
 
@@ -109,7 +119,9 @@ class DaxleGenerator {
 
         final expectedGenFileName = p.basename(genPath);
         if (!parsedFile.hasDaxlePartDirective) {
-          logger('[DIAGNOSTIC] $srcPath is missing directive: part \'$expectedGenFileName\';');
+          logger(
+            '[DIAGNOSTIC] $srcPath is missing directive: part \'$expectedGenFileName\';',
+          );
         }
 
         final generatedCode = fileGenerator.generate(parsedFile);
