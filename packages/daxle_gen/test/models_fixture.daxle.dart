@@ -16,6 +16,16 @@ Status statusFromValue(Object? value) => switch (value) {
   'completed' => Status.completed,
   _ => throw ArgumentError('Unknown Status value: $value'),
 };
+
+mixin _$StatusStringify on Enum {
+  @override
+  String toString() => switch (this as Status) {
+    Status.pending => 'Status.pending',
+    Status.active => 'Status.active',
+    Status.completed => 'Status.completed',
+  };
+}
+
 const _priorityEnumMap = {
   Priority.low: 10,
   Priority.medium: 20,
@@ -308,6 +318,220 @@ Map<String, dynamic> complexModelToMap(
   if (instance.customEpoch != null)
     'customEpoch': const EpochDateTimeConverter().toJson(instance.customEpoch!),
 };
+
+mixin _$ComplexModelEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ComplexModel || runtimeType != other.runtimeType)
+      return false;
+    final self = this as ComplexModel;
+    return self.id == other.id &&
+        self.count == other.count &&
+        self.rating == other.rating &&
+        self.isActive == other.isActive &&
+        self.status == other.status &&
+        self.priority == other.priority &&
+        self.role == other.role &&
+        self.secretToken == other.secretToken &&
+        self.createdAt == other.createdAt &&
+        self.website == other.website &&
+        self.score == other.score &&
+        self.timeout == other.timeout &&
+        self.optionalTag == other.optionalTag &&
+        self.customEpoch == other.customEpoch &&
+        _daxleDeepEquals(self.metadata, other.metadata) &&
+        _daxleDeepEquals(self.tags, other.tags) &&
+        _daxleDeepEquals(self.numbers, other.numbers) &&
+        _daxleDeepEquals(self.scores, other.scores);
+  }
+
+  @override
+  int get hashCode {
+    final self = this as ComplexModel;
+    return Object.hash(
+      self.id,
+      self.count,
+      self.rating,
+      self.isActive,
+      self.createdAt,
+      self.website,
+      self.score,
+      self.timeout,
+      self.optionalTag,
+      _daxleDeepHashCode(self.metadata),
+      _daxleDeepHashCode(self.tags),
+      _daxleDeepHashCode(self.numbers),
+      _daxleDeepHashCode(self.scores),
+      self.status,
+      self.priority,
+      self.role,
+      self.secretToken,
+      self.customEpoch,
+    );
+  }
+}
+
+mixin _$ComplexModelStringify {
+  @override
+  String toString() {
+    final self = this as ComplexModel;
+    return 'ComplexModel(id: ${self.id}, count: ${self.count}, rating: ${self.rating}, isActive: ${self.isActive}, createdAt: ${self.createdAt}, website: ${self.website}, score: ${self.score}, timeout: ${self.timeout}, optionalTag: ${self.optionalTag}, metadata: ${self.metadata}, tags: ${self.tags}, numbers: ${self.numbers}, scores: ${self.scores}, status: ${self.status}, priority: ${self.priority}, role: ${self.role}, secretToken: ${self.secretToken}, customEpoch: ${self.customEpoch})';
+  }
+}
+
+mixin _$ComplexModel
+    implements _$ComplexModelEqualsAndHashCode, _$ComplexModelStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! ComplexModel || runtimeType != other.runtimeType)
+      return false;
+    final self = this as ComplexModel;
+    return self.id == other.id &&
+        self.count == other.count &&
+        self.rating == other.rating &&
+        self.isActive == other.isActive &&
+        self.status == other.status &&
+        self.priority == other.priority &&
+        self.role == other.role &&
+        self.secretToken == other.secretToken &&
+        self.createdAt == other.createdAt &&
+        self.website == other.website &&
+        self.score == other.score &&
+        self.timeout == other.timeout &&
+        self.optionalTag == other.optionalTag &&
+        self.customEpoch == other.customEpoch &&
+        _daxleDeepEquals(self.metadata, other.metadata) &&
+        _daxleDeepEquals(self.tags, other.tags) &&
+        _daxleDeepEquals(self.numbers, other.numbers) &&
+        _daxleDeepEquals(self.scores, other.scores);
+  }
+
+  @override
+  int get hashCode {
+    final self = this as ComplexModel;
+    return Object.hash(
+      self.id,
+      self.count,
+      self.rating,
+      self.isActive,
+      self.createdAt,
+      self.website,
+      self.score,
+      self.timeout,
+      self.optionalTag,
+      _daxleDeepHashCode(self.metadata),
+      _daxleDeepHashCode(self.tags),
+      _daxleDeepHashCode(self.numbers),
+      _daxleDeepHashCode(self.scores),
+      self.status,
+      self.priority,
+      self.role,
+      self.secretToken,
+      self.customEpoch,
+    );
+  }
+
+  @override
+  String toString() {
+    final self = this as ComplexModel;
+    return 'ComplexModel(id: ${self.id}, count: ${self.count}, rating: ${self.rating}, isActive: ${self.isActive}, createdAt: ${self.createdAt}, website: ${self.website}, score: ${self.score}, timeout: ${self.timeout}, optionalTag: ${self.optionalTag}, metadata: ${self.metadata}, tags: ${self.tags}, numbers: ${self.numbers}, scores: ${self.scores}, status: ${self.status}, priority: ${self.priority}, role: ${self.role}, secretToken: ${self.secretToken}, customEpoch: ${self.customEpoch})';
+  }
+}
+
+extension ComplexModelCopyWithExtension on ComplexModel {
+  ComplexModel copyWith({
+    String? id,
+    int? count,
+    double? rating,
+    bool? isActive,
+    DateTime? createdAt,
+    Uri? website,
+    BigInt? score,
+    Duration? timeout,
+    Option<String>? optionalTag,
+    QueryMap? metadata,
+    List<String>? tags,
+    Set<int>? numbers,
+    Map<String, int>? scores,
+    Status? status,
+    Priority? priority,
+    String? role,
+    String? secretToken,
+    DateTime? customEpoch,
+  }) {
+    if ((id == null || identical(id, this.id)) &&
+        (count == null || identical(count, this.count)) &&
+        (rating == null || identical(rating, this.rating)) &&
+        (isActive == null || identical(isActive, this.isActive)) &&
+        (createdAt == null || identical(createdAt, this.createdAt)) &&
+        (website == null || identical(website, this.website)) &&
+        (score == null || identical(score, this.score)) &&
+        (timeout == null || identical(timeout, this.timeout)) &&
+        (optionalTag == null || identical(optionalTag, this.optionalTag)) &&
+        (metadata == null || identical(metadata, this.metadata)) &&
+        (tags == null || identical(tags, this.tags)) &&
+        (numbers == null || identical(numbers, this.numbers)) &&
+        (scores == null || identical(scores, this.scores)) &&
+        (status == null || identical(status, this.status)) &&
+        (priority == null || identical(priority, this.priority)) &&
+        (role == null || identical(role, this.role)) &&
+        (secretToken == null || identical(secretToken, this.secretToken)) &&
+        (customEpoch == null || identical(customEpoch, this.customEpoch))) {
+      return this;
+    }
+
+    return ComplexModel(
+      id ?? this.id,
+      count ?? this.count,
+      rating ?? this.rating,
+      isActive ?? this.isActive,
+      createdAt ?? this.createdAt,
+      website ?? this.website,
+      score ?? this.score,
+      timeout ?? this.timeout,
+      optionalTag ?? this.optionalTag,
+      metadata ?? this.metadata,
+      tags ?? this.tags,
+      numbers ?? this.numbers,
+      scores ?? this.scores,
+      status ?? this.status,
+      priority ?? this.priority,
+      role: role ?? this.role,
+      secretToken: secretToken ?? this.secretToken,
+      customEpoch: customEpoch ?? this.customEpoch,
+    );
+  }
+
+  ComplexModel copyWithNull({bool customEpoch = false}) {
+    if (!customEpoch) {
+      return this;
+    }
+
+    return ComplexModel(
+      this.id,
+      this.count,
+      this.rating,
+      this.isActive,
+      this.createdAt,
+      this.website,
+      this.score,
+      this.timeout,
+      this.optionalTag,
+      this.metadata,
+      this.tags,
+      this.numbers,
+      this.scores,
+      this.status,
+      this.priority,
+      role: this.role,
+      secretToken: this.secretToken,
+      customEpoch: customEpoch ? null : this.customEpoch,
+    );
+  }
+}
+
 NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'containerId': final String containerIdRaw, 'model': final Map modelRaw} =>
@@ -360,6 +584,93 @@ Map<String, dynamic> nestedContainerToMap(NestedContainer instance) =>
       if (instance.optionalModel != null)
         'optionalModel': complexModelToMap(instance.optionalModel!),
     };
+
+mixin _$NestedContainerEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! NestedContainer || runtimeType != other.runtimeType)
+      return false;
+    final self = this as NestedContainer;
+    return self.containerId == other.containerId &&
+        self.model == other.model &&
+        self.optionalModel == other.optionalModel;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as NestedContainer;
+    return Object.hash(self.containerId, self.model, self.optionalModel);
+  }
+}
+
+mixin _$NestedContainerStringify {
+  @override
+  String toString() {
+    final self = this as NestedContainer;
+    return 'NestedContainer(containerId: ${self.containerId}, model: ${self.model}, optionalModel: ${self.optionalModel})';
+  }
+}
+
+mixin _$NestedContainer
+    implements _$NestedContainerEqualsAndHashCode, _$NestedContainerStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! NestedContainer || runtimeType != other.runtimeType)
+      return false;
+    final self = this as NestedContainer;
+    return self.containerId == other.containerId &&
+        self.model == other.model &&
+        self.optionalModel == other.optionalModel;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as NestedContainer;
+    return Object.hash(self.containerId, self.model, self.optionalModel);
+  }
+
+  @override
+  String toString() {
+    final self = this as NestedContainer;
+    return 'NestedContainer(containerId: ${self.containerId}, model: ${self.model}, optionalModel: ${self.optionalModel})';
+  }
+}
+
+extension NestedContainerCopyWithExtension on NestedContainer {
+  NestedContainer copyWith({
+    String? containerId,
+    ComplexModel? model,
+    ComplexModel? optionalModel,
+  }) {
+    if ((containerId == null || identical(containerId, this.containerId)) &&
+        (model == null || identical(model, this.model)) &&
+        (optionalModel == null ||
+            identical(optionalModel, this.optionalModel))) {
+      return this;
+    }
+
+    return NestedContainer(
+      containerId: containerId ?? this.containerId,
+      model: model ?? this.model,
+      optionalModel: optionalModel ?? this.optionalModel,
+    );
+  }
+
+  NestedContainer copyWithNull({bool optionalModel = false}) {
+    if (!optionalModel) {
+      return this;
+    }
+
+    return NestedContainer(
+      containerId: this.containerId,
+      model: this.model,
+      optionalModel: optionalModel ? null : this.optionalModel,
+    );
+  }
+}
+
 Circle circleFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'radius': final num radiusRaw} => Circle(radiusRaw.toDouble()),
@@ -610,6 +921,74 @@ Map<String, dynamic> caseStyledModelToMap(CaseStyledModel instance) =>
       'user_full_name': instance.userFullName,
       'login_attempt_count': instance.loginAttemptCount,
     };
+
+mixin _$CaseStyledModelEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CaseStyledModel || runtimeType != other.runtimeType)
+      return false;
+    final self = this as CaseStyledModel;
+    return self.userFullName == other.userFullName &&
+        self.loginAttemptCount == other.loginAttemptCount;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as CaseStyledModel;
+    return Object.hash(self.userFullName, self.loginAttemptCount);
+  }
+}
+
+mixin _$CaseStyledModelStringify {
+  @override
+  String toString() {
+    final self = this as CaseStyledModel;
+    return 'CaseStyledModel(userFullName: ${self.userFullName}, loginAttemptCount: ${self.loginAttemptCount})';
+  }
+}
+
+mixin _$CaseStyledModel
+    implements _$CaseStyledModelEqualsAndHashCode, _$CaseStyledModelStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! CaseStyledModel || runtimeType != other.runtimeType)
+      return false;
+    final self = this as CaseStyledModel;
+    return self.userFullName == other.userFullName &&
+        self.loginAttemptCount == other.loginAttemptCount;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as CaseStyledModel;
+    return Object.hash(self.userFullName, self.loginAttemptCount);
+  }
+
+  @override
+  String toString() {
+    final self = this as CaseStyledModel;
+    return 'CaseStyledModel(userFullName: ${self.userFullName}, loginAttemptCount: ${self.loginAttemptCount})';
+  }
+}
+
+extension CaseStyledModelCopyWithExtension on CaseStyledModel {
+  CaseStyledModel copyWith({String? userFullName, int? loginAttemptCount}) {
+    if ((userFullName == null || identical(userFullName, this.userFullName)) &&
+        (loginAttemptCount == null ||
+            identical(loginAttemptCount, this.loginAttemptCount))) {
+      return this;
+    }
+
+    return CaseStyledModel(
+      userFullName ?? this.userFullName,
+      loginAttemptCount ?? this.loginAttemptCount,
+      internalSecret: this.internalSecret,
+    );
+  }
+}
+
 LoginEvent loginEventFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'userId': final String userIdRaw} => LoginEvent(userIdRaw),
@@ -645,6 +1024,240 @@ LogoutEvent logoutEventFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> logoutEventToMap(LogoutEvent instance) =>
     <String, dynamic>{};
+
+mixin _$EqualsOnlyModelEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! EqualsOnlyModel || runtimeType != other.runtimeType)
+      return false;
+    final self = this as EqualsOnlyModel;
+    return self.id == other.id && self.value == other.value;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as EqualsOnlyModel;
+    return Object.hash(self.id, self.value);
+  }
+}
+
+mixin _$StringifyOnlyModelStringify {
+  @override
+  String toString() {
+    final self = this as StringifyOnlyModel;
+    return 'StringifyOnlyModel(title: ${self.title})';
+  }
+}
+
+mixin _$LargeModelEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! LargeModel || runtimeType != other.runtimeType) return false;
+    final self = this as LargeModel;
+    return self.f1 == other.f1 &&
+        self.f2 == other.f2 &&
+        self.f3 == other.f3 &&
+        self.f4 == other.f4 &&
+        self.f5 == other.f5 &&
+        self.f6 == other.f6 &&
+        self.f7 == other.f7 &&
+        self.f8 == other.f8 &&
+        self.f9 == other.f9 &&
+        self.f10 == other.f10 &&
+        self.f11 == other.f11 &&
+        self.f12 == other.f12 &&
+        self.f13 == other.f13 &&
+        self.f14 == other.f14 &&
+        self.f15 == other.f15 &&
+        self.f16 == other.f16 &&
+        self.f17 == other.f17 &&
+        self.f18 == other.f18 &&
+        self.f19 == other.f19 &&
+        self.f20 == other.f20 &&
+        self.f21 == other.f21 &&
+        self.f22 == other.f22;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as LargeModel;
+    return Object.hash(
+      self.f1,
+      self.f2,
+      self.f3,
+      self.f4,
+      self.f5,
+      self.f6,
+      self.f7,
+      self.f8,
+      self.f9,
+      self.f10,
+      self.f11,
+      self.f12,
+      self.f13,
+      self.f14,
+      self.f15,
+      self.f16,
+      self.f17,
+      self.f18,
+      self.f19,
+      Object.hash(self.f20, self.f21, self.f22),
+    );
+  }
+}
+
+mixin _$LargeModelStringify {
+  @override
+  String toString() {
+    final self = this as LargeModel;
+    return 'LargeModel(f1: ${self.f1}, f2: ${self.f2}, f3: ${self.f3}, f4: ${self.f4}, f5: ${self.f5}, f6: ${self.f6}, f7: ${self.f7}, f8: ${self.f8}, f9: ${self.f9}, f10: ${self.f10}, f11: ${self.f11}, f12: ${self.f12}, f13: ${self.f13}, f14: ${self.f14}, f15: ${self.f15}, f16: ${self.f16}, f17: ${self.f17}, f18: ${self.f18}, f19: ${self.f19}, f20: ${self.f20}, f21: ${self.f21}, f22: ${self.f22})';
+  }
+}
+
+mixin _$LargeModel
+    implements _$LargeModelEqualsAndHashCode, _$LargeModelStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! LargeModel || runtimeType != other.runtimeType) return false;
+    final self = this as LargeModel;
+    return self.f1 == other.f1 &&
+        self.f2 == other.f2 &&
+        self.f3 == other.f3 &&
+        self.f4 == other.f4 &&
+        self.f5 == other.f5 &&
+        self.f6 == other.f6 &&
+        self.f7 == other.f7 &&
+        self.f8 == other.f8 &&
+        self.f9 == other.f9 &&
+        self.f10 == other.f10 &&
+        self.f11 == other.f11 &&
+        self.f12 == other.f12 &&
+        self.f13 == other.f13 &&
+        self.f14 == other.f14 &&
+        self.f15 == other.f15 &&
+        self.f16 == other.f16 &&
+        self.f17 == other.f17 &&
+        self.f18 == other.f18 &&
+        self.f19 == other.f19 &&
+        self.f20 == other.f20 &&
+        self.f21 == other.f21 &&
+        self.f22 == other.f22;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as LargeModel;
+    return Object.hash(
+      self.f1,
+      self.f2,
+      self.f3,
+      self.f4,
+      self.f5,
+      self.f6,
+      self.f7,
+      self.f8,
+      self.f9,
+      self.f10,
+      self.f11,
+      self.f12,
+      self.f13,
+      self.f14,
+      self.f15,
+      self.f16,
+      self.f17,
+      self.f18,
+      self.f19,
+      Object.hash(self.f20, self.f21, self.f22),
+    );
+  }
+
+  @override
+  String toString() {
+    final self = this as LargeModel;
+    return 'LargeModel(f1: ${self.f1}, f2: ${self.f2}, f3: ${self.f3}, f4: ${self.f4}, f5: ${self.f5}, f6: ${self.f6}, f7: ${self.f7}, f8: ${self.f8}, f9: ${self.f9}, f10: ${self.f10}, f11: ${self.f11}, f12: ${self.f12}, f13: ${self.f13}, f14: ${self.f14}, f15: ${self.f15}, f16: ${self.f16}, f17: ${self.f17}, f18: ${self.f18}, f19: ${self.f19}, f20: ${self.f20}, f21: ${self.f21}, f22: ${self.f22})';
+  }
+}
+
+extension LargeModelCopyWithExtension on LargeModel {
+  LargeModel copyWith({
+    int? f1,
+    int? f2,
+    int? f3,
+    int? f4,
+    int? f5,
+    int? f6,
+    int? f7,
+    int? f8,
+    int? f9,
+    int? f10,
+    int? f11,
+    int? f12,
+    int? f13,
+    int? f14,
+    int? f15,
+    int? f16,
+    int? f17,
+    int? f18,
+    int? f19,
+    int? f20,
+    int? f21,
+    int? f22,
+  }) {
+    if ((f1 == null || identical(f1, this.f1)) &&
+        (f2 == null || identical(f2, this.f2)) &&
+        (f3 == null || identical(f3, this.f3)) &&
+        (f4 == null || identical(f4, this.f4)) &&
+        (f5 == null || identical(f5, this.f5)) &&
+        (f6 == null || identical(f6, this.f6)) &&
+        (f7 == null || identical(f7, this.f7)) &&
+        (f8 == null || identical(f8, this.f8)) &&
+        (f9 == null || identical(f9, this.f9)) &&
+        (f10 == null || identical(f10, this.f10)) &&
+        (f11 == null || identical(f11, this.f11)) &&
+        (f12 == null || identical(f12, this.f12)) &&
+        (f13 == null || identical(f13, this.f13)) &&
+        (f14 == null || identical(f14, this.f14)) &&
+        (f15 == null || identical(f15, this.f15)) &&
+        (f16 == null || identical(f16, this.f16)) &&
+        (f17 == null || identical(f17, this.f17)) &&
+        (f18 == null || identical(f18, this.f18)) &&
+        (f19 == null || identical(f19, this.f19)) &&
+        (f20 == null || identical(f20, this.f20)) &&
+        (f21 == null || identical(f21, this.f21)) &&
+        (f22 == null || identical(f22, this.f22))) {
+      return this;
+    }
+
+    return LargeModel(
+      f1 ?? this.f1,
+      f2 ?? this.f2,
+      f3 ?? this.f3,
+      f4 ?? this.f4,
+      f5 ?? this.f5,
+      f6 ?? this.f6,
+      f7 ?? this.f7,
+      f8 ?? this.f8,
+      f9 ?? this.f9,
+      f10 ?? this.f10,
+      f11 ?? this.f11,
+      f12 ?? this.f12,
+      f13 ?? this.f13,
+      f14 ?? this.f14,
+      f15 ?? this.f15,
+      f16 ?? this.f16,
+      f17 ?? this.f17,
+      f18 ?? this.f18,
+      f19 ?? this.f19,
+      f20 ?? this.f20,
+      f21 ?? this.f21,
+      f22 ?? this.f22,
+    );
+  }
+}
+
 Shape shapeFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'shape_type': 'Circle'} => circleFromJson(json),
@@ -725,4 +1338,100 @@ Map<String, dynamic> eventToMap(Event instance) {
       logoutEvent,
     )..['type'] = 'LogoutEvent',
   };
+}
+
+bool _daxleDeepEquals(Object? a, Object? b) {
+  if (identical(a, b)) return true;
+  if (a == null || b == null) return false;
+
+  if (a is List && b is List) {
+    final length = a.length;
+    if (length != b.length) return false;
+    for (var i = 0; i < length; i++) {
+      if (!_daxleDeepEquals(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  if (a is Set && b is Set) {
+    if (a.length != b.length) return false;
+    for (final element in a) {
+      if (!b.contains(element)) {
+        var found = false;
+        for (final otherElement in b) {
+          if (_daxleDeepEquals(element, otherElement)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) return false;
+      }
+    }
+    return true;
+  }
+
+  if (a is Map && b is Map) {
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      if (!b.containsKey(entry.key)) return false;
+      if (!_daxleDeepEquals(entry.value, b[entry.key])) return false;
+    }
+    return true;
+  }
+
+  if (a is Iterable && b is Iterable) {
+    final itA = a.iterator;
+    final itB = b.iterator;
+    while (itA.moveNext()) {
+      if (!itB.moveNext()) return false;
+      if (!_daxleDeepEquals(itA.current, itB.current)) return false;
+    }
+    return !itB.moveNext();
+  }
+
+  return a == b;
+}
+
+int _daxleDeepHashCode(Object? value) {
+  if (value == null) return 0;
+  if (value is List) {
+    var hash = 1;
+    for (var i = 0; i < value.length; i++) {
+      hash = 0x1fffffff & (hash + _daxleDeepHashCode(value[i]));
+      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+      hash ^= hash >> 6;
+    }
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    hash ^= hash >> 11;
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+  if (value is Set) {
+    var hash = 0;
+    for (final element in value) {
+      hash = (hash + _daxleDeepHashCode(element)) & 0x3fffffff;
+    }
+    return hash;
+  }
+  if (value is Map) {
+    var hash = 0;
+    for (final entry in value.entries) {
+      final entryHash =
+          (_daxleDeepHashCode(entry.key) ^ _daxleDeepHashCode(entry.value)) &
+          0x3fffffff;
+      hash = (hash + entryHash) & 0x3fffffff;
+    }
+    return hash;
+  }
+  if (value is Iterable) {
+    var hash = 1;
+    for (final element in value) {
+      hash = 0x1fffffff & (hash + _daxleDeepHashCode(element));
+      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+      hash ^= hash >> 6;
+    }
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    hash ^= hash >> 11;
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+  return value.hashCode;
 }

@@ -5,18 +5,20 @@ part 'models_fixture.daxle.dart';
 // 1. Enums
 @serializeEnum
 @deserializeEnum
-enum Status { pending, active, completed }
+@stringify
+enum Status with _$StatusStringify { pending, active, completed }
 
 @SerializeEnum(valueField: 'code')
 @DeserializeEnum(valueField: 'code')
 enum const Priority(final int code) {
   low(10),
   medium(20),
-  high(30);
+  high(30),
 }
 
 // 2. Custom converter
-class const EpochDateTimeConverter() implements DaxleJsonConverter<DateTime, int> {
+class const EpochDateTimeConverter()
+    implements DaxleJsonConverter<DateTime, int> {
   @override
   DateTime fromJson(int json) => DateTime.fromMillisecondsSinceEpoch(json);
 
@@ -27,6 +29,9 @@ class const EpochDateTimeConverter() implements DaxleJsonConverter<DateTime, int
 // 3. Primary constructor model
 @serialize
 @deserialize
+@equalsAndHashCode
+@stringify
+@copyWith
 class ComplexModel(
   final String id,
   final int count,
@@ -52,12 +57,15 @@ class ComplexModel(
   @SerializeValue(converter: EpochDateTimeConverter())
   @DeserializeValue(converter: EpochDateTimeConverter())
   final DateTime? customEpoch,
-});
+}) with _$ComplexModel;
 
 // 4. Legacy class declaration with nested models
 @serialize
 @deserialize
-class NestedContainer {
+@equalsAndHashCode
+@stringify
+@copyWith
+class NestedContainer with _$NestedContainer {
   final String containerId;
   final ComplexModel model;
   final ComplexModel? optionalModel;
@@ -105,7 +113,7 @@ class Bike implements Vehicle {
 @DeserializeEnum(valueField: 'code')
 enum const MultiParamEnum(final String label, final int code) {
   first('first_label', 101),
-  second('second_label', 202);
+  second('second_label', 202),
 }
 
 // 8. Asymmetric JSON key mapping
@@ -144,11 +152,14 @@ class DeepCollectionsModel(
 // 11. CaseStyle and ignoreFields on class
 @Serialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalSecret'])
 @Deserialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalSecret'])
+@EqualsAndHashCode(ignoreFields: ['internalSecret'])
+@Stringify(ignoreFields: ['internalSecret'])
+@CopyWith(ignoreFields: ['internalSecret'])
 class CaseStyledModel(
   final String userFullName,
   final int loginAttemptCount, {
   final String internalSecret = 'secret',
-});
+}) with _$CaseStyledModel;
 
 // 12. CaseStyle on enum
 @SerializeEnum(caseStyle: CaseStyle.kebabCase)
@@ -185,3 +196,43 @@ class LogoutEvent extends Event {
   LogoutEvent();
 }
 
+// 15. Single feature models
+@equalsAndHashCode
+class EqualsOnlyModel(
+  final String id,
+  final int value,
+) with _$EqualsOnlyModelEqualsAndHashCode;
+
+@stringify
+class StringifyOnlyModel(
+  final String title,
+) with _$StringifyOnlyModelStringify;
+
+// 16. Large model with > 20 fields for testing nested Object.hash
+@equalsAndHashCode
+@stringify
+@copyWith
+class LargeModel(
+  final int f1,
+  final int f2,
+  final int f3,
+  final int f4,
+  final int f5,
+  final int f6,
+  final int f7,
+  final int f8,
+  final int f9,
+  final int f10,
+  final int f11,
+  final int f12,
+  final int f13,
+  final int f14,
+  final int f15,
+  final int f16,
+  final int f17,
+  final int f18,
+  final int f19,
+  final int f20,
+  final int f21,
+  final int f22,
+) with _$LargeModel;

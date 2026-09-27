@@ -3,8 +3,11 @@ import 'package:dart_style/dart_style.dart';
 
 import '../models/parsed_element.dart';
 import 'class_generator.dart';
+import 'copy_with_generator.dart';
 import 'enum_generator.dart';
+import 'equality_generator.dart';
 import 'sealed_generator.dart';
+import 'stringify_generator.dart';
 import 'type_helper.dart';
 
 /// Coordinates generation for an entire file using [code_builder] and [dart_style].
@@ -13,9 +16,10 @@ class FileGenerator {
   final DartEmitter _emitter;
 
   FileGenerator({DartFormatter? formatter, DartEmitter? emitter})
-      : _formatter = formatter ??
-            DartFormatter(languageVersion: DartFormatter.latestLanguageVersion),
-        _emitter = emitter ?? DartEmitter(useNullSafetySyntax: true);
+    : _formatter =
+          formatter ??
+          DartFormatter(languageVersion: DartFormatter.latestLanguageVersion),
+      _emitter = emitter ?? DartEmitter(useNullSafetySyntax: true);
 
   /// Generates the code string for the `.daxle.dart` part file.
   /// Returns `null` if the file has no annotated classes or enums.
@@ -34,6 +38,9 @@ class FileGenerator {
     final classGen = ClassGenerator(typeHelper);
     final enumGen = EnumGenerator();
     final sealedGen = SealedGenerator();
+    final equalityGen = EqualityGenerator(typeHelper);
+    final stringifyGen = const StringifyGenerator();
+    final copyWithGen = const CopyWithGenerator();
 
     final specs = <Spec>[];
 
@@ -41,6 +48,9 @@ class FileGenerator {
     for (final parsedEnum in parsedFile.enums) {
       if (parsedEnum.shouldSerialize || parsedEnum.shouldDeserialize) {
         specs.addAll(enumGen.build(parsedEnum));
+      }
+      if (parsedEnum.shouldStringify) {
+        specs.add(stringifyGen.buildEnumMixin(parsedEnum));
       }
     }
 
@@ -74,6 +84,38 @@ class FileGenerator {
       if (shouldSer) {
         specs.add(classGen.buildToMap(clazz));
       }
+
+      // Equality and Stringify mixins
+      if (clazz.shouldEqualsAndHashCode && clazz.shouldStringify) {
+        specs.add(equalityGen.buildMixin(clazz));
+        specs.add(stringifyGen.buildClassMixin(clazz));
+
+        // Consolidated mixin _$ClassName
+        specs.add(
+          Mixin(
+            (b) => b
+              ..name = '_\$${clazz.name}'
+              ..implements.addAll([
+                refer('_\$${clazz.name}EqualsAndHashCode'),
+                refer('_\$${clazz.name}Stringify'),
+              ])
+              ..methods.addAll([
+                equalityGen.buildEquals(clazz),
+                equalityGen.buildHashCode(clazz),
+                stringifyGen.buildToString(clazz),
+              ]),
+          ),
+        );
+      } else if (clazz.shouldEqualsAndHashCode) {
+        specs.add(equalityGen.buildMixin(clazz));
+      } else if (clazz.shouldStringify) {
+        specs.add(stringifyGen.buildClassMixin(clazz));
+      }
+
+      // CopyWith extension
+      if (clazz.shouldCopyWith) {
+        specs.add(copyWithGen.buildExtension(clazz));
+      }
     }
 
     // 4. Sealed Classes
@@ -85,6 +127,15 @@ class FileGenerator {
       if (sc.shouldSerialize) {
         specs.add(sealedGen.buildToMap(sc, subs));
       }
+    }
+
+    // 5. Deep equality helpers if collections are present in any class using equality
+    final hasCollectionFields = parsedFile.classes
+        .where((c) => c.shouldEqualsAndHashCode)
+        .any(equalityGen.hasCollections);
+
+    if (hasCollectionFields) {
+      specs.add(const Code(EqualityGenerator.deepEqualityHelpers));
     }
 
     final library = Library((b) => b..body.addAll(specs));

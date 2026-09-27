@@ -44,7 +44,9 @@ class DaxleAstParser {
 
     for (final directive in unit.directives) {
       if (directive is PartDirective) {
-        partDirectives.add(directive.uri.stringValue ?? directive.uri.toSource());
+        partDirectives.add(
+          directive.uri.stringValue ?? directive.uri.toSource(),
+        );
       }
     }
 
@@ -86,6 +88,9 @@ class DaxleAstParser {
 
     SerializeInfo? serializeInfo;
     DeserializeInfo? deserializeInfo;
+    EqualsAndHashCodeInfo? equalsAndHashCodeInfo;
+    StringifyInfo? stringifyInfo;
+    CopyWithInfo? copyWithInfo;
     String? customDiscriminatorName;
 
     for (final annotation in declaration.metadata) {
@@ -100,6 +105,12 @@ class DaxleAstParser {
           name == 'DeserializeClass' ||
           name == 'deserializeClass') {
         deserializeInfo = _parseDeserializeAnnotation(annotation);
+      } else if (name == 'EqualsAndHashCode' || name == 'equalsAndHashCode') {
+        equalsAndHashCodeInfo = _parseEqualsAndHashCodeAnnotation(annotation);
+      } else if (name == 'Stringify' || name == 'stringify') {
+        stringifyInfo = _parseStringifyAnnotation(annotation);
+      } else if (name == 'CopyWith' || name == 'copyWith') {
+        copyWithInfo = _parseCopyWithAnnotation(annotation);
       } else if (name == 'SerializeValue' || name == 'DeserializeValue') {
         final cfg = _parseFieldConfig(declaration.metadata);
         customDiscriminatorName ??=
@@ -138,14 +149,16 @@ class DaxleAstParser {
         constructorParams.add(parsedParam);
 
         // In primary constructors, parameters are declaring parameters
-        fields.add(ParsedField(
-          name: paramName,
-          type: paramType,
-          config: fieldConfig,
-          isFinal: true,
-          hasDefaultValue: defaultVal != null,
-          defaultValueCode: defaultVal,
-        ));
+        fields.add(
+          ParsedField(
+            name: paramName,
+            type: paramType,
+            config: fieldConfig,
+            isFinal: true,
+            hasDefaultValue: defaultVal != null,
+            defaultValueCode: defaultVal,
+          ),
+        );
       }
     }
 
@@ -166,14 +179,16 @@ class DaxleAstParser {
 
             // Avoid duplicating if already populated by primary constructor
             if (!fields.any((f) => f.name == varName)) {
-              fields.add(ParsedField(
-                name: varName,
-                type: parsedType,
-                config: mergedConfig,
-                isFinal: member.fields.isFinal || member.fields.isConst,
-                hasDefaultValue: initCode != null,
-                defaultValueCode: initCode,
-              ));
+              fields.add(
+                ParsedField(
+                  name: varName,
+                  type: parsedType,
+                  config: mergedConfig,
+                  isFinal: member.fields.isFinal || member.fields.isConst,
+                  hasDefaultValue: initCode != null,
+                  defaultValueCode: initCode,
+                ),
+              );
             }
           }
         }
@@ -183,7 +198,8 @@ class DaxleAstParser {
       if (!isPrimaryConstructor) {
         ConstructorDeclaration? targetConstructor;
         for (final member in body.members) {
-          if (member is ConstructorDeclaration && member.factoryKeyword == null) {
+          if (member is ConstructorDeclaration &&
+              member.factoryKeyword == null) {
             if (member.name == null) {
               targetConstructor = member;
               break;
@@ -203,8 +219,9 @@ class DaxleAstParser {
             if (paramTypeStr == 'dynamic' &&
                 (param is FieldFormalParameter ||
                     param.toSource().startsWith('this.'))) {
-              final matchedField =
-                  fields.where((f) => f.name == paramName).firstOrNull;
+              final matchedField = fields
+                  .where((f) => f.name == paramName)
+                  .firstOrNull;
               if (matchedField != null) {
                 paramTypeStr = matchedField.type.rawType;
               }
@@ -214,15 +231,17 @@ class DaxleAstParser {
             final paramConfig = _parseFieldConfig(param.metadata);
             final defaultVal = _getParameterDefaultValue(param);
 
-            constructorParams.add(ParsedConstructorParam(
-              name: paramName,
-              type: paramType,
-              isNamed: param.isNamed,
-              isRequired: param.isRequired,
-              hasDefault: defaultVal != null,
-              defaultValueCode: defaultVal,
-              config: paramConfig,
-            ));
+            constructorParams.add(
+              ParsedConstructorParam(
+                name: paramName,
+                type: paramType,
+                isNamed: param.isNamed,
+                isRequired: param.isRequired,
+                hasDefault: defaultVal != null,
+                defaultValueCode: defaultVal,
+                config: paramConfig,
+              ),
+            );
 
             // Merge constructor parameter config into matching field config
             final fieldIndex = fields.indexWhere((f) => f.name == paramName);
@@ -250,6 +269,9 @@ class DaxleAstParser {
       interfaces: interfaces,
       serialize: serializeInfo,
       deserialize: deserializeInfo,
+      equalsAndHashCode: equalsAndHashCodeInfo,
+      stringify: stringifyInfo,
+      copyWith: copyWithInfo,
       customDiscriminatorName: customDiscriminatorName,
       fields: fields,
       constructorParams: constructorParams,
@@ -263,10 +285,21 @@ class DaxleAstParser {
 
     SerializeEnumInfo? serializeInfo;
     DeserializeEnumInfo? deserializeInfo;
+    StringifyInfo? stringifyInfo;
 
     for (final annotation in declaration.metadata) {
       final name = _getAnnotationName(annotation);
-      if (name == 'SerializeEnum' ||
+      if (name == 'EqualsAndHashCode' || name == 'equalsAndHashCode') {
+        throw UnsupportedError(
+          'Enums do not support @EqualsAndHashCode (found on enum $enumName)',
+        );
+      } else if (name == 'CopyWith' || name == 'copyWith') {
+        throw UnsupportedError(
+          'Enums do not support @CopyWith (found on enum $enumName)',
+        );
+      } else if (name == 'Stringify' || name == 'stringify') {
+        stringifyInfo = _parseStringifyAnnotation(annotation);
+      } else if (name == 'SerializeEnum' ||
           name == 'serializeEnum' ||
           name == 'Serialize' ||
           name == 'serialize') {
@@ -279,7 +312,8 @@ class DaxleAstParser {
       }
     }
 
-    final valueFieldName = serializeInfo?.valueField ?? deserializeInfo?.valueField;
+    final valueFieldName =
+        serializeInfo?.valueField ?? deserializeInfo?.valueField;
     ParsedType? valueFieldType;
     final constants = <ParsedEnumConstant>[];
 
@@ -317,7 +351,8 @@ class DaxleAstParser {
       } else {
         ConstructorDeclaration? enumConstructor;
         for (final member in body.members) {
-          if (member is ConstructorDeclaration && member.factoryKeyword == null) {
+          if (member is ConstructorDeclaration &&
+              member.factoryKeyword == null) {
             enumConstructor = member;
             break;
           }
@@ -373,11 +408,13 @@ class DaxleAstParser {
               "'${serializeInfo!.caseStyle!.transform(constName)}'";
         }
 
-        constants.add(ParsedEnumConstant(
-          name: constName,
-          explicitValueCode: explicitValCode,
-          config: config,
-        ));
+        constants.add(
+          ParsedEnumConstant(
+            name: constName,
+            explicitValueCode: explicitValCode,
+            config: config,
+          ),
+        );
       }
     }
 
@@ -385,6 +422,7 @@ class DaxleAstParser {
       name: enumName,
       serialize: serializeInfo,
       deserialize: deserializeInfo,
+      stringify: stringifyInfo,
       valueFieldName: valueFieldName,
       valueFieldType: valueFieldType,
       constants: constants,
@@ -493,6 +531,44 @@ class DaxleAstParser {
       valueField: valueField,
       caseStyle: caseStyle,
     );
+  }
+
+  EqualsAndHashCodeInfo _parseEqualsAndHashCodeAnnotation(
+    Annotation annotation,
+  ) {
+    var ignoreFields = <String>{};
+    if (annotation.arguments != null) {
+      for (final arg in annotation.arguments!.arguments) {
+        if (arg is NamedArgument && arg.name.lexeme == 'ignoreFields') {
+          ignoreFields = _extractStringSet(arg.argumentExpression);
+        }
+      }
+    }
+    return EqualsAndHashCodeInfo(ignoreFields: ignoreFields);
+  }
+
+  StringifyInfo _parseStringifyAnnotation(Annotation annotation) {
+    var ignoreFields = <String>{};
+    if (annotation.arguments != null) {
+      for (final arg in annotation.arguments!.arguments) {
+        if (arg is NamedArgument && arg.name.lexeme == 'ignoreFields') {
+          ignoreFields = _extractStringSet(arg.argumentExpression);
+        }
+      }
+    }
+    return StringifyInfo(ignoreFields: ignoreFields);
+  }
+
+  CopyWithInfo _parseCopyWithAnnotation(Annotation annotation) {
+    var ignoreFields = <String>{};
+    if (annotation.arguments != null) {
+      for (final arg in annotation.arguments!.arguments) {
+        if (arg is NamedArgument && arg.name.lexeme == 'ignoreFields') {
+          ignoreFields = _extractStringSet(arg.argumentExpression);
+        }
+      }
+    }
+    return CopyWithInfo(ignoreFields: ignoreFields);
   }
 
   FieldConfig _parseFieldConfig(NodeList<Annotation> metadata) {
