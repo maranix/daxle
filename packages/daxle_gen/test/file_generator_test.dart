@@ -162,4 +162,73 @@ enum TaskState {
     expect(generated, isNot(contains("_ => TaskState.unknown")));
     expect(generated, isNot(contains("_ => TaskState.inProgress")));
   });
+
+  test('generates instance.field ?? fallback for nullable primitive field in toMap', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'user.daxle.dart';
+
+@Serialize()
+@Deserialize()
+class Profile(
+  final String id,
+  @SerializeValue(fallback: 'guest')
+  @DeserializeValue(fallback: 'guest')
+  final String? role,
+  @SerializeValue(fallback: 0)
+  @DeserializeValue(fallback: 0)
+  final int? loginCount,
+);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/user.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains("'role': instance.role ?? 'guest'"));
+    expect(generated, anyOf([
+      contains("'login_count': instance.loginCount ?? 0"),
+      contains("'loginCount': instance.loginCount ?? 0"),
+    ]));
+    expect(generated, contains("json['role'] == null ? 'guest' : (json['role'] as String?)"));
+  });
+
+  test('generates enum mappings with single-sided fallback and caseStyle overrides', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'single.daxle.dart';
+
+@serializeEnum
+@deserializeEnum
+enum SingleConfig {
+  @SerializeValue(fallback: 'ser_val')
+  onlySerialize,
+
+  @DeserializeValue(fallback: 202)
+  onlyDeserialize,
+
+  @SerializeValue(caseStyle: CaseStyle.kebabCase)
+  kebabEntry,
 }
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/single.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    // onlySerialize should cross-fallback to deserialization
+    expect(generated, contains("SingleConfig.onlySerialize: 'ser_val'"));
+    expect(generated, contains("'ser_val' => SingleConfig.onlySerialize"));
+
+    // onlyDeserialize should cross-fallback to serialization
+    expect(generated, contains("SingleConfig.onlyDeserialize: 202"));
+    expect(generated, contains("202 => SingleConfig.onlyDeserialize"));
+
+    // kebabEntry should cross-fallback caseStyle to deserialization
+    expect(generated, contains("SingleConfig.kebabEntry: 'kebab-entry'"));
+    expect(generated, contains("'kebab-entry' => SingleConfig.kebabEntry"));
+  });
+}
+

@@ -287,6 +287,9 @@ class TypeHelper {
     }
 
     if (serializeFallback != null && type.isNullable) {
+      if (type.isPrimitive) {
+        return '$fieldExpr ?? $serializeFallback';
+      }
       return '$fieldExpr == null ? $serializeFallback : $expr';
     }
 

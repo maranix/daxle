@@ -362,6 +362,7 @@ void main() {
       expect(themeModeFromValue('light-theme'), ThemeMode.lightTheme);
       expect(themeModeFromValue('dark-theme'), ThemeMode.darkTheme);
       expect(themeModeFromValue('system-default'), ThemeMode.systemDefault);
+      expect(() => themeModeFromValue('unknown-theme'), throwsArgumentError);
     });
 
     test('supports @SerializeValue and @DeserializeValue on enum entries', () {
@@ -375,6 +376,8 @@ void main() {
       expect(annotatedEnumFromValue('internalSecret'), AnnotatedEnum.internalSecret);
       expect(annotatedEnumFromValue('archived_val'), AnnotatedEnum.archived);
       expect(() => annotatedEnumFromValue('unknown_status_val'), throwsArgumentError);
+      expect(() => annotatedEnumFromValue(null), throwsArgumentError);
+      expect(() => annotatedEnumFromValue(999), throwsArgumentError);
     });
   });
 

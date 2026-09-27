@@ -148,8 +148,9 @@ class ParsedEnumConstant {
     if (config.serializeKey != null) return "'${config.serializeKey}'";
     final customVal = config.serializeFallbackCode ?? config.fallbackCode;
     if (customVal != null) return customVal;
-    if (config.serializeCaseStyle != null) {
-      return "'${config.serializeCaseStyle!.transform(name)}'";
+    final caseStyle = config.serializeCaseStyle ?? config.deserializeCaseStyle;
+    if (caseStyle != null) {
+      return "'${caseStyle.transform(name)}'";
     }
     if (config.deserializeKey != null) return "'${config.deserializeKey}'";
     if (explicitValueCode != null) return explicitValueCode!;
@@ -163,8 +164,9 @@ class ParsedEnumConstant {
     if (config.deserializeKey != null) return "'${config.deserializeKey}'";
     final customVal = config.fallbackCode ?? config.serializeFallbackCode;
     if (customVal != null) return customVal;
-    if (config.deserializeCaseStyle != null) {
-      return "'${config.deserializeCaseStyle!.transform(name)}'";
+    final caseStyle = config.deserializeCaseStyle ?? config.serializeCaseStyle;
+    if (caseStyle != null) {
+      return "'${caseStyle.transform(name)}'";
     }
     if (config.serializeKey != null) return "'${config.serializeKey}'";
     if (explicitValueCode != null) return explicitValueCode!;
