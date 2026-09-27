@@ -1,0 +1,25 @@
+name: daxle_gen
+description: AST code generator and compile-time validation hook for Daxle.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+resolution: workspace
+
+dependencies:
+  analyzer: any
+  args: any
+  code_builder: any
+  crypto: any
+  dart_style: any
+  daxle:
+  glob: any
+  meta: any
+  path: any
+  watcher: any
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2

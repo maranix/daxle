@@ -1,0 +1,209 @@
+import 'package:daxle_gen/src/parser/daxle_ast_parser.dart';
+import 'package:test/test.dart';
+
+void main() {
+  const parser = DaxleAstParser();
+
+  test('parses primary constructor class', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+class User(
+  @SerializeValue(name: 'user_id')
+  @DeserializeValue(name: 'user_id')
+  final String id,
+  final String name,
+  final Option<String> nickname, {
+  final int age = 18,
+});
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.classes.length, 1);
+    final user = parsedFile.classes.first;
+    expect(user.name, 'User');
+    expect(user.isPrimaryConstructor, true);
+    expect(user.shouldSerialize, true);
+    expect(user.shouldDeserialize, true);
+
+    expect(user.fields.length, 4);
+    expect(user.fields[0].name, 'id');
+    expect(user.fields[0].jsonKey, 'user_id');
+    expect(user.fields[0].type.isString, true);
+
+    expect(user.fields[1].name, 'name');
+    expect(user.fields[1].jsonKey, 'name');
+
+    expect(user.fields[2].name, 'nickname');
+    expect(user.fields[2].type.isOption, true);
+    expect(user.fields[2].type.singleTypeArgument?.isString, true);
+
+    expect(user.fields[3].name, 'age');
+    expect(user.fields[3].hasDefaultValue, true);
+    expect(user.fields[3].defaultValueCode, '18');
+  });
+
+  test('parses legacy class with constructors and field annotations', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+class LegacyItem {
+  @SerializeValue(name: 'item_id')
+  final String id;
+
+  @DeserializeValue(defaultValue: 'unnamed')
+  final String name;
+
+  final DateTime createdAt;
+
+  const LegacyItem({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+  });
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.classes.length, 1);
+    final item = parsedFile.classes.first;
+    expect(item.name, 'LegacyItem');
+    expect(item.isPrimaryConstructor, false);
+    expect(item.fields.length, 3);
+    expect(item.fields[0].name, 'id');
+    expect(item.fields[0].jsonKey, 'item_id');
+    expect(item.fields[1].name, 'name');
+    expect(item.fields[1].config.defaultValueCode, "'unnamed'");
+    expect(item.fields[2].name, 'createdAt');
+    expect(item.fields[2].type.isDateTime, true);
+  });
+
+  test('parses enum and enhanced enum', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+enum SimpleStatus { pending, active, completed }
+
+@serialize
+@deserialize
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
+enum Priority {
+  low(10),
+  medium(20),
+  high(30);
+
+  const Priority(this.code);
+  final int code;
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.enums.length, 2);
+
+    final status = parsedFile.enums[0];
+    expect(status.name, 'SimpleStatus');
+    expect(status.constants.map((c) => c.name).toList(), [
+      'pending',
+      'active',
+      'completed',
+    ]);
+    expect(status.valueFieldName, isNull);
+
+    final priority = parsedFile.enums[1];
+    expect(priority.name, 'Priority');
+    expect(priority.valueFieldName, 'code');
+    expect(priority.valueFieldType?.isInt, true);
+    expect(priority.constants[0].explicitValueCode, '10');
+    expect(priority.constants[1].explicitValueCode, '20');
+    expect(priority.constants[2].explicitValueCode, '30');
+  });
+
+  test('parses sealed class hierarchy', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@Serialize(discriminator: 'shape_type')
+@Deserialize(discriminator: 'shape_type')
+sealed class Shape {}
+
+class Circle extends Shape {
+  final double radius;
+  Circle(this.radius);
+}
+
+class Square extends Shape {
+  final double side;
+  Square(this.side);
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.classes.length, 3);
+
+    final shape = parsedFile.classes.first;
+    expect(shape.name, 'Shape');
+    expect(shape.isSealed, true);
+    expect(shape.serialize?.discriminator, 'shape_type');
+    expect(shape.deserialize?.discriminator, 'shape_type');
+
+    final circle = parsedFile.classes[1];
+    expect(circle.name, 'Circle');
+    expect(circle.superclass, 'Shape');
+  });
+
+  test('parses sealed class hierarchy with implements and custom discriminator tag', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'vehicle.daxle.dart';
+
+@Serialize(discriminator: 'v_type')
+sealed class Vehicle {}
+
+@SerializeValue(name: 'custom_car')
+class Car implements Vehicle {
+  final int wheels;
+  Car(this.wheels);
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.partDirectives, ['vehicle.daxle.dart']);
+    expect(parsedFile.hasDaxlePartDirective, true);
+
+    final car = parsedFile.classes[1];
+    expect(car.name, 'Car');
+    expect(car.interfaces, contains('Vehicle'));
+    expect(car.isSubclassOf('Vehicle'), true);
+    expect(car.customDiscriminatorName, 'custom_car');
+  });
+
+  test('parses enhanced enum matching positional constructor parameter for valueField', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@Serialize(valueField: 'code')
+enum MultiParam {
+  first('first_label', 101),
+  second('second_label', 202);
+
+  const MultiParam(this.label, this.code);
+  final String label;
+  final int code;
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final enumEl = parsedFile.enums.first;
+    expect(enumEl.constants[0].explicitValueCode, '101');
+    expect(enumEl.constants[1].explicitValueCode, '202');
+  });
+}
+
