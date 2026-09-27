@@ -18,13 +18,17 @@ class SealedGenerator {
     final discriminator = sealedClass.deserialize?.discriminator ??
         sealedClass.serialize?.discriminator ??
         'type';
+    final caseStyle =
+        sealedClass.deserialize?.caseStyle ?? sealedClass.serialize?.caseStyle;
 
     final buffer = StringBuffer();
     buffer.writeln("return switch (json['$discriminator'] as String?) {");
 
     for (final sub in subclasses) {
       final subCamel = TypeHelper.toCamelCase(sub.name);
-      final tag = sub.customDiscriminatorName ?? sub.name;
+      final defaultTag =
+          caseStyle != null ? caseStyle.transform(sub.name) : sub.name;
+      final tag = sub.customDiscriminatorName ?? defaultTag;
       buffer.writeln("  '$tag' => ${subCamel}FromJson(json),");
     }
 
@@ -50,13 +54,17 @@ class SealedGenerator {
     final discriminator = sealedClass.serialize?.discriminator ??
         sealedClass.deserialize?.discriminator ??
         'type';
+    final caseStyle =
+        sealedClass.serialize?.caseStyle ?? sealedClass.deserialize?.caseStyle;
 
     final buffer = StringBuffer();
     buffer.writeln('return switch (instance) {');
 
     for (final sub in subclasses) {
       final subVar = TypeHelper.toCamelCase(sub.name);
-      final tag = sub.customDiscriminatorName ?? sub.name;
+      final defaultTag =
+          caseStyle != null ? caseStyle.transform(sub.name) : sub.name;
+      final tag = sub.customDiscriminatorName ?? defaultTag;
       buffer.writeln(
           "  final ${sub.name} $subVar => ${subVar}ToMap($subVar)..['$discriminator'] = '$tag',");
     }

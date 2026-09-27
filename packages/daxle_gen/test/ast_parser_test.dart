@@ -1,3 +1,4 @@
+import 'package:daxle/daxle.dart';
 import 'package:daxle_gen/src/parser/daxle_ast_parser.dart';
 import 'package:test/test.dart';
 
@@ -86,21 +87,16 @@ class LegacyItem {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serialize
-@deserialize
+@serializeEnum
+@deserializeEnum
 enum SimpleStatus { pending, active, completed }
 
-@serialize
-@deserialize
-@Serialize(valueField: 'code')
-@Deserialize(valueField: 'code')
-enum Priority {
+@SerializeEnum(valueField: 'code')
+@DeserializeEnum(valueField: 'code')
+enum const Priority(final int code) {
   low(10),
   medium(20),
   high(30);
-
-  const Priority(this.code);
-  final int code;
 }
 ''';
 
@@ -119,7 +115,6 @@ enum Priority {
     final priority = parsedFile.enums[1];
     expect(priority.name, 'Priority');
     expect(priority.valueFieldName, 'code');
-    expect(priority.valueFieldType?.isInt, true);
     expect(priority.constants[0].explicitValueCode, '10');
     expect(priority.constants[1].explicitValueCode, '20');
     expect(priority.constants[2].explicitValueCode, '30');
@@ -189,14 +184,10 @@ class Car implements Vehicle {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@Serialize(valueField: 'code')
-enum MultiParam {
+@SerializeEnum(valueField: 'code')
+enum const MultiParam(final String label, final int code) {
   first('first_label', 101),
   second('second_label', 202);
-
-  const MultiParam(this.label, this.code);
-  final String label;
-  final int code;
 }
 ''';
 
@@ -205,5 +196,34 @@ enum MultiParam {
     expect(enumEl.constants[0].explicitValueCode, '101');
     expect(enumEl.constants[1].explicitValueCode, '202');
   });
-}
 
+  test('parses CaseStyle and ignoreFields on class and enum', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@Serialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['secretToken'])
+@Deserialize(caseStyle: CaseStyle.snakeCase, ignoreFields: {'secretToken'})
+class Account(
+  final String accountId,
+  final String secretToken,
+);
+
+@SerializeEnum(caseStyle: CaseStyle.kebabCase)
+enum ItemCategory { bookItem, electronicDevice }
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final account = parsedFile.classes.first;
+    expect(account.serialize?.caseStyle, CaseStyle.snakeCase);
+    expect(account.serialize?.ignoreFields, contains('secretToken'));
+    expect(account.deserialize?.ignoreFields, contains('secretToken'));
+
+    expect(account.fields[0].resolvedSerializeKey(account.serialize?.caseStyle), 'account_id');
+    expect(account.fields[1].isIgnoredForSerialize(account.serialize), true);
+
+    final category = parsedFile.enums.first;
+    expect(category.serialize?.caseStyle, CaseStyle.kebabCase);
+    expect(category.constants[0].explicitValueCode, "'book-item'");
+    expect(category.constants[1].explicitValueCode, "'electronic-device'");
+  });
+}

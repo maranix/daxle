@@ -13,13 +13,15 @@ class EnumGenerator {
   List<Spec> build(ParsedEnum parsedEnum) {
     final enumName = parsedEnum.name;
     final camelName = TypeHelper.toCamelCase(enumName);
+    final caseStyle =
+        parsedEnum.serialize?.caseStyle ?? parsedEnum.deserialize?.caseStyle;
     final specs = <Spec>[];
 
     // 1. Enum map constant field
     final mapEntries = StringBuffer();
     mapEntries.writeln('{');
     for (final constant in parsedEnum.constants) {
-      final valueCode = constant.explicitValueCode ?? "'${constant.name}'";
+      final valueCode = constant.resolvedValue(caseStyle);
       mapEntries.writeln('  $enumName.${constant.name}: $valueCode,');
     }
     mapEntries.write('}');

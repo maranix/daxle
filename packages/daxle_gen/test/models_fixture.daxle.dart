@@ -51,6 +51,21 @@ MultiParamEnum multiParamEnumFromJson(Object? value) =>
     multiParamEnumFromValue(value);
 dynamic multiParamEnumToJson(MultiParamEnum instance) =>
     multiParamEnumToValue(instance);
+const themeModeEnumMap = {
+  ThemeMode.lightTheme: 'light-theme',
+  ThemeMode.darkTheme: 'dark-theme',
+  ThemeMode.systemDefault: 'system-default',
+};
+dynamic themeModeToValue(ThemeMode instance) => themeModeEnumMap[instance]!;
+ThemeMode themeModeFromValue(Object? value) {
+  for (final entry in themeModeEnumMap.entries) {
+    if (entry.value == value) return entry.key;
+  }
+  throw ArgumentError('Unknown ThemeMode value: $value');
+}
+
+ThemeMode themeModeFromJson(Object? value) => themeModeFromValue(value);
+dynamic themeModeToJson(ThemeMode instance) => themeModeToValue(instance);
 ComplexModel complexModelFromJson(Map<String, dynamic> json) {
   return ComplexModel(
     (json['id'] as String),
@@ -194,6 +209,18 @@ Map<String, dynamic> deepCollectionsModelToMap(DeepCollectionsModel instance) =>
     <String, dynamic>{
       'matrix': instance.matrix.map((e) => e).toList(),
       'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
+    };
+CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
+  return CaseStyledModel(
+    (json['user_full_name'] as String),
+    ((json['login_attempt_count'] as num).toInt()),
+  );
+}
+
+Map<String, dynamic> caseStyledModelToMap(CaseStyledModel instance) =>
+    <String, dynamic>{
+      'user_full_name': instance.userFullName,
+      'login_attempt_count': instance.loginAttemptCount,
     };
 Shape shapeFromJson(Map<String, dynamic> json) {
   return switch (json['shape_type'] as String?) {

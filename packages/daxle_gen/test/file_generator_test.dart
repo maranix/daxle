@@ -45,20 +45,15 @@ import 'package:daxle/daxle.dart';
 
 part 'status.daxle.dart';
 
-@serialize
-@deserialize
+@serializeEnum
+@deserializeEnum
 enum Status { pending, active, completed }
 
-@serialize
-@deserialize
-@Serialize(valueField: 'code')
-@Deserialize(valueField: 'code')
-enum Priority {
+@SerializeEnum(valueField: 'code')
+@DeserializeEnum(valueField: 'code')
+enum const Priority(final int code) {
   low(10),
   high(20);
-
-  const Priority(this.code);
-  final int code;
 }
 ''';
 
@@ -105,5 +100,30 @@ class Square extends Shape {
     expect(generated, contains("'Square' => squareFromJson(json)"));
     expect(generated, contains('Map<String, dynamic> shapeToMap(Shape instance)'));
     expect(generated, contains("circleToMap(circle)..['kind'] = 'Circle'"));
+  });
+
+  test('generates case conversion and ignores fields', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'member.daxle.dart';
+
+@Serialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalToken'])
+@Deserialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalToken'])
+class Member(
+  final String memberName,
+  final int loginCount,
+  final String internalToken,
+);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/member.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains("'member_name': instance.memberName"));
+    expect(generated, contains("'login_count': instance.loginCount"));
+    expect(generated, isNot(contains('internalToken')));
+    expect(generated, isNot(contains('internal_token')));
   });
 }

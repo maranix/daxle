@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:daxle/daxle.dart';
 
 import '../models/annotation_info.dart';
 import '../models/parsed_element.dart';
@@ -43,8 +44,7 @@ class DaxleAstParser {
 
     for (final directive in unit.directives) {
       if (directive is PartDirective) {
-        final uri = directive.uri.stringValue ?? directive.uri.toSource();
-        partDirectives.add(uri);
+        partDirectives.add(directive.uri.stringValue ?? directive.uri.toSource());
       }
     }
 
@@ -90,9 +90,15 @@ class DaxleAstParser {
 
     for (final annotation in declaration.metadata) {
       final name = _getAnnotationName(annotation);
-      if (name == 'Serialize' || name == 'serialize') {
+      if (name == 'Serialize' ||
+          name == 'serialize' ||
+          name == 'SerializeClass' ||
+          name == 'serializeClass') {
         serializeInfo = _parseSerializeAnnotation(annotation);
-      } else if (name == 'Deserialize' || name == 'deserialize') {
+      } else if (name == 'Deserialize' ||
+          name == 'deserialize' ||
+          name == 'DeserializeClass' ||
+          name == 'deserializeClass') {
         deserializeInfo = _parseDeserializeAnnotation(annotation);
       } else if (name == 'SerializeValue' || name == 'DeserializeValue') {
         final cfg = _parseFieldConfig(declaration.metadata);
@@ -195,8 +201,10 @@ class DaxleAstParser {
 
             // If initializing formal `this.fieldName` and type was omitted, look up field type
             if (paramTypeStr == 'dynamic' &&
-                (param is FieldFormalParameter || param.toSource().startsWith('this.'))) {
-              final matchedField = fields.where((f) => f.name == paramName).firstOrNull;
+                (param is FieldFormalParameter ||
+                    param.toSource().startsWith('this.'))) {
+              final matchedField =
+                  fields.where((f) => f.name == paramName).firstOrNull;
               if (matchedField != null) {
                 paramTypeStr = matchedField.type.rawType;
               }
@@ -253,15 +261,21 @@ class DaxleAstParser {
   ParsedEnum _parseEnum(EnumDeclaration declaration) {
     final enumName = declaration.namePart.typeName.lexeme;
 
-    SerializeInfo? serializeInfo;
-    DeserializeInfo? deserializeInfo;
+    SerializeEnumInfo? serializeInfo;
+    DeserializeEnumInfo? deserializeInfo;
 
     for (final annotation in declaration.metadata) {
       final name = _getAnnotationName(annotation);
-      if (name == 'Serialize' || name == 'serialize') {
-        serializeInfo = _parseSerializeAnnotation(annotation);
-      } else if (name == 'Deserialize' || name == 'deserialize') {
-        deserializeInfo = _parseDeserializeAnnotation(annotation);
+      if (name == 'SerializeEnum' ||
+          name == 'serializeEnum' ||
+          name == 'Serialize' ||
+          name == 'serialize') {
+        serializeInfo = _parseSerializeEnumAnnotation(annotation);
+      } else if (name == 'DeserializeEnum' ||
+          name == 'deserializeEnum' ||
+          name == 'Deserialize' ||
+          name == 'deserialize') {
+        deserializeInfo = _parseDeserializeEnumAnnotation(annotation);
       }
     }
 
@@ -285,25 +299,41 @@ class DaxleAstParser {
         }
       }
 
-      ConstructorDeclaration? enumConstructor;
-      for (final member in body.members) {
-        if (member is ConstructorDeclaration && member.factoryKeyword == null) {
-          enumConstructor = member;
-          break;
-        }
-      }
-
       int? valueFieldPositionalIndex;
-      if (enumConstructor != null && valueFieldName != null) {
-        var posIdx = 0;
-        for (final param in enumConstructor.parameters.parameters) {
-          final paramName = param.name?.lexeme ?? '';
-          if (!param.isNamed) {
-            if (paramName == valueFieldName) {
-              valueFieldPositionalIndex = posIdx;
-              break;
+      if (declaration.namePart case PrimaryConstructorDeclaration primary) {
+        if (valueFieldName != null) {
+          var posIdx = 0;
+          for (final param in primary.formalParameters.parameters) {
+            final paramName = param.name?.lexeme ?? '';
+            if (!param.isNamed) {
+              if (paramName == valueFieldName) {
+                valueFieldPositionalIndex = posIdx;
+                break;
+              }
+              posIdx++;
             }
-            posIdx++;
+          }
+        }
+      } else {
+        ConstructorDeclaration? enumConstructor;
+        for (final member in body.members) {
+          if (member is ConstructorDeclaration && member.factoryKeyword == null) {
+            enumConstructor = member;
+            break;
+          }
+        }
+
+        if (enumConstructor != null && valueFieldName != null) {
+          var posIdx = 0;
+          for (final param in enumConstructor.parameters.parameters) {
+            final paramName = param.name?.lexeme ?? '';
+            if (!param.isNamed) {
+              if (paramName == valueFieldName) {
+                valueFieldPositionalIndex = posIdx;
+                break;
+              }
+              posIdx++;
+            }
           }
         }
       }
@@ -316,6 +346,9 @@ class DaxleAstParser {
         final config = _parseFieldConfig(constant.metadata);
         if (config.effectiveSerializeKey != null) {
           explicitValCode = "'${config.effectiveSerializeKey}'";
+        } else if (config.serializeCaseStyle != null) {
+          explicitValCode =
+              "'${config.serializeCaseStyle!.transform(constName)}'";
         } else if (valueFieldName != null &&
             constant.arguments != null &&
             constant.arguments!.argumentList.arguments.isNotEmpty) {
@@ -335,6 +368,9 @@ class DaxleAstParser {
               explicitValCode = args.first.toSource();
             }
           }
+        } else if (serializeInfo?.caseStyle != null) {
+          explicitValCode =
+              "'${serializeInfo!.caseStyle!.transform(constName)}'";
         }
 
         constants.add(ParsedEnumConstant(
@@ -359,36 +395,62 @@ class DaxleAstParser {
   }
 
   SerializeInfo _parseSerializeAnnotation(Annotation annotation) {
-    String? valueField;
     String? discriminator;
-    var explicitToJson = true;
+    CaseStyle? caseStyle;
+    var ignoreFields = <String>{};
 
     if (annotation.arguments != null) {
       for (final arg in annotation.arguments!.arguments) {
         if (arg is NamedArgument) {
           final argName = arg.name.lexeme;
-          if (argName == 'valueField') {
-            valueField = _extractStringValue(arg.argumentExpression);
-          } else if (argName == 'discriminator') {
+          if (argName == 'discriminator') {
             discriminator = _extractStringValue(arg.argumentExpression);
-          } else if (argName == 'explicitToJson') {
-            explicitToJson = arg.argumentExpression.toSource() == 'true';
+          } else if (argName == 'caseStyle') {
+            caseStyle = _extractCaseStyle(arg.argumentExpression);
+          } else if (argName == 'ignoreFields') {
+            ignoreFields = _extractStringSet(arg.argumentExpression);
           }
         }
       }
     }
 
     return SerializeInfo(
-      valueField: valueField,
       discriminator: discriminator,
-      explicitToJson: explicitToJson,
+      caseStyle: caseStyle,
+      ignoreFields: ignoreFields,
     );
   }
 
   DeserializeInfo _parseDeserializeAnnotation(Annotation annotation) {
-    String? valueField;
     String? discriminator;
-    var explicitFromJson = true;
+    CaseStyle? caseStyle;
+    var ignoreFields = <String>{};
+
+    if (annotation.arguments != null) {
+      for (final arg in annotation.arguments!.arguments) {
+        if (arg is NamedArgument) {
+          final argName = arg.name.lexeme;
+          if (argName == 'discriminator') {
+            discriminator = _extractStringValue(arg.argumentExpression);
+          } else if (argName == 'caseStyle') {
+            caseStyle = _extractCaseStyle(arg.argumentExpression);
+          } else if (argName == 'ignoreFields') {
+            ignoreFields = _extractStringSet(arg.argumentExpression);
+          }
+        }
+      }
+    }
+
+    return DeserializeInfo(
+      discriminator: discriminator,
+      caseStyle: caseStyle,
+      ignoreFields: ignoreFields,
+    );
+  }
+
+  SerializeEnumInfo _parseSerializeEnumAnnotation(Annotation annotation) {
+    String? valueField;
+    CaseStyle? caseStyle;
 
     if (annotation.arguments != null) {
       for (final arg in annotation.arguments!.arguments) {
@@ -396,25 +458,47 @@ class DaxleAstParser {
           final argName = arg.name.lexeme;
           if (argName == 'valueField') {
             valueField = _extractStringValue(arg.argumentExpression);
-          } else if (argName == 'discriminator') {
-            discriminator = _extractStringValue(arg.argumentExpression);
-          } else if (argName == 'explicitFromJson') {
-            explicitFromJson = arg.argumentExpression.toSource() == 'true';
+          } else if (argName == 'caseStyle') {
+            caseStyle = _extractCaseStyle(arg.argumentExpression);
           }
         }
       }
     }
 
-    return DeserializeInfo(
+    return SerializeEnumInfo(
       valueField: valueField,
-      discriminator: discriminator,
-      explicitFromJson: explicitFromJson,
+      caseStyle: caseStyle,
+    );
+  }
+
+  DeserializeEnumInfo _parseDeserializeEnumAnnotation(Annotation annotation) {
+    String? valueField;
+    CaseStyle? caseStyle;
+
+    if (annotation.arguments != null) {
+      for (final arg in annotation.arguments!.arguments) {
+        if (arg is NamedArgument) {
+          final argName = arg.name.lexeme;
+          if (argName == 'valueField') {
+            valueField = _extractStringValue(arg.argumentExpression);
+          } else if (argName == 'caseStyle') {
+            caseStyle = _extractCaseStyle(arg.argumentExpression);
+          }
+        }
+      }
+    }
+
+    return DeserializeEnumInfo(
+      valueField: valueField,
+      caseStyle: caseStyle,
     );
   }
 
   FieldConfig _parseFieldConfig(NodeList<Annotation> metadata) {
     String? serializeKey;
     String? deserializeKey;
+    CaseStyle? serializeCaseStyle;
+    CaseStyle? deserializeCaseStyle;
     String? defaultValueCode;
     String? serializeDefaultValueCode;
     String? converterCode;
@@ -436,6 +520,10 @@ class DaxleAstParser {
                 final strVal = _extractStringValue(arg.argumentExpression);
                 if (isSerializeVal) serializeKey = strVal;
                 if (isDeserializeVal) deserializeKey = strVal;
+              } else if (argName == 'caseStyle') {
+                final style = _extractCaseStyle(arg.argumentExpression);
+                if (isSerializeVal) serializeCaseStyle = style;
+                if (isDeserializeVal) deserializeCaseStyle = style;
               } else if (argName == 'defaultValue') {
                 final code = arg.argumentExpression.toSource();
                 if (isDeserializeVal) defaultValueCode = code;
@@ -458,6 +546,8 @@ class DaxleAstParser {
     return FieldConfig(
       serializeKey: serializeKey,
       deserializeKey: deserializeKey,
+      serializeCaseStyle: serializeCaseStyle,
+      deserializeCaseStyle: deserializeCaseStyle,
       defaultValueCode: defaultValueCode,
       serializeDefaultValueCode: serializeDefaultValueCode,
       converterCode: converterCode,
@@ -465,6 +555,35 @@ class DaxleAstParser {
       ignoreSerialize: ignoreSerialize,
       ignoreDeserialize: ignoreDeserialize,
     );
+  }
+
+  CaseStyle? _extractCaseStyle(Expression expr) {
+    final source = expr.toSource();
+    final name = source.split('.').last;
+    for (final style in CaseStyle.values) {
+      if (style.name == name) return style;
+    }
+    return null;
+  }
+
+  Set<String> _extractStringSet(Expression expr) {
+    final result = <String>{};
+    if (expr is ListLiteral) {
+      for (final elem in expr.elements) {
+        if (elem is Expression) {
+          final str = _extractStringValue(elem);
+          if (str != null) result.add(str);
+        }
+      }
+    } else if (expr is SetOrMapLiteral) {
+      for (final elem in expr.elements) {
+        if (elem is Expression) {
+          final str = _extractStringValue(elem);
+          if (str != null) result.add(str);
+        }
+      }
+    }
+    return result;
   }
 
   String? _extractStringValue(Expression expr) {

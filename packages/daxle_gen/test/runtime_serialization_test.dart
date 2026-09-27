@@ -351,5 +351,37 @@ void main() {
       expect(restored.mappedLists, model.mappedLists);
     });
   });
+
+  group('CaseStyle & ignoreFields', () {
+    test('transforms keys to snake_case and ignores ignored fields', () {
+      final model = CaseStyledModel('John Doe', 3, internalSecret: 'sensitive');
+      final map = caseStyledModelToMap(model);
+
+      expect(map['user_full_name'], 'John Doe');
+      expect(map['login_attempt_count'], 3);
+      expect(map.containsKey('internal_secret'), false);
+      expect(map.containsKey('internalSecret'), false);
+
+      final restored = caseStyledModelFromJson({
+        'user_full_name': 'Jane Doe',
+        'login_attempt_count': 5,
+        'internal_secret': 'attacker_input',
+      });
+
+      expect(restored.userFullName, 'Jane Doe');
+      expect(restored.loginAttemptCount, 5);
+      expect(restored.internalSecret, 'secret'); // default fallback preserved
+    });
+
+    test('transforms enum keys using kebab-case', () {
+      expect(themeModeEnumMap[ThemeMode.lightTheme], 'light-theme');
+      expect(themeModeEnumMap[ThemeMode.darkTheme], 'dark-theme');
+      expect(themeModeEnumMap[ThemeMode.systemDefault], 'system-default');
+
+      expect(themeModeToValue(ThemeMode.lightTheme), 'light-theme');
+      expect(themeModeFromValue('dark-theme'), ThemeMode.darkTheme);
+    });
+  });
 }
+
 

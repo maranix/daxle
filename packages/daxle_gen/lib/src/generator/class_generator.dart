@@ -14,7 +14,7 @@ class ClassGenerator {
   /// Builds the `fromJson` [Method] specification.
   Method buildFromJson(ParsedClass clazz) {
     final camelName = TypeHelper.toCamelCase(clazz.name);
-    final explicitFromJson = clazz.deserialize?.explicitFromJson ?? true;
+    final caseStyle = clazz.deserialize?.caseStyle;
 
     final constructorName = clazz.constructorName.isEmpty
         ? clazz.name
@@ -26,7 +26,7 @@ class ClassGenerator {
 
     for (final param in clazz.constructorParams) {
       handledFields.add(param.name);
-      if (param.config.ignoreDeserialize) {
+      if (param.isIgnoredForDeserialize(clazz.deserialize)) {
         if (!param.isNamed && param.hasDefault) {
           positionalArgs.add(param.defaultValueCode!);
         } else if (!param.isNamed) {
@@ -35,13 +35,14 @@ class ClassGenerator {
         continue;
       }
 
-      final jsonExpr = "json['${param.deserializeKey}']";
+      final key = param.resolvedDeserializeKey(caseStyle);
+      final jsonExpr = "json['$key']";
       final deserializeExpr = typeHelper.generateDeserialize(
         param.type,
         jsonExpr,
         config: param.config,
         parameterDefaultCode: param.defaultValueCode,
-        explicitFromJson: explicitFromJson,
+        explicitFromJson: true,
       );
 
       if (param.isNamed) {
@@ -60,7 +61,7 @@ class ClassGenerator {
       (f) =>
           !handledFields.contains(f.name) &&
           !f.isFinal &&
-          !f.config.ignoreDeserialize,
+          !f.isIgnoredForDeserialize(clazz.deserialize),
     );
 
     final bodyBuffer = StringBuffer();
@@ -69,15 +70,16 @@ class ClassGenerator {
     } else {
       bodyBuffer.writeln('final instance = $constructorName($allArgs);');
       for (final field in unhandledFields) {
-        final jsonExpr = "json['${field.deserializeKey}']";
+        final key = field.resolvedDeserializeKey(caseStyle);
+        final jsonExpr = "json['$key']";
         final deserializeExpr = typeHelper.generateDeserialize(
           field.type,
           jsonExpr,
           config: field.config,
           parameterDefaultCode: field.defaultValueCode,
-          explicitFromJson: explicitFromJson,
+          explicitFromJson: true,
         );
-        bodyBuffer.writeln("if (json.containsKey('${field.deserializeKey}')) {");
+        bodyBuffer.writeln("if (json.containsKey('$key')) {");
         bodyBuffer.writeln('  instance.${field.name} = $deserializeExpr;');
         bodyBuffer.writeln('}');
       }
@@ -96,14 +98,15 @@ class ClassGenerator {
   /// Builds the `toMap` [Method] specification.
   Method buildToMap(ParsedClass clazz) {
     final camelName = TypeHelper.toCamelCase(clazz.name);
-    final explicitToJson = clazz.serialize?.explicitToJson ?? true;
+    final caseStyle = clazz.serialize?.caseStyle;
 
     final buffer = StringBuffer();
     buffer.writeln('<String, dynamic>{');
 
     for (final field in clazz.fields) {
-      if (field.config.ignoreSerialize) continue;
+      if (field.isIgnoredForSerialize(clazz.serialize)) continue;
 
+      final key = field.resolvedSerializeKey(caseStyle);
       final fieldExpr = 'instance.${field.name}';
       final hasSerializeDefault = field.config.serializeDefaultValueCode != null;
 
@@ -114,18 +117,18 @@ class ClassGenerator {
           field.type,
           fieldExpr,
           config: field.config,
-          explicitToJson: explicitToJson,
+          explicitToJson: true,
         );
         buffer.writeln(
-            "  if ($fieldExpr != null) '${field.serializeKey}': $serializeNonNullExpr,");
+            "  if ($fieldExpr != null) '$key': $serializeNonNullExpr,");
       } else {
         final serializeExpr = typeHelper.generateSerialize(
           field.type,
           fieldExpr,
           config: field.config,
-          explicitToJson: explicitToJson,
+          explicitToJson: true,
         );
-        buffer.writeln("  '${field.serializeKey}': $serializeExpr,");
+        buffer.writeln("  '$key': $serializeExpr,");
       }
     }
 

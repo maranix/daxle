@@ -1,3 +1,4 @@
+import 'package:daxle/daxle.dart';
 import 'annotation_info.dart';
 import 'parsed_type.dart';
 
@@ -19,7 +20,37 @@ class ParsedField {
     this.defaultValueCode,
   });
 
-  String get jsonKey => config.jsonKey ?? name;
+  String resolvedSerializeKey(CaseStyle? classCaseStyle) {
+    if (config.serializeKey != null) return config.serializeKey!;
+    if (config.serializeCaseStyle != null) {
+      return config.serializeCaseStyle!.transform(name);
+    }
+    if (classCaseStyle != null) {
+      return classCaseStyle.transform(name);
+    }
+    return name;
+  }
+
+  String resolvedDeserializeKey(CaseStyle? classCaseStyle) {
+    if (config.deserializeKey != null) return config.deserializeKey!;
+    if (config.deserializeCaseStyle != null) {
+      return config.deserializeCaseStyle!.transform(name);
+    }
+    if (classCaseStyle != null) {
+      return classCaseStyle.transform(name);
+    }
+    return name;
+  }
+
+  bool isIgnoredForSerialize(SerializeInfo? classSerialize) =>
+      config.ignoreSerialize ||
+      (classSerialize?.ignoreFields.contains(name) ?? false);
+
+  bool isIgnoredForDeserialize(DeserializeInfo? classDeserialize) =>
+      config.ignoreDeserialize ||
+      (classDeserialize?.ignoreFields.contains(name) ?? false);
+
+  String get jsonKey => config.serializeKey ?? config.deserializeKey ?? name;
   String get serializeKey => config.effectiveSerializeKey ?? name;
   String get deserializeKey => config.effectiveDeserializeKey ?? name;
 }
@@ -44,8 +75,22 @@ class ParsedConstructorParam {
     this.config = const FieldConfig(),
   });
 
-  String get jsonKey => config.jsonKey ?? name;
-  String get serializeKey => config.effectiveSerializeKey ?? name;
+  String resolvedDeserializeKey(CaseStyle? classCaseStyle) {
+    if (config.deserializeKey != null) return config.deserializeKey!;
+    if (config.deserializeCaseStyle != null) {
+      return config.deserializeCaseStyle!.transform(name);
+    }
+    if (classCaseStyle != null) {
+      return classCaseStyle.transform(name);
+    }
+    return name;
+  }
+
+  bool isIgnoredForDeserialize(DeserializeInfo? classDeserialize) =>
+      config.ignoreDeserialize ||
+      (classDeserialize?.ignoreFields.contains(name) ?? false);
+
+  String get jsonKey => config.deserializeKey ?? config.serializeKey ?? name;
   String get deserializeKey => config.effectiveDeserializeKey ?? name;
 }
 
@@ -93,13 +138,21 @@ class ParsedEnumConstant {
     required this.name,
     this.explicitValueCode,
   });
+
+  String resolvedValue(CaseStyle? enumCaseStyle) {
+    if (explicitValueCode != null) return explicitValueCode!;
+    if (enumCaseStyle != null) {
+      return "'${enumCaseStyle.transform(name)}'";
+    }
+    return "'$name'";
+  }
 }
 
 /// Represents a parsed enum definition.
 class ParsedEnum {
   final String name;
-  final SerializeInfo? serialize;
-  final DeserializeInfo? deserialize;
+  final SerializeEnumInfo? serialize;
+  final DeserializeEnumInfo? deserialize;
   final String? valueFieldName;
   final ParsedType? valueFieldType;
   final List<ParsedEnumConstant> constants;

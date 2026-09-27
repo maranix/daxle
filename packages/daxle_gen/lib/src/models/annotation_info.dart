@@ -1,26 +1,50 @@
-/// Parsed metadata for `@Serialize` and `@serialize`.
+import 'package:daxle/daxle.dart';
+
+/// Parsed metadata for `@Serialize` / `@SerializeClass`.
 class SerializeInfo {
-  final String? valueField;
   final String? discriminator;
-  final bool explicitToJson;
+  final CaseStyle? caseStyle;
+  final Set<String> ignoreFields;
 
   const SerializeInfo({
-    this.valueField,
     this.discriminator,
-    this.explicitToJson = true,
+    this.caseStyle,
+    this.ignoreFields = const {},
   });
 }
 
-/// Parsed metadata for `@Deserialize` and `@deserialize`.
+/// Parsed metadata for `@Deserialize` / `@DeserializeClass`.
 class DeserializeInfo {
-  final String? valueField;
   final String? discriminator;
-  final bool explicitFromJson;
+  final CaseStyle? caseStyle;
+  final Set<String> ignoreFields;
 
   const DeserializeInfo({
-    this.valueField,
     this.discriminator,
-    this.explicitFromJson = true,
+    this.caseStyle,
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@SerializeEnum`.
+class SerializeEnumInfo {
+  final String? valueField;
+  final CaseStyle? caseStyle;
+
+  const SerializeEnumInfo({
+    this.valueField,
+    this.caseStyle,
+  });
+}
+
+/// Parsed metadata for `@DeserializeEnum`.
+class DeserializeEnumInfo {
+  final String? valueField;
+  final CaseStyle? caseStyle;
+
+  const DeserializeEnumInfo({
+    this.valueField,
+    this.caseStyle,
   });
 }
 
@@ -28,6 +52,8 @@ class DeserializeInfo {
 class FieldConfig {
   final String? serializeKey;
   final String? deserializeKey;
+  final CaseStyle? serializeCaseStyle;
+  final CaseStyle? deserializeCaseStyle;
   final String? defaultValueCode;
   final String? serializeDefaultValueCode;
   final String? converterCode;
@@ -36,29 +62,29 @@ class FieldConfig {
   final bool ignoreDeserialize;
 
   const FieldConfig({
-    String? jsonKey,
     this.serializeKey,
     this.deserializeKey,
+    this.serializeCaseStyle,
+    this.deserializeCaseStyle,
     this.defaultValueCode,
     this.serializeDefaultValueCode,
     this.converterCode,
     this.serializeConverterCode,
     this.ignoreSerialize = false,
     this.ignoreDeserialize = false,
-  })  : _legacyJsonKey = jsonKey;
+  });
 
-  final String? _legacyJsonKey;
-
-  String? get jsonKey => _legacyJsonKey ?? deserializeKey ?? serializeKey;
-  String? get effectiveSerializeKey => serializeKey ?? _legacyJsonKey;
-  String? get effectiveDeserializeKey => deserializeKey ?? _legacyJsonKey;
+  String? get effectiveSerializeKey => serializeKey;
+  String? get effectiveDeserializeKey => deserializeKey;
   String? get effectiveSerializeConverter => serializeConverterCode ?? converterCode;
   String? get effectiveDeserializeConverter => converterCode;
 
   FieldConfig merge(FieldConfig other) {
     return FieldConfig(
-      serializeKey: other.serializeKey ?? serializeKey ?? other._legacyJsonKey ?? _legacyJsonKey,
-      deserializeKey: other.deserializeKey ?? deserializeKey ?? other._legacyJsonKey ?? _legacyJsonKey,
+      serializeKey: other.serializeKey ?? serializeKey,
+      deserializeKey: other.deserializeKey ?? deserializeKey,
+      serializeCaseStyle: other.serializeCaseStyle ?? serializeCaseStyle,
+      deserializeCaseStyle: other.deserializeCaseStyle ?? deserializeCaseStyle,
       defaultValueCode: other.defaultValueCode ?? defaultValueCode,
       serializeDefaultValueCode: other.serializeDefaultValueCode ?? serializeDefaultValueCode,
       converterCode: other.converterCode ?? converterCode,
@@ -68,4 +94,3 @@ class FieldConfig {
     );
   }
 }
-

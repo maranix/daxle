@@ -3,27 +3,20 @@ import 'package:daxle/daxle.dart';
 part 'models_fixture.daxle.dart';
 
 // 1. Enums
-@serialize
-@deserialize
+@serializeEnum
+@deserializeEnum
 enum Status { pending, active, completed }
 
-@serialize
-@deserialize
-@Serialize(valueField: 'code')
-@Deserialize(valueField: 'code')
-enum Priority {
+@SerializeEnum(valueField: 'code')
+@DeserializeEnum(valueField: 'code')
+enum const Priority(final int code) {
   low(10),
   medium(20),
   high(30);
-
-  const Priority(this.code);
-  final int code;
 }
 
 // 2. Custom converter
-class EpochDateTimeConverter implements DaxleJsonConverter<DateTime, int> {
-  const EpochDateTimeConverter();
-
+class const EpochDateTimeConverter() implements DaxleJsonConverter<DateTime, int> {
   @override
   DateTime fromJson(int json) => DateTime.fromMillisecondsSinceEpoch(json);
 
@@ -108,17 +101,11 @@ class Bike implements Vehicle {
 }
 
 // 7. Enhanced enum with multiple positional constructor parameters
-@serialize
-@deserialize
-@Serialize(valueField: 'code')
-@Deserialize(valueField: 'code')
-enum MultiParamEnum {
+@SerializeEnum(valueField: 'code')
+@DeserializeEnum(valueField: 'code')
+enum const MultiParamEnum(final String label, final int code) {
   first('first_label', 101),
   second('second_label', 202);
-
-  const MultiParamEnum(this.label, this.code);
-  final String label;
-  final int code;
 }
 
 // 8. Asymmetric JSON key mapping
@@ -131,8 +118,7 @@ class AsymmetricModel(
 );
 
 // 9. Nullable primitive with custom converter
-class StringIntConverter implements DaxleJsonConverter<int, String> {
-  const StringIntConverter();
+class const StringIntConverter() implements DaxleJsonConverter<int, String> {
   @override
   int fromJson(String json) => int.parse(json);
   @override
@@ -155,3 +141,16 @@ class DeepCollectionsModel(
   final Map<String, List<String>> mappedLists,
 );
 
+// 11. CaseStyle and ignoreFields on class
+@Serialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalSecret'])
+@Deserialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalSecret'])
+class CaseStyledModel(
+  final String userFullName,
+  final int loginAttemptCount, {
+  final String internalSecret = 'secret',
+});
+
+// 12. CaseStyle on enum
+@SerializeEnum(caseStyle: CaseStyle.kebabCase)
+@DeserializeEnum(caseStyle: CaseStyle.kebabCase)
+enum ThemeMode { lightTheme, darkTheme, systemDefault }
