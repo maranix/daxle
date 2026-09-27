@@ -299,7 +299,7 @@ class DaxleAstParser {
             t.isObject) {
           throw InvalidGenerationSourceError(
             '@Flatten cannot be used on field "${field.name}" of type "${t.rawType}". '
-            'The target type must be a custom class implementing toJson({bool excludeNull = false}) and fromJson(Map<String, dynamic> json).',
+            'The target type must be a custom class implementing toMap({bool excludeNull = false}) and fromMap(Map<String, dynamic> map).',
             todo:
                 'Remove @Flatten from "${field.name}" or use a custom class type.',
           );

@@ -119,7 +119,7 @@ mixin _$PaymentStatusStringify on Enum {
   };
 }
 
-ComplexModel complexModelFromJson(Map<String, dynamic> json) {
+ComplexModel complexModelFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {
       'id': final String idRaw,
@@ -369,11 +369,6 @@ Map<String, dynamic> complexModelToMap(
         : const EpochDateTimeConverter().toJson(instance.customEpoch!),
 };
 
-extension ComplexModelJsonExtension on ComplexModel {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      complexModelToMap(this, excludeNull: excludeNull);
-}
-
 mixin _$ComplexModelEqualsAndHashCode {
   @override
   bool operator ==(Object other) {
@@ -581,15 +576,15 @@ extension ComplexModelCopyWithExtension on ComplexModel {
   }
 }
 
-NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
+NestedContainer nestedContainerFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'containerId': final String containerIdRaw, 'model': final Map modelRaw} =>
       NestedContainer(
         containerId: containerIdRaw,
-        model: complexModelFromJson(modelRaw.cast<String, dynamic>()),
+        model: complexModelFromMap(modelRaw.cast<String, dynamic>()),
         optionalModel: (json['optionalModel'] == null
             ? null
-            : complexModelFromJson(
+            : complexModelFromMap(
                 json['optionalModel'] as Map<String, dynamic>,
               )),
       ),
@@ -637,11 +632,6 @@ Map<String, dynamic> nestedContainerToMap(
         ? null
         : complexModelToMap(instance.optionalModel!),
 };
-
-extension NestedContainerJsonExtension on NestedContainer {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      nestedContainerToMap(this, excludeNull: excludeNull);
-}
 
 mixin _$NestedContainerEqualsAndHashCode {
   @override
@@ -729,7 +719,7 @@ extension NestedContainerCopyWithExtension on NestedContainer {
   }
 }
 
-Circle circleFromJson(Map<String, dynamic> json) {
+Circle circleFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'radius': final num radiusRaw} => Circle(radiusRaw.toDouble()),
     _ => () {
@@ -755,13 +745,7 @@ Circle circleFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> circleToMap(Circle instance, {bool excludeNull = false}) =>
     <String, dynamic>{'radius': instance.radius};
-
-extension CircleJsonExtension on Circle {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      circleToMap(this, excludeNull: excludeNull);
-}
-
-Square squareFromJson(Map<String, dynamic> json) {
+Square squareFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'side': final num sideRaw} => Square(sideRaw.toDouble()),
     _ => () {
@@ -784,13 +768,7 @@ Square squareFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> squareToMap(Square instance, {bool excludeNull = false}) =>
     <String, dynamic>{'side': instance.side};
-
-extension SquareJsonExtension on Square {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      squareToMap(this, excludeNull: excludeNull);
-}
-
-Car carFromJson(Map<String, dynamic> json) {
+Car carFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'seats': final num seatsRaw} => Car(seatsRaw.toInt()),
     _ => () {
@@ -813,13 +791,7 @@ Car carFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> carToMap(Car instance, {bool excludeNull = false}) =>
     <String, dynamic>{'seats': instance.seats};
-
-extension CarJsonExtension on Car {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      carToMap(this, excludeNull: excludeNull);
-}
-
-Bike bikeFromJson(Map<String, dynamic> json) {
+Bike bikeFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'hasPedals': final bool hasPedalsRaw} => Bike(hasPedalsRaw),
     _ => () {
@@ -845,13 +817,7 @@ Bike bikeFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> bikeToMap(Bike instance, {bool excludeNull = false}) =>
     <String, dynamic>{'hasPedals': instance.hasPedals};
-
-extension BikeJsonExtension on Bike {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      bikeToMap(this, excludeNull: excludeNull);
-}
-
-CustomKeyModel customKeyModelFromJson(Map<String, dynamic> json) {
+CustomKeyModel customKeyModelFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'wire_key': final String keyRaw} => CustomKeyModel(keyRaw),
     _ => () {
@@ -879,13 +845,7 @@ Map<String, dynamic> customKeyModelToMap(
   CustomKeyModel instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'wire_key': instance.key};
-
-extension CustomKeyModelJsonExtension on CustomKeyModel {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      customKeyModelToMap(this, excludeNull: excludeNull);
-}
-
-NullableConverterModel nullableConverterModelFromJson(
+NullableConverterModel nullableConverterModelFromMap(
   Map<String, dynamic> json,
 ) {
   return switch (json) {
@@ -906,13 +866,7 @@ Map<String, dynamic> nullableConverterModelToMap(
         ? null
         : const StringIntConverter().toJson(instance.nullableConvertedInt!),
 };
-
-extension NullableConverterModelJsonExtension on NullableConverterModel {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      nullableConverterModelToMap(this, excludeNull: excludeNull);
-}
-
-DeepCollectionsModel deepCollectionsModelFromJson(Map<String, dynamic> json) {
+DeepCollectionsModel deepCollectionsModelFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'matrix': final List matrixRaw, 'mappedLists': final Map mappedListsRaw} =>
       DeepCollectionsModel(
@@ -971,13 +925,7 @@ Map<String, dynamic> deepCollectionsModelToMap(
   'matrix': instance.matrix.map((e) => e).toList(),
   'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
 };
-
-extension DeepCollectionsModelJsonExtension on DeepCollectionsModel {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      deepCollectionsModelToMap(this, excludeNull: excludeNull);
-}
-
-CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
+CaseStyledModel caseStyledModelFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {
       'user_full_name': final String userFullNameRaw,
@@ -1024,11 +972,6 @@ Map<String, dynamic> caseStyledModelToMap(
   'user_full_name': instance.userFullName,
   'login_attempt_count': instance.loginAttemptCount,
 };
-
-extension CaseStyledModelJsonExtension on CaseStyledModel {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      caseStyledModelToMap(this, excludeNull: excludeNull);
-}
 
 mixin _$CaseStyledModelEqualsAndHashCode {
   @override
@@ -1097,7 +1040,7 @@ extension CaseStyledModelCopyWithExtension on CaseStyledModel {
   }
 }
 
-LoginEvent loginEventFromJson(Map<String, dynamic> json) {
+LoginEvent loginEventFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'userId': final String userIdRaw} => LoginEvent(userIdRaw),
     _ => () {
@@ -1125,13 +1068,7 @@ Map<String, dynamic> loginEventToMap(
   LoginEvent instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'userId': instance.userId};
-
-extension LoginEventJsonExtension on LoginEvent {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      loginEventToMap(this, excludeNull: excludeNull);
-}
-
-LogoutEvent logoutEventFromJson(Map<String, dynamic> json) {
+LogoutEvent logoutEventFromMap(Map<String, dynamic> json) {
   return switch (json) {
     _ => LogoutEvent(),
   };
@@ -1141,11 +1078,6 @@ Map<String, dynamic> logoutEventToMap(
   LogoutEvent instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{};
-
-extension LogoutEventJsonExtension on LogoutEvent {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      logoutEventToMap(this, excludeNull: excludeNull);
-}
 
 mixin _$EqualsOnlyModelEqualsAndHashCode {
   @override
@@ -1380,7 +1312,7 @@ extension LargeModelCopyWithExtension on LargeModel {
   }
 }
 
-Account accountFromJson(Map<String, dynamic> json) {
+Account accountFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'id': final String idRaw, 'acc_type': final Object typeRaw} => Account(
       id: idRaw,
@@ -1428,11 +1360,6 @@ Map<String, dynamic> accountToMap(
   'acc_type': accountTypeToValue(instance.type),
   'loginCount': instance.loginCount,
 };
-
-extension AccountJsonExtension on Account {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      accountToMap(this, excludeNull: excludeNull);
-}
 
 mixin _$AccountEqualsAndHashCode {
   @override
@@ -1501,7 +1428,7 @@ extension AccountCopyWithExtension on Account {
   }
 }
 
-Address addressFromJson(Map<String, dynamic> json) {
+Address addressFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {'street': final String streetRaw, 'city': final String cityRaw} => Address(
       street: streetRaw,
@@ -1550,11 +1477,6 @@ Map<String, dynamic> addressToMap(
     'apt': instance.apt == null ? null : instance.apt,
   'city': instance.city,
 };
-
-extension AddressJsonExtension on Address {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      addressToMap(this, excludeNull: excludeNull);
-}
 
 mixin _$AddressEqualsAndHashCode {
   @override
@@ -1634,7 +1556,7 @@ extension AddressCopyWithExtension on Address {
   }
 }
 
-Order orderFromJson(Map<String, dynamic> json) {
+Order orderFromMap(Map<String, dynamic> json) {
   if (!json.containsKey('id')) {
     throw FormatException("Missing required field 'id' for Order", json);
   }
@@ -1654,7 +1576,7 @@ Order orderFromJson(Map<String, dynamic> json) {
     id: (idRaw as String),
     status: paymentStatusFromValue(statusRaw),
     notes: (json['notes'] as String?),
-    shippingAddress: addressFromJson(shippingAddressJson),
+    shippingAddress: addressFromMap(shippingAddressJson),
   );
 }
 
@@ -1670,11 +1592,6 @@ Map<String, dynamic> orderToMap(Order instance, {bool excludeNull = false}) =>
       ).entries)
         'shipping_${entry.key}': entry.value,
     };
-
-extension OrderJsonExtension on Order {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      orderToMap(this, excludeNull: excludeNull);
-}
 
 mixin _$OrderEqualsAndHashCode {
   @override
@@ -1765,10 +1682,10 @@ extension OrderCopyWithExtension on Order {
   }
 }
 
-Shape shapeFromJson(Map<String, dynamic> json) {
+Shape shapeFromMap(Map<String, dynamic> json) {
   return switch (json) {
-    {'shape_type': 'Circle'} => circleFromJson(json),
-    {'shape_type': 'Square'} => squareFromJson(json),
+    {'shape_type': 'Circle'} => circleFromMap(json),
+    {'shape_type': 'Square'} => squareFromMap(json),
     _ => () {
       if (!json.containsKey('shape_type')) {
         throw FormatException(
@@ -1797,15 +1714,10 @@ Map<String, dynamic> shapeToMap(Shape instance, {bool excludeNull = false}) {
   };
 }
 
-extension ShapeJsonExtension on Shape {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      shapeToMap(this, excludeNull: excludeNull);
-}
-
-Vehicle vehicleFromJson(Map<String, dynamic> json) {
+Vehicle vehicleFromMap(Map<String, dynamic> json) {
   return switch (json) {
-    {'vehicle_type': 'car_v1'} => carFromJson(json),
-    {'vehicle_type': 'Bike'} => bikeFromJson(json),
+    {'vehicle_type': 'car_v1'} => carFromMap(json),
+    {'vehicle_type': 'Bike'} => bikeFromMap(json),
     _ => () {
       if (!json.containsKey('vehicle_type')) {
         throw FormatException(
@@ -1837,15 +1749,10 @@ Map<String, dynamic> vehicleToMap(
   };
 }
 
-extension VehicleJsonExtension on Vehicle {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      vehicleToMap(this, excludeNull: excludeNull);
-}
-
-Event eventFromJson(Map<String, dynamic> json) {
+Event eventFromMap(Map<String, dynamic> json) {
   return switch (json) {
-    {'type': 'LoginEvent'} => loginEventFromJson(json),
-    {'type': 'LogoutEvent'} => logoutEventFromJson(json),
+    {'type': 'LoginEvent'} => loginEventFromMap(json),
+    {'type': 'LogoutEvent'} => logoutEventFromMap(json),
     _ => () {
       if (!json.containsKey('type')) {
         throw FormatException(
@@ -1872,11 +1779,6 @@ Map<String, dynamic> eventToMap(Event instance, {bool excludeNull = false}) {
       excludeNull: excludeNull,
     )..['type'] = 'LogoutEvent',
   };
-}
-
-extension EventJsonExtension on Event {
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
-      eventToMap(this, excludeNull: excludeNull);
 }
 
 bool _daxleDeepEquals(Object? a, Object? b) {

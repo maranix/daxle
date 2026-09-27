@@ -60,7 +60,7 @@ class ClassGenerator {
       final fn = '${TypeHelper.toCamelCase(type.baseName)}FromValue';
       return '$fn($varName)';
     } else if (typeHelper.knownClasses.contains(type.baseName)) {
-      final fn = '${TypeHelper.toCamelCase(type.baseName)}FromJson';
+      final fn = '${TypeHelper.toCamelCase(type.baseName)}FromMap';
       return '$fn($varName.cast<String, dynamic>())';
     } else if (type.isList || type.isSet) {
       return typeHelper
@@ -114,8 +114,8 @@ class ClassGenerator {
     return 'null as dynamic';
   }
 
-  /// Builds the `fromJson` [Method] specification.
-  Method buildFromJson(ParsedClass clazz) {
+  /// Builds the `fromMap` [Method] specification.
+  Method buildFromMap(ParsedClass clazz) {
     final camelName = TypeHelper.toCamelCase(clazz.name);
     final caseStyle = clazz.deserialize?.caseStyle;
 
@@ -158,8 +158,8 @@ class ClassGenerator {
             "  final $jsonVar = _daxleExtractPrefix(json, '$prefix');",
           );
           final childFn = typeHelper.knownClasses.contains(param.type.baseName)
-              ? '${TypeHelper.toCamelCase(param.type.baseName)}FromJson'
-              : '${param.type.baseName}.fromJson';
+              ? '${TypeHelper.toCamelCase(param.type.baseName)}FromMap'
+              : '${param.type.baseName}.fromMap';
           final expr = param.type.isNullable
               ? '$jsonVar.isEmpty ? null : $childFn($jsonVar)'
               : '$childFn($jsonVar)';
@@ -258,8 +258,8 @@ class ClassGenerator {
             );
             final childFn =
                 typeHelper.knownClasses.contains(field.type.baseName)
-                ? '${TypeHelper.toCamelCase(field.type.baseName)}FromJson'
-                : '${field.type.baseName}.fromJson';
+                ? '${TypeHelper.toCamelCase(field.type.baseName)}FromMap'
+                : '${field.type.baseName}.fromMap';
             final expr = field.type.isNullable
                 ? '$jsonVar.isEmpty ? null : $childFn($jsonVar)'
                 : '$childFn($jsonVar)';
@@ -309,7 +309,7 @@ class ClassGenerator {
 
       return Method(
         (b) => b
-          ..name = '${camelName}FromJson'
+          ..name = '${camelName}FromMap'
           ..returns = refer(clazz.name)
           ..requiredParameters.add(
             Parameter(
@@ -478,7 +478,7 @@ class ClassGenerator {
 
     return Method(
       (b) => b
-        ..name = '${camelName}FromJson'
+        ..name = '${camelName}FromMap'
         ..returns = refer(clazz.name)
         ..requiredParameters.add(
           Parameter(
@@ -508,7 +508,7 @@ class ClassGenerator {
         final childToMapCall =
             typeHelper.knownClasses.contains(field.type.baseName)
             ? '${TypeHelper.toCamelCase(field.type.baseName)}ToMap($fieldExpr${field.type.isNullable ? '!' : ''}, excludeNull: excludeNull)'
-            : '$fieldExpr${field.type.isNullable ? '!' : ''}.toJson(excludeNull: excludeNull)';
+            : '$fieldExpr${field.type.isNullable ? '!' : ''}.toMap(excludeNull: excludeNull)';
 
         if (field.type.isNullable) {
           buffer.writeln('  if ($fieldExpr != null)');
@@ -593,9 +593,9 @@ class ClassGenerator {
     );
   }
 
-  /// Generates the `fromJson` function as code string.
-  String generateFromJson(ParsedClass clazz) {
-    return buildFromJson(clazz).accept(_emitter).toString();
+  /// Generates the `fromMap` function as code string.
+  String generateFromMap(ParsedClass clazz) {
+    return buildFromMap(clazz).accept(_emitter).toString();
   }
 
   /// Generates the `toMap` function as code string.

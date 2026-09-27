@@ -79,38 +79,10 @@ class FileGenerator {
       }
 
       if (shouldDeser) {
-        specs.add(classGen.buildFromJson(clazz));
+        specs.add(classGen.buildFromMap(clazz));
       }
       if (shouldSer) {
         specs.add(classGen.buildToMap(clazz));
-        final camelName = TypeHelper.toCamelCase(clazz.name);
-        specs.add(
-          Extension(
-            (b) => b
-              ..name = '${clazz.name}JsonExtension'
-              ..on = refer(clazz.name)
-              ..methods.add(
-                Method(
-                  (m) => m
-                    ..name = 'toJson'
-                    ..returns = refer('Map<String, dynamic>')
-                    ..optionalParameters.add(
-                      Parameter(
-                        (p) => p
-                          ..name = 'excludeNull'
-                          ..type = refer('bool')
-                          ..named = true
-                          ..defaultTo = const Code('false'),
-                      ),
-                    )
-                    ..lambda = true
-                    ..body = Code(
-                      '${camelName}ToMap(this, excludeNull: excludeNull)',
-                    ),
-                ),
-              ),
-          ),
-        );
       }
 
       // Equality and Stringify mixins
@@ -150,38 +122,10 @@ class FileGenerator {
     for (final sc in sealedClasses) {
       final subs = sealedSubclasses[sc.name] ?? const [];
       if (sc.shouldDeserialize) {
-        specs.add(sealedGen.buildFromJson(sc, subs));
+        specs.add(sealedGen.buildFromMap(sc, subs));
       }
       if (sc.shouldSerialize) {
         specs.add(sealedGen.buildToMap(sc, subs));
-        final camelName = TypeHelper.toCamelCase(sc.name);
-        specs.add(
-          Extension(
-            (b) => b
-              ..name = '${sc.name}JsonExtension'
-              ..on = refer(sc.name)
-              ..methods.add(
-                Method(
-                  (m) => m
-                    ..name = 'toJson'
-                    ..returns = refer('Map<String, dynamic>')
-                    ..optionalParameters.add(
-                      Parameter(
-                        (p) => p
-                          ..name = 'excludeNull'
-                          ..type = refer('bool')
-                          ..named = true
-                          ..defaultTo = const Code('false'),
-                      ),
-                    )
-                    ..lambda = true
-                    ..body = Code(
-                      '${camelName}ToMap(this, excludeNull: excludeNull)',
-                    ),
-                ),
-              ),
-          ),
-        );
       }
     }
 

@@ -83,7 +83,7 @@ class Item(final String id, final int price);
         expect(content, contains("part of 'item.dart';"));
         expect(
           content,
-          contains('Item itemFromJson(Map<String, dynamic> json)'),
+          contains('Item itemFromMap(Map<String, dynamic> json)'),
         );
         expect(
           content,

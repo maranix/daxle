@@ -300,8 +300,8 @@ class Address with _$Address {
 
   Address({required this.street, this.apt, required this.city});
 
-  factory Address.fromJson(Map<String, dynamic> json) => addressFromJson(json);
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+  factory Address.fromMap(Map<String, dynamic> map) => addressFromMap(map);
+  Map<String, dynamic> toMap({bool excludeNull = false}) =>
       addressToMap(this, excludeNull: excludeNull);
 }
 
@@ -328,7 +328,7 @@ class Order with _$Order {
     required this.shippingAddress,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) => orderFromJson(json);
-  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+  factory Order.fromMap(Map<String, dynamic> map) => orderFromMap(map);
+  Map<String, dynamic> toMap({bool excludeNull = false}) =>
       orderToMap(this, excludeNull: excludeNull);
 }

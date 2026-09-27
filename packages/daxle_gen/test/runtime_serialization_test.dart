@@ -78,7 +78,7 @@ void main() {
       expect(map['customEpoch'], 1600000000000);
 
       // Deserialization round-trip
-      final restored = complexModelFromJson(map);
+      final restored = complexModelFromMap(map);
 
       expect(restored.id, model.id);
       expect(restored.count, model.count);
@@ -123,7 +123,7 @@ void main() {
         'customEpoch': null,
       };
 
-      final restored = complexModelFromJson(json);
+      final restored = complexModelFromMap(json);
       expect(restored.optionalTag, const None<String>());
       expect(restored.role, 'guest');
       expect(restored.customEpoch, isNull);
@@ -176,7 +176,7 @@ void main() {
       final sparseMap = nestedContainerToMap(container, excludeNull: true);
       expect(sparseMap.containsKey('optionalModel'), false);
 
-      final restored = nestedContainerFromJson(map);
+      final restored = nestedContainerFromMap(map);
       expect(restored.containerId, 'c-1');
       expect(restored.model.id, 'inner-1');
       expect(restored.optionalModel, isNull);
@@ -212,7 +212,7 @@ void main() {
       expect(map['optionalModel'], isA<Map<String, dynamic>>());
       expect(map['optionalModel']['id'], 'inner-1');
 
-      final restored = nestedContainerFromJson(map);
+      final restored = nestedContainerFromMap(map);
       expect(restored.optionalModel, isNotNull);
       expect(restored.optionalModel!.id, 'inner-1');
     });
@@ -226,7 +226,7 @@ void main() {
       expect(map['shape_type'], 'Circle');
       expect(map['radius'], 4.5);
 
-      final restored = shapeFromJson(map);
+      final restored = shapeFromMap(map);
       expect(restored, isA<Circle>());
       expect((restored as Circle).radius, 4.5);
     });
@@ -238,14 +238,14 @@ void main() {
       expect(map['shape_type'], 'Square');
       expect(map['side'], 10.0);
 
-      final restored = shapeFromJson(map);
+      final restored = shapeFromMap(map);
       expect(restored, isA<Square>());
       expect((restored as Square).side, 10.0);
     });
 
     test('throws FormatException on unknown discriminator', () {
       expect(
-        () => shapeFromJson({'shape_type': 'Triangle', 'base': 5}),
+        () => shapeFromMap({'shape_type': 'Triangle', 'base': 5}),
         throwsFormatException,
       );
     });
@@ -267,7 +267,7 @@ void main() {
       expect(map['vehicle_type'], 'car_v1');
       expect(map['seats'], 5);
 
-      final restored = vehicleFromJson(map);
+      final restored = vehicleFromMap(map);
       expect(restored, isA<Car>());
       expect((restored as Car).seats, 5);
     });
@@ -278,7 +278,7 @@ void main() {
       expect(map['vehicle_type'], 'Bike');
       expect(map['hasPedals'], true);
 
-      final restored = vehicleFromJson(map);
+      final restored = vehicleFromMap(map);
       expect(restored, isA<Bike>());
       expect((restored as Bike).hasPedals, true);
     });
@@ -286,7 +286,7 @@ void main() {
 
   group('Custom JSON wire key mapping (@SerializedValue)', () {
     test('uses wire_key bidirectionally for fromJson and toMap', () {
-      final model = customKeyModelFromJson({'wire_key': 'secret-token'});
+      final model = customKeyModelFromMap({'wire_key': 'secret-token'});
       expect(model.key, 'secret-token');
 
       final map = customKeyModelToMap(model);
@@ -305,7 +305,7 @@ void main() {
       final sparseMap = nullableConverterModelToMap(model, excludeNull: true);
       expect(sparseMap.containsKey('nullableConvertedInt'), false);
 
-      final restored = nullableConverterModelFromJson(map);
+      final restored = nullableConverterModelFromMap(map);
       expect(restored.nullableConvertedInt, isNull);
     });
 
@@ -314,7 +314,7 @@ void main() {
       final map = nullableConverterModelToMap(model);
       expect(map['nullableConvertedInt'], '42');
 
-      final restored = nullableConverterModelFromJson(map);
+      final restored = nullableConverterModelFromMap(map);
       expect(restored.nullableConvertedInt, 42);
     });
   });
@@ -339,7 +339,7 @@ void main() {
       ]);
       expect(map['mappedLists']['letters'], ['a', 'b']);
 
-      final restored = deepCollectionsModelFromJson(map);
+      final restored = deepCollectionsModelFromMap(map);
       expect(restored.matrix, model.matrix);
       expect(restored.mappedLists, model.mappedLists);
     });
@@ -355,7 +355,7 @@ void main() {
       expect(map.containsKey('internal_secret'), false);
       expect(map.containsKey('internalSecret'), false);
 
-      final restored = caseStyledModelFromJson({
+      final restored = caseStyledModelFromMap({
         'user_full_name': 'Jane Doe',
         'login_attempt_count': 5,
         'internal_secret': 'attacker_input',
@@ -435,7 +435,7 @@ void main() {
         'id': 'acc_001',
         'acc_type': 'prem',
       };
-      final account = accountFromJson(json);
+      final account = accountFromMap(json);
       expect(account.id, 'acc_001');
       expect(account.type, AccountType.premium);
       expect(account.loginCount, 0); // fallback injected
@@ -493,7 +493,7 @@ void main() {
         'type': 'LoginEvent',
       });
 
-      final restoredLogin = eventFromJson(loginMap);
+      final restoredLogin = eventFromMap(loginMap);
       expect(restoredLogin, isA<LoginEvent>());
       expect((restoredLogin as LoginEvent).userId, 'user_123');
 
@@ -503,14 +503,14 @@ void main() {
         'type': 'LogoutEvent',
       });
 
-      final restoredLogout = eventFromJson(logoutMap);
+      final restoredLogout = eventFromMap(logoutMap);
       expect(restoredLogout, isA<LogoutEvent>());
     });
 
     test('throws FormatException on missing or invalid default discriminator with source', () {
       final missingTypeJson = {'userId': 'user_123'};
       try {
-        eventFromJson(missingTypeJson);
+        eventFromMap(missingTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(e.message, contains("Missing required discriminator 'type'"));
@@ -519,7 +519,7 @@ void main() {
 
       final unknownTypeJson = {'type': 'UnknownEvent'};
       try {
-        eventFromJson(unknownTypeJson);
+        eventFromMap(unknownTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -535,7 +535,7 @@ void main() {
     test('throws FormatException referring to missing field and passes json source', () {
       final input1 = {'id': 'only_id'};
       try {
-        complexModelFromJson(input1);
+        complexModelFromMap(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -547,7 +547,7 @@ void main() {
 
       final input2 = <String, dynamic>{};
       try {
-        nestedContainerFromJson(input2);
+        nestedContainerFromMap(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -559,7 +559,7 @@ void main() {
 
       final input3 = {'containerId': 'c1'};
       try {
-        nestedContainerFromJson(input3);
+        nestedContainerFromMap(input3);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -573,7 +573,7 @@ void main() {
     test('throws FormatException referring to field with invalid type and passes json source', () {
       final input1 = {'radius': 'not_a_number'};
       try {
-        circleFromJson(input1);
+        circleFromMap(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -587,7 +587,7 @@ void main() {
 
       final input2 = {'seats': 'four'};
       try {
-        carFromJson(input2);
+        carFromMap(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -603,7 +603,7 @@ void main() {
     test('throws FormatException when a required field is explicitly null with type failure message and source', () {
       final input1 = {'radius': null};
       try {
-        circleFromJson(input1);
+        circleFromMap(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -617,7 +617,7 @@ void main() {
 
       final input2 = {'seats': null};
       try {
-        carFromJson(input2);
+        carFromMap(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -648,7 +648,7 @@ void main() {
         'priority': 30,
       };
       try {
-        complexModelFromJson(validMap);
+        complexModelFromMap(validMap);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -682,7 +682,7 @@ void main() {
         'containerId': 'c1',
         'model': innerJson,
       };
-      final container = nestedContainerFromJson(outer);
+      final container = nestedContainerFromMap(outer);
       expect(container.containerId, 'c1');
       expect(container.model.id, 'nested-1');
 
@@ -696,7 +696,7 @@ void main() {
         'model': invalidInner,
       };
       try {
-        nestedContainerFromJson(outerWithInvalidInner);
+        nestedContainerFromMap(outerWithInvalidInner);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(
@@ -710,7 +710,7 @@ void main() {
     test('throws FormatException on null discriminator as unknown discriminator and passes source', () {
       final nullTypeJson = {'type': null, 'userId': 'u1'};
       try {
-        eventFromJson(nullTypeJson);
+        eventFromMap(nullTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(e.message, contains("Unknown Event discriminator: 'null'"));
@@ -761,7 +761,7 @@ void main() {
             'shipping_city': 'Austin',
           };
 
-          final orderA = Order.fromJson(payloadA);
+          final orderA = Order.fromMap(payloadA);
           expect(orderA.id, 'ord_101');
           expect(orderA.status, PaymentStatus.pending);
           expect(orderA.notes, isNull);
@@ -781,7 +781,7 @@ void main() {
             'shipping_city': 'Austin',
           };
 
-          final orderB = Order.fromJson(payloadB);
+          final orderB = Order.fromMap(payloadB);
           expect(orderB.id, 'ord_101');
           expect(orderB.status, PaymentStatus.pending);
           expect(orderB.notes, isNull);
@@ -792,7 +792,7 @@ void main() {
       );
 
       test(
-        'Standard Serialization (order.toJson()) preserves explicit null keys',
+        'Standard Serialization (order.toMap()) preserves explicit null keys',
         () {
           final order = Order(
             id: 'ord_101',
@@ -805,7 +805,7 @@ void main() {
             ),
           );
 
-          final json = order.toJson();
+          final json = order.toMap();
           expect(json, {
             'id': 'ord_101',
             'order_status': 'pay_pending',
@@ -818,7 +818,7 @@ void main() {
       );
 
       test(
-        'Sparse / PATCH Serialization (order.toJson(excludeNull: true)) strips nulls across root and child',
+        'Sparse / PATCH Serialization (order.toMap(excludeNull: true)) strips nulls across root and child',
         () {
           final order = Order(
             id: 'ord_101',
@@ -831,7 +831,7 @@ void main() {
             ),
           );
 
-          final json = order.toJson(excludeNull: true);
+          final json = order.toMap(excludeNull: true);
           expect(json, {
             'id': 'ord_101',
             'order_status': 'pay_pending',
@@ -852,7 +852,7 @@ void main() {
           };
 
           expect(
-            () => Order.fromJson(invalidPayload),
+            () => Order.fromMap(invalidPayload),
             throwsA(
               isA<FormatException>().having(
                 (e) => e.message,

@@ -169,7 +169,7 @@ class TypeHelper {
       if (!explicitFromJson) {
         expr = '($jsonExpr as ${type.rawType})';
       } else {
-        final fn = '${toCamelCase(type.baseName)}FromJson';
+        final fn = '${toCamelCase(type.baseName)}FromMap';
         expr = type.isNullable
             ? '($jsonExpr == null ? null : $fn($jsonExpr as Map<String, dynamic>))'
             : '$fn($jsonExpr as Map<String, dynamic>)';

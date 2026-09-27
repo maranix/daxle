@@ -9,8 +9,8 @@ class SealedGenerator {
 
   SealedGenerator() : _emitter = DartEmitter(useNullSafetySyntax: true);
 
-  /// Builds the polymorphic `fromJson` [Method] specification.
-  Method buildFromJson(
+  /// Builds the polymorphic `fromMap` [Method] specification.
+  Method buildFromMap(
     ParsedClass sealedClass,
     List<ParsedClass> subclasses,
   ) {
@@ -32,7 +32,7 @@ class SealedGenerator {
           : sub.name;
       final tag = sub.customDiscriminatorName ?? defaultTag;
       buffer.writeln(
-        "  {'$discriminator': '$tag'} => ${subCamel}FromJson(json),",
+        "  {'$discriminator': '$tag'} => ${subCamel}FromMap(json),",
       );
     }
 
@@ -50,7 +50,7 @@ class SealedGenerator {
 
     return Method(
       (b) => b
-        ..name = '${camelName}FromJson'
+        ..name = '${camelName}FromMap'
         ..returns = refer(sealedClass.name)
         ..requiredParameters.add(
           Parameter(
@@ -116,12 +116,12 @@ class SealedGenerator {
     );
   }
 
-  /// Generates the `fromJson` function as code string.
-  String generateFromJson(
+  /// Generates the `fromMap` function as code string.
+  String generateFromMap(
     ParsedClass sealedClass,
     List<ParsedClass> subclasses,
   ) {
-    return buildFromJson(sealedClass, subclasses).accept(_emitter).toString();
+    return buildFromMap(sealedClass, subclasses).accept(_emitter).toString();
   }
 
   /// Generates the `toMap` function as code string.

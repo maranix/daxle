@@ -35,7 +35,7 @@ class User(
       expect(generated, contains("part of 'user.dart';"));
       expect(
         generated,
-        contains('User userFromJson(Map<String, dynamic> json)'),
+        contains('User userFromMap(Map<String, dynamic> json)'),
       );
       expect(
         generated,
@@ -106,10 +106,10 @@ class Square extends Shape {
     expect(generated, isNotNull);
     expect(
       generated,
-      contains('Shape shapeFromJson(Map<String, dynamic> json)'),
+      contains('Shape shapeFromMap(Map<String, dynamic> json)'),
     );
-    expect(generated, contains("{'kind': 'Circle'} => circleFromJson(json)"));
-    expect(generated, contains("{'kind': 'Square'} => squareFromJson(json)"));
+    expect(generated, contains("{'kind': 'Circle'} => circleFromMap(json)"));
+    expect(generated, contains("{'kind': 'Square'} => squareFromMap(json)"));
     expect(
       generated,
       contains(
