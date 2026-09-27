@@ -53,15 +53,15 @@ ThemeMode themeModeFromValue(Object? value) => switch (value) {
 };
 const _annotatedEnumEnumMap = {
   AnnotatedEnum.inProgress: 'in_progress',
-  AnnotatedEnum.fallbackStatus: 'fallbackStatus',
+  AnnotatedEnum.archived: 'archived_val',
 };
 dynamic annotatedEnumToValue(AnnotatedEnum instance) =>
     _annotatedEnumEnumMap[instance]!;
 AnnotatedEnum annotatedEnumFromValue(Object? value) => switch (value) {
   'in_progress' => AnnotatedEnum.inProgress,
   'internalSecret' => AnnotatedEnum.internalSecret,
-  'fallbackStatus' => AnnotatedEnum.fallbackStatus,
-  _ => AnnotatedEnum.fallbackStatus,
+  'archived_val' => AnnotatedEnum.archived,
+  _ => throw ArgumentError('Unknown AnnotatedEnum value: $value'),
 };
 ComplexModel complexModelFromJson(Map<String, dynamic> json) {
   return switch (json) {

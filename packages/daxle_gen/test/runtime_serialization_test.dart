@@ -365,13 +365,16 @@ void main() {
     });
 
     test('supports @SerializeValue and @DeserializeValue on enum entries', () {
-      // 1. Serialization name override and ignore
+      // 1. Serialization name override, ignore, and fallback custom value
       expect(annotatedEnumToValue(AnnotatedEnum.inProgress), 'in_progress');
       expect(() => annotatedEnumToValue(AnnotatedEnum.internalSecret), throwsA(isA<TypeError>()));
+      expect(annotatedEnumToValue(AnnotatedEnum.archived), 'archived_val');
 
-      // 2. Deserialization name override and fallback
+      // 2. Deserialization name override, fallback custom value, and unknown value error
       expect(annotatedEnumFromValue('in_progress'), AnnotatedEnum.inProgress);
-      expect(annotatedEnumFromValue('unknown_status_val'), AnnotatedEnum.fallbackStatus);
+      expect(annotatedEnumFromValue('internalSecret'), AnnotatedEnum.internalSecret);
+      expect(annotatedEnumFromValue('archived_val'), AnnotatedEnum.archived);
+      expect(() => annotatedEnumFromValue('unknown_status_val'), throwsArgumentError);
     });
   });
 

@@ -47,24 +47,15 @@ class EnumGenerator {
     // 3. fromValue function (switch pattern matching)
     final fromValueBody = StringBuffer();
     fromValueBody.writeln('switch (value) {');
-    ParsedEnumConstant? fallbackConstant;
-
     for (final constant in parsedEnum.constants) {
       if (constant.config.ignoreDeserialize) continue;
-      if (constant.config.fallbackCode != null) {
-        fallbackConstant = constant;
-      }
       final matchValue =
           constant.resolvedDeserializeValue(deserializeCaseStyle);
       fromValueBody.writeln('  $matchValue => $enumName.${constant.name},');
     }
 
-    if (fallbackConstant != null) {
-      fromValueBody.writeln('  _ => $enumName.${fallbackConstant.name},');
-    } else {
-      fromValueBody.writeln(
-          "  _ => throw ArgumentError('Unknown $enumName value: \$value'),");
-    }
+    fromValueBody.writeln(
+        "  _ => throw ArgumentError('Unknown $enumName value: \$value'),");
     fromValueBody.write('}');
 
     specs.add(Method((b) => b

@@ -226,4 +226,44 @@ enum ItemCategory { bookItem, electronicDevice }
     expect(category.constants[0].explicitValueCode, "'book-item'");
     expect(category.constants[1].explicitValueCode, "'electronic-device'");
   });
+
+  test('parses enum constant annotations with fallback custom values', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serializeEnum
+@deserializeEnum
+enum Status {
+  @SerializeValue(fallback: 'in_progress')
+  @DeserializeValue(fallback: 'in_progress')
+  inProgress,
+
+  @SerializeValue(fallback: 101)
+  @DeserializeValue(fallback: 101)
+  codeEntry,
+
+  standard,
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final status = parsedFile.enums.first;
+    expect(status.constants.length, 3);
+
+    final inProgress = status.constants[0];
+    expect(inProgress.config.serializeFallbackCode, "'in_progress'");
+    expect(inProgress.config.fallbackCode, "'in_progress'");
+    expect(inProgress.resolvedSerializeValue(null), "'in_progress'");
+    expect(inProgress.resolvedDeserializeValue(null), "'in_progress'");
+
+    final codeEntry = status.constants[1];
+    expect(codeEntry.config.serializeFallbackCode, '101');
+    expect(codeEntry.config.fallbackCode, '101');
+    expect(codeEntry.resolvedSerializeValue(null), '101');
+    expect(codeEntry.resolvedDeserializeValue(null), '101');
+
+    final standard = status.constants[2];
+    expect(standard.resolvedSerializeValue(null), "'standard'");
+    expect(standard.resolvedDeserializeValue(null), "'standard'");
+  });
 }

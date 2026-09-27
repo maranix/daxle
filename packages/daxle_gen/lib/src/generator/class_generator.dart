@@ -113,9 +113,11 @@ class ClassGenerator {
       }
 
       final key = param.resolvedDeserializeKey(caseStyle);
+      final hasFallback = param.config.fallbackCode != null ||
+          param.config.serializeFallbackCode != null;
       final isRequiredInJson = !param.type.isNullable &&
           !param.type.isOption &&
-          param.config.fallbackCode == null &&
+          !hasFallback &&
           !param.hasDefault;
 
       final String deserializeExpr;
@@ -252,7 +254,9 @@ class ClassGenerator {
 
       final key = field.resolvedSerializeKey(caseStyle);
       final fieldExpr = 'instance.${field.name}';
-      final hasSerializeFallback = field.config.serializeFallbackCode != null;
+      final hasSerializeFallback =
+          field.config.serializeFallbackCode != null ||
+          field.config.fallbackCode != null;
 
       if (field.type.isNullable &&
           !field.type.isOption &&

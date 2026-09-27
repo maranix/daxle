@@ -125,4 +125,41 @@ class Member(
     expect(generated, isNot(contains('internalToken')));
     expect(generated, isNot(contains('internal_token')));
   });
+
+  test('generates enum mappings with fallback custom values and always throws on unknown', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'state.daxle.dart';
+
+@serializeEnum
+@deserializeEnum
+enum TaskState {
+  @SerializeValue(fallback: 'in_progress')
+  @DeserializeValue(fallback: 'in_progress')
+  inProgress,
+  @SerializeValue(fallback: 101)
+  @DeserializeValue(fallback: 101)
+  codeEntry,
+  unknown,
+}
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/state.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains("TaskState.inProgress: 'in_progress'"));
+    expect(generated, contains("TaskState.codeEntry: 101"));
+    expect(generated, contains("TaskState.unknown: 'unknown'"));
+    expect(generated, contains("'in_progress' => TaskState.inProgress"));
+    expect(generated, contains("101 => TaskState.codeEntry"));
+    expect(generated, contains("'unknown' => TaskState.unknown"));
+    expect(
+        generated,
+        contains(
+            "_ => throw ArgumentError('Unknown TaskState value: \$value')"));
+    expect(generated, isNot(contains("_ => TaskState.unknown")));
+    expect(generated, isNot(contains("_ => TaskState.inProgress")));
+  });
 }

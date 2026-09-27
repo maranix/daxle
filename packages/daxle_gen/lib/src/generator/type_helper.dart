@@ -35,7 +35,9 @@ class TypeHelper {
       return '$prefix$converter.fromJson($jsonExpr)';
     }
 
-    final fallbackCode = config?.fallbackCode ?? parameterDefaultCode;
+    final fallbackCode = config?.fallbackCode ??
+        config?.serializeFallbackCode ??
+        parameterDefaultCode;
 
     String expr;
     if (type.isString) {
@@ -181,7 +183,8 @@ class TypeHelper {
       return '$prefix$converter.toJson($fieldExpr)';
     }
 
-    final serializeFallback = config?.serializeFallbackCode;
+    final serializeFallback =
+        config?.serializeFallbackCode ?? config?.fallbackCode;
 
     String expr;
     if (type.isPrimitive) {

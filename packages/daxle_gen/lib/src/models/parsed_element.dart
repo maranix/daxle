@@ -146,9 +146,12 @@ class ParsedEnumConstant {
 
   String resolvedSerializeValue(CaseStyle? enumCaseStyle) {
     if (config.serializeKey != null) return "'${config.serializeKey}'";
+    final customVal = config.serializeFallbackCode ?? config.fallbackCode;
+    if (customVal != null) return customVal;
     if (config.serializeCaseStyle != null) {
       return "'${config.serializeCaseStyle!.transform(name)}'";
     }
+    if (config.deserializeKey != null) return "'${config.deserializeKey}'";
     if (explicitValueCode != null) return explicitValueCode!;
     if (enumCaseStyle != null) {
       return "'${enumCaseStyle.transform(name)}'";
@@ -158,6 +161,8 @@ class ParsedEnumConstant {
 
   String resolvedDeserializeValue(CaseStyle? enumCaseStyle) {
     if (config.deserializeKey != null) return "'${config.deserializeKey}'";
+    final customVal = config.fallbackCode ?? config.serializeFallbackCode;
+    if (customVal != null) return customVal;
     if (config.deserializeCaseStyle != null) {
       return "'${config.deserializeCaseStyle!.transform(name)}'";
     }

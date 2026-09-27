@@ -166,8 +166,9 @@ enum AnnotatedEnum {
   @SerializeValue(ignore: true)
   internalSecret,
 
-  @DeserializeValue(fallback: true)
-  fallbackStatus,
+  @SerializeValue(fallback: 'archived_val')
+  @DeserializeValue(fallback: 'archived_val')
+  archived,
 }
 
 // 14. Sealed hierarchy with default discriminator ('type' and class name tags)
