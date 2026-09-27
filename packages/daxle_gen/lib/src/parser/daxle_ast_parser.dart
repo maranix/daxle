@@ -6,6 +6,7 @@ import 'package:daxle/daxle.dart';
 import '../models/annotation_info.dart';
 import '../models/parsed_element.dart';
 import '../models/parsed_type.dart';
+import 'generation_error.dart';
 
 /// Parses Dart source files into [ParsedFile] structures using analyzer AST.
 class DaxleAstParser {
@@ -60,6 +61,74 @@ class DaxleAstParser {
       }
     }
 
+    // Validate that elements with member annotations have a root annotation
+    final sealedClasses = classes.where((c) => c.isSealed).toList();
+    for (final clazz in classes) {
+      final isSubclassOfAnnotatedSealed =
+          !clazz.isSealed &&
+          sealedClasses.any(
+            (sc) =>
+                clazz.isSubclassOf(sc.name) &&
+                (sc.shouldSerialize ||
+                    sc.shouldDeserialize ||
+                    sc.shouldEqualsAndHashCode ||
+                    sc.shouldStringify ||
+                    sc.shouldCopyWith),
+          );
+
+      final hasRootAnnotation =
+          clazz.shouldSerialize ||
+          clazz.shouldDeserialize ||
+          clazz.shouldEqualsAndHashCode ||
+          clazz.shouldStringify ||
+          clazz.shouldCopyWith ||
+          isSubclassOfAnnotatedSealed;
+
+      if (!hasRootAnnotation) {
+        for (final field in clazz.fields) {
+          if (field.config.hasAnyAnnotation) {
+            throw InvalidGenerationSourceError(
+              'Field "${field.name}" in class "${clazz.name}" is annotated with a Daxle member annotation, '
+              'but "${clazz.name}" is not marked with any root annotation (@serialize, @deserialize, @equalsAndHashCode, @stringify, @copyWith).',
+              todo:
+                  'Add a root annotation to "${clazz.name}" or remove the annotation from "${field.name}".',
+            );
+          }
+        }
+        for (final param in clazz.constructorParams) {
+          if (param.config.hasAnyAnnotation) {
+            throw InvalidGenerationSourceError(
+              'Parameter "${param.name}" in class "${clazz.name}" constructor is annotated with a Daxle member annotation, '
+              'but "${clazz.name}" is not marked with any root annotation (@serialize, @deserialize, @equalsAndHashCode, @stringify, @copyWith).',
+              todo:
+                  'Add a root annotation to "${clazz.name}" or remove the annotation from "${param.name}".',
+            );
+          }
+        }
+      }
+    }
+
+    for (final enumEl in enums) {
+      final hasRootAnnotation =
+          enumEl.shouldSerialize ||
+          enumEl.shouldDeserialize ||
+          enumEl.shouldStringify ||
+          enumEl.fallbackCaseCode != null;
+
+      if (!hasRootAnnotation) {
+        for (final constant in enumEl.constants) {
+          if (constant.config.hasAnyAnnotation) {
+            throw InvalidGenerationSourceError(
+              'Enum case "${constant.name}" in enum "${enumEl.name}" is annotated with a Daxle member annotation, '
+              'but "${enumEl.name}" is not marked with any root annotation (@serializeEnum, @deserializeEnum, @stringify, @Fallback).',
+              todo:
+                  'Add a root annotation to "${enumEl.name}" or remove the annotation from "${constant.name}".',
+            );
+          }
+        }
+      }
+    }
+
     return ParsedFile(
       filePath: filePath,
       fileName: fileName,
@@ -111,10 +180,14 @@ class DaxleAstParser {
         stringifyInfo = _parseStringifyAnnotation(annotation);
       } else if (name == 'CopyWith' || name == 'copyWith') {
         copyWithInfo = _parseCopyWithAnnotation(annotation);
-      } else if (name == 'SerializeValue' || name == 'DeserializeValue') {
-        final cfg = _parseFieldConfig(declaration.metadata);
-        customDiscriminatorName ??=
-            cfg.effectiveSerializeKey ?? cfg.effectiveDeserializeKey;
+      } else if (name == 'SerializedValue' ||
+          name == 'SerializeValue' ||
+          name == 'DeserializeValue') {
+        final cfg = _parseFieldConfig(
+          declaration.metadata,
+          memberName: className,
+        );
+        customDiscriminatorName ??= cfg.serializedKey;
       }
     }
 
@@ -134,7 +207,10 @@ class DaxleAstParser {
         final paramName = param.name?.lexeme ?? '';
         final paramTypeStr = _getParameterTypeString(param);
         final paramType = ParsedType.parse(paramTypeStr);
-        final fieldConfig = _parseFieldConfig(param.metadata);
+        final fieldConfig = _parseFieldConfig(
+          param.metadata,
+          memberName: paramName,
+        );
         final defaultVal = _getParameterDefaultValue(param);
 
         final parsedParam = ParsedConstructorParam(
@@ -169,13 +245,22 @@ class DaxleAstParser {
         if (member is FieldDeclaration && !member.isStatic) {
           final typeStr = member.fields.type?.toSource() ?? 'dynamic';
           final parsedType = ParsedType.parse(typeStr);
-          final fieldAnnotations = _parseFieldConfig(member.metadata);
+          final fieldAnnotations = _parseFieldConfig(
+            member.metadata,
+            memberName: 'field',
+          );
 
           for (final variable in member.fields.variables) {
             final varName = variable.name.lexeme;
             final initCode = variable.initializer?.toSource();
-            final varAnnotations = _parseFieldConfig(variable.metadata);
-            final mergedConfig = fieldAnnotations.merge(varAnnotations);
+            final varAnnotations = _parseFieldConfig(
+              variable.metadata,
+              memberName: varName,
+            );
+            final mergedConfig = fieldAnnotations.merge(
+              varAnnotations,
+              varName,
+            );
 
             // Avoid duplicating if already populated by primary constructor
             if (!fields.any((f) => f.name == varName)) {
@@ -215,21 +300,27 @@ class DaxleAstParser {
             final paramName = param.name?.lexeme ?? '';
             var paramTypeStr = _getParameterTypeString(param);
 
-            // If initializing formal `this.fieldName` and type was omitted, look up field type
+            final matchedField = fields
+                .where((f) => f.name == paramName)
+                .firstOrNull;
             if (paramTypeStr == 'dynamic' &&
                 (param is FieldFormalParameter ||
                     param.toSource().startsWith('this.'))) {
-              final matchedField = fields
-                  .where((f) => f.name == paramName)
-                  .firstOrNull;
               if (matchedField != null) {
                 paramTypeStr = matchedField.type.rawType;
               }
             }
 
             final paramType = ParsedType.parse(paramTypeStr);
-            final paramConfig = _parseFieldConfig(param.metadata);
+            final paramConfig = _parseFieldConfig(
+              param.metadata,
+              memberName: paramName,
+            );
             final defaultVal = _getParameterDefaultValue(param);
+
+            final effectiveConfig = matchedField != null
+                ? matchedField.config.merge(paramConfig, paramName)
+                : paramConfig;
 
             constructorParams.add(
               ParsedConstructorParam(
@@ -239,7 +330,7 @@ class DaxleAstParser {
                 isRequired: param.isRequired,
                 hasDefault: defaultVal != null,
                 defaultValueCode: defaultVal,
-                config: paramConfig,
+                config: effectiveConfig,
               ),
             );
 
@@ -249,7 +340,7 @@ class DaxleAstParser {
               fields[fieldIndex] = ParsedField(
                 name: fields[fieldIndex].name,
                 type: fields[fieldIndex].type,
-                config: fields[fieldIndex].config.merge(paramConfig),
+                config: effectiveConfig,
                 isFinal: fields[fieldIndex].isFinal,
                 hasDefaultValue:
                     fields[fieldIndex].hasDefaultValue || defaultVal != null,
@@ -259,6 +350,54 @@ class DaxleAstParser {
             }
           }
         }
+      }
+    }
+
+    // Validate @Flatten target contract
+    for (final field in fields) {
+      if (field.config.isFlattened) {
+        final t = field.type;
+        if (t.isPrimitive ||
+            t.isList ||
+            t.isSet ||
+            t.isMap ||
+            t.isQueryMap ||
+            t.isOption ||
+            t.isDynamic ||
+            t.isObject) {
+          throw InvalidGenerationSourceError(
+            '@Flatten cannot be used on field "${field.name}" of type "${t.rawType}". '
+            'The target type must be a custom class implementing toMap({bool excludeNull = false}) and fromMap(Map<String, dynamic> map).',
+            todo:
+                'Remove @Flatten from "${field.name}" or use a custom class type.',
+          );
+        }
+      }
+    }
+
+    // Validate duplicate wire keys and aliases
+    final seenClassKeys = <String, String>{};
+    for (final field in fields) {
+      if (field.config.isIgnored || field.config.isFlattened) continue;
+      final wireKey = field.resolvedSerializeKey(serializeInfo?.caseStyle);
+      if (seenClassKeys.containsKey(wireKey)) {
+        throw InvalidGenerationSourceError(
+          'Duplicate wire key or alias "$wireKey" found on field "${field.name}" in class "$className" (conflicts with "${seenClassKeys[wireKey]}").',
+          todo:
+              'Ensure all serialized keys and aliases within "$className" are unique.',
+        );
+      }
+      seenClassKeys[wireKey] = field.name;
+
+      for (final alias in field.config.aliases) {
+        if (seenClassKeys.containsKey(alias)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate wire key or alias "$alias" found on field "${field.name}" in class "$className" (conflicts with "${seenClassKeys[alias]}").',
+            todo:
+                'Ensure all serialized keys and aliases within "$className" are unique.',
+          );
+        }
+        seenClassKeys[alias] = field.name;
       }
     }
 
@@ -286,6 +425,7 @@ class DaxleAstParser {
     SerializeEnumInfo? serializeInfo;
     DeserializeEnumInfo? deserializeInfo;
     StringifyInfo? stringifyInfo;
+    String? fallbackCaseCode;
 
     for (final annotation in declaration.metadata) {
       final name = _getAnnotationName(annotation);
@@ -309,6 +449,16 @@ class DaxleAstParser {
           name == 'Deserialize' ||
           name == 'deserialize') {
         deserializeInfo = _parseDeserializeEnumAnnotation(annotation);
+      } else if (name == 'Fallback') {
+        if (annotation.arguments != null &&
+            annotation.arguments!.arguments.isNotEmpty) {
+          final arg = annotation.arguments!.arguments.first;
+          if (arg is NamedArgument) {
+            fallbackCaseCode = arg.argumentExpression.toSource();
+          } else {
+            fallbackCaseCode = arg.toSource();
+          }
+        }
       }
     }
 
@@ -377,13 +527,13 @@ class DaxleAstParser {
         final constName = constant.name.lexeme;
         String? explicitValCode;
 
-        // Check for @SerializeValue annotation on enum constant
-        final config = _parseFieldConfig(constant.metadata);
+        // Check for annotations on enum constant
+        final config = _parseFieldConfig(
+          constant.metadata,
+          memberName: constName,
+        );
         if (config.effectiveSerializeKey != null) {
           explicitValCode = "'${config.effectiveSerializeKey}'";
-        } else if (config.serializeCaseStyle != null) {
-          explicitValCode =
-              "'${config.serializeCaseStyle!.transform(constName)}'";
         } else if (valueFieldName != null &&
             constant.arguments != null &&
             constant.arguments!.argumentList.arguments.isNotEmpty) {
@@ -418,6 +568,33 @@ class DaxleAstParser {
       }
     }
 
+    // Validate duplicate wire keys and aliases
+    final seenEnumKeys = <String, String>{};
+    for (final constant in constants) {
+      if (constant.isIgnored) continue;
+      final wireVal = constant.resolvedSerializeValue(serializeInfo?.caseStyle);
+      final cleanWireVal = wireVal.replaceAll("'", '').replaceAll('"', '');
+      if (seenEnumKeys.containsKey(cleanWireVal)) {
+        throw InvalidGenerationSourceError(
+          'Duplicate wire key or alias "$cleanWireVal" found on enum constant "${constant.name}" in enum "$enumName" (conflicts with "${seenEnumKeys[cleanWireVal]}").',
+          todo:
+              'Ensure all wire values and aliases within "$enumName" are unique.',
+        );
+      }
+      seenEnumKeys[cleanWireVal] = constant.name;
+
+      for (final alias in constant.config.aliases) {
+        if (seenEnumKeys.containsKey(alias)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate wire key or alias "$alias" found on enum constant "${constant.name}" in enum "$enumName" (conflicts with "${seenEnumKeys[alias]}").',
+            todo:
+                'Ensure all wire values and aliases within "$enumName" are unique.',
+          );
+        }
+        seenEnumKeys[alias] = constant.name;
+      }
+    }
+
     return ParsedEnum(
       name: enumName,
       serialize: serializeInfo,
@@ -426,6 +603,7 @@ class DaxleAstParser {
       valueFieldName: valueFieldName,
       valueFieldType: valueFieldType,
       constants: constants,
+      fallbackCaseCode: fallbackCaseCode,
     );
   }
 
@@ -571,67 +749,113 @@ class DaxleAstParser {
     return CopyWithInfo(ignoreFields: ignoreFields);
   }
 
-  FieldConfig _parseFieldConfig(NodeList<Annotation> metadata) {
-    String? serializeKey;
-    String? deserializeKey;
-    CaseStyle? serializeCaseStyle;
-    CaseStyle? deserializeCaseStyle;
+  FieldConfig _parseFieldConfig(
+    NodeList<Annotation> metadata, {
+    String memberName = 'member',
+  }) {
+    String? serializedKey;
+    var aliases = <String>[];
     String? fallbackCode;
-    String? serializeFallbackCode;
     String? converterCode;
-    String? serializeConverterCode;
-    var ignoreSerialize = false;
-    var ignoreDeserialize = false;
+    var isFlattened = false;
+    var flattenPrefix = '';
+    var isIgnored = false;
+    var hasSerializedValue = false;
+    var hasFallback = false;
 
     for (final annotation in metadata) {
       final annotName = _getAnnotationName(annotation);
-      final isSerializeVal = annotName == 'SerializeValue';
-      final isDeserializeVal = annotName == 'DeserializeValue';
-
-      if (isSerializeVal || isDeserializeVal) {
+      if (annotName == 'ignore' || annotName == 'Ignore') {
+        isIgnored = true;
+      } else if (annotName == 'Flatten' || annotName == 'flatten') {
+        isFlattened = true;
+        if (annotation.arguments != null) {
+          for (final arg in annotation.arguments!.arguments) {
+            if (arg is NamedArgument && arg.name.lexeme == 'prefix') {
+              flattenPrefix = _extractStringValue(arg.argumentExpression) ?? '';
+            } else if (arg is Expression) {
+              flattenPrefix = _extractStringValue(arg) ?? '';
+            }
+          }
+        }
+      } else if (annotName == 'SerializedValue' ||
+          annotName == 'SerializeValue' ||
+          annotName == 'DeserializeValue') {
+        hasSerializedValue = true;
         if (annotation.arguments != null) {
           for (final arg in annotation.arguments!.arguments) {
             if (arg is NamedArgument) {
               final argName = arg.name.lexeme;
-              if (argName == 'name') {
+              if (argName == 'value' || argName == 'name') {
                 final strVal = _extractStringValue(arg.argumentExpression);
-                if (isSerializeVal) serializeKey = strVal;
-                if (isDeserializeVal) deserializeKey = strVal;
-              } else if (argName == 'caseStyle') {
-                final style = _extractCaseStyle(arg.argumentExpression);
-                if (isSerializeVal) serializeCaseStyle = style;
-                if (isDeserializeVal) deserializeCaseStyle = style;
-              } else if (argName == 'fallback') {
-                final code = arg.argumentExpression.toSource();
-                if (isDeserializeVal) fallbackCode = code;
-                if (isSerializeVal) serializeFallbackCode = code;
+                serializedKey = strVal ?? arg.argumentExpression.toSource();
+              } else if (argName == 'aliases') {
+                aliases = _extractStringList(arg.argumentExpression);
               } else if (argName == 'converter') {
-                final code = arg.argumentExpression.toSource();
-                if (isDeserializeVal) converterCode = code;
-                if (isSerializeVal) serializeConverterCode = code;
-              } else if (argName == 'ignore') {
-                final isTrue = arg.argumentExpression.toSource() == 'true';
-                if (isSerializeVal && isTrue) ignoreSerialize = true;
-                if (isDeserializeVal && isTrue) ignoreDeserialize = true;
+                converterCode = arg.argumentExpression.toSource();
               }
+            } else if (arg is Expression) {
+              final strVal = _extractStringValue(arg);
+              serializedKey = strVal ?? arg.toSource();
+            } else {
+              serializedKey = arg.toSource();
+            }
+          }
+        }
+      } else if (annotName == 'Fallback') {
+        hasFallback = true;
+        if (annotation.arguments != null) {
+          for (final arg in annotation.arguments!.arguments) {
+            if (arg is NamedArgument) {
+              final argName = arg.name.lexeme;
+              if (argName == 'value' || argName == 'fallback') {
+                fallbackCode = arg.argumentExpression.toSource();
+              }
+            } else {
+              fallbackCode = arg.toSource();
             }
           }
         }
       }
     }
 
+    if (isIgnored && (hasSerializedValue || hasFallback || isFlattened)) {
+      throw InvalidGenerationSourceError(
+        '@ignore cannot coexist with @SerializedValue, @Fallback, or @Flatten on "$memberName".',
+        todo:
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten from "$memberName".',
+      );
+    }
+
+    if (isFlattened && hasSerializedValue) {
+      throw InvalidGenerationSourceError(
+        '@Flatten cannot coexist with @SerializedValue on "$memberName".',
+        todo: 'Remove either @Flatten or @SerializedValue from "$memberName".',
+      );
+    }
+
     return FieldConfig(
-      serializeKey: serializeKey,
-      deserializeKey: deserializeKey,
-      serializeCaseStyle: serializeCaseStyle,
-      deserializeCaseStyle: deserializeCaseStyle,
+      serializedKey: serializedKey,
+      aliases: aliases,
       fallbackCode: fallbackCode,
-      serializeFallbackCode: serializeFallbackCode,
       converterCode: converterCode,
-      serializeConverterCode: serializeConverterCode,
-      ignoreSerialize: ignoreSerialize,
-      ignoreDeserialize: ignoreDeserialize,
+      isFlattened: isFlattened,
+      flattenPrefix: flattenPrefix,
+      isIgnored: isIgnored,
     );
+  }
+
+  List<String> _extractStringList(Expression expr) {
+    final result = <String>[];
+    if (expr is ListLiteral) {
+      for (final elem in expr.elements) {
+        if (elem is Expression) {
+          final str = _extractStringValue(elem);
+          if (str != null) result.add(str);
+        }
+      }
+    }
+    return result;
   }
 
   CaseStyle? _extractCaseStyle(Expression expr) {

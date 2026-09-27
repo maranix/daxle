@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:daxle_gen/src/cli/cli_runner.dart';
 import 'package:daxle_gen/src/cli/glob_filter.dart';
 import 'package:test/test.dart';
@@ -35,7 +36,9 @@ void main() {
     });
 
     test('findPackageRoot finds pubspec.yaml ascending tree', () {
-      final root = DaxleCliRunner.findPackageRoot('packages/daxle_gen/test/cli_runner_test.dart');
+      final root = DaxleCliRunner.findPackageRoot(
+        'packages/daxle_gen/test/cli_runner_test.dart',
+      );
       expect(File('$root/pubspec.yaml').existsSync(), true);
     });
   });
@@ -53,9 +56,11 @@ void main() {
       }
     });
 
-    test('generates .daxle.dart file with preamble and correct naming', () async {
-      final sourceFile = File('${tempDir.path}/item.dart');
-      sourceFile.writeAsStringSync('''
+    test(
+      'generates .daxle.dart file with preamble and correct naming',
+      () async {
+        final sourceFile = File('${tempDir.path}/item.dart');
+        sourceFile.writeAsStringSync('''
 import 'package:daxle/daxle.dart';
 
 part 'item.daxle.dart';
@@ -65,24 +70,35 @@ part 'item.daxle.dart';
 class Item(final String id, final int price);
 ''');
 
-      final runner = DaxleCliRunner();
-      final exitCode = await runner.run(['generate', tempDir.path]);
-      expect(exitCode, 0);
+        final runner = DaxleCliRunner();
+        final exitCode = await runner.run(['generate', tempDir.path]);
+        expect(exitCode, 0);
 
-      final genFile = File('${tempDir.path}/item.daxle.dart');
-      expect(genFile.existsSync(), true);
+        final genFile = File('${tempDir.path}/item.daxle.dart');
+        expect(genFile.existsSync(), true);
 
-      final content = genFile.readAsStringSync();
-      expect(content, contains('// coverage:ignore-file'));
-      expect(content, contains('// GENERATED CODE - DO NOT MODIFY BY HAND'));
-      expect(content, contains("part of 'item.dart';"));
-      expect(content, contains('Item itemFromJson(Map<String, dynamic> json)'));
-      expect(content, contains('Map<String, dynamic> itemToMap(Item instance)'));
-    });
+        final content = genFile.readAsStringSync();
+        expect(content, contains('// coverage:ignore-file'));
+        expect(content, contains('// GENERATED CODE - DO NOT MODIFY BY HAND'));
+        expect(content, contains("part of 'item.dart';"));
+        expect(
+          content,
+          contains('Item itemFromMap(Map<String, dynamic> json)'),
+        );
+        expect(
+          content,
+          contains(
+            'Map<String, dynamic> itemToMap(Item instance, {bool excludeNull = false})',
+          ),
+        );
+      },
+    );
 
-    test('--check reports drift and exits with code 1 if file missing or changed', () async {
-      final sourceFile = File('${tempDir.path}/item.dart');
-      sourceFile.writeAsStringSync('''
+    test(
+      '--check reports drift and exits with code 1 if file missing or changed',
+      () async {
+        final sourceFile = File('${tempDir.path}/item.dart');
+        sourceFile.writeAsStringSync('''
 import 'package:daxle/daxle.dart';
 
 part 'item.daxle.dart';
@@ -92,22 +108,23 @@ part 'item.daxle.dart';
 class Item(final String id, final int price);
 ''');
 
-      final runner = DaxleCliRunner();
-      // First generation
-      var code = await runner.run(['generate', tempDir.path]);
-      expect(code, 0);
+        final runner = DaxleCliRunner();
+        // First generation
+        var code = await runner.run(['generate', tempDir.path]);
+        expect(code, 0);
 
-      // Check should pass
-      code = await runner.run(['generate', tempDir.path, '--check']);
-      expect(code, 0);
+        // Check should pass
+        code = await runner.run(['generate', tempDir.path, '--check']);
+        expect(code, 0);
 
-      // Modify generated file -> drift!
-      final genFile = File('${tempDir.path}/item.daxle.dart');
-      genFile.writeAsStringSync('// Tampered');
+        // Modify generated file -> drift!
+        final genFile = File('${tempDir.path}/item.daxle.dart');
+        genFile.writeAsStringSync('// Tampered');
 
-      code = await runner.run(['generate', tempDir.path, '--check']);
-      expect(code, 1);
-    });
+        code = await runner.run(['generate', tempDir.path, '--check']);
+        expect(code, 1);
+      },
+    );
 
     test('--help exits with code 0', () async {
       final runner = DaxleCliRunner();

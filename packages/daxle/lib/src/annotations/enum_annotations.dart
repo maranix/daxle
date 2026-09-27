@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+
 import 'case_style.dart';
 
 /// Marks an enum for serialization generation (`enumMap` / `toValue`).

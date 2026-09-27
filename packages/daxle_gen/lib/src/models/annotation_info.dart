@@ -1,5 +1,7 @@
 import 'package:daxle/daxle.dart';
 
+import '../parser/generation_error.dart';
+
 /// Parsed metadata for `@Serialize` / `@SerializeClass`.
 class SerializeInfo {
   final String? discriminator;
@@ -75,52 +77,77 @@ class DeserializeEnumInfo {
   });
 }
 
-/// Field-level or parameter-level configuration from `@SerializeValue` and `@DeserializeValue`.
+/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, `@Flatten`, and `@ignore`.
 class FieldConfig {
-  final String? serializeKey;
-  final String? deserializeKey;
-  final CaseStyle? serializeCaseStyle;
-  final CaseStyle? deserializeCaseStyle;
+  final String? serializedKey;
+  final List<String> aliases;
   final String? fallbackCode;
-  final String? serializeFallbackCode;
   final String? converterCode;
-  final String? serializeConverterCode;
-  final bool ignoreSerialize;
-  final bool ignoreDeserialize;
+  final bool isFlattened;
+  final String flattenPrefix;
+  final bool isIgnored;
 
   const FieldConfig({
-    this.serializeKey,
-    this.deserializeKey,
-    this.serializeCaseStyle,
-    this.deserializeCaseStyle,
+    this.serializedKey,
+    this.aliases = const [],
     this.fallbackCode,
-    this.serializeFallbackCode,
     this.converterCode,
-    this.serializeConverterCode,
-    this.ignoreSerialize = false,
-    this.ignoreDeserialize = false,
+    this.isFlattened = false,
+    this.flattenPrefix = '',
+    this.isIgnored = false,
   });
 
-  String? get effectiveSerializeKey => serializeKey;
-  String? get effectiveDeserializeKey => deserializeKey;
-  String? get effectiveSerializeConverter =>
-      serializeConverterCode ?? converterCode;
+  String? get effectiveSerializeKey => serializedKey;
+  String? get effectiveDeserializeKey => serializedKey;
+  String? get effectiveSerializeConverter => converterCode;
   String? get effectiveDeserializeConverter => converterCode;
+  bool get ignoreSerialize => isIgnored;
+  bool get ignoreDeserialize => isIgnored;
 
-  FieldConfig merge(FieldConfig other) {
+  /// Returns true if this configuration has any explicit member annotation or configuration.
+  bool get hasAnyAnnotation =>
+      isIgnored ||
+      isFlattened ||
+      serializedKey != null ||
+      fallbackCode != null ||
+      converterCode != null ||
+      aliases.isNotEmpty;
+
+  FieldConfig merge(FieldConfig other, [String memberName = 'member']) {
+    final mergedIgnored = isIgnored || other.isIgnored;
+    final mergedKey = other.serializedKey ?? serializedKey;
+    final mergedAliases = other.aliases.isNotEmpty ? other.aliases : aliases;
+    final mergedFallback = other.fallbackCode ?? fallbackCode;
+    final mergedConverter = other.converterCode ?? converterCode;
+    final mergedFlattened = isFlattened || other.isFlattened;
+    final mergedFlattenPrefix = other.flattenPrefix.isNotEmpty
+        ? other.flattenPrefix
+        : flattenPrefix;
+
+    if (mergedIgnored &&
+        (mergedKey != null || mergedFallback != null || mergedFlattened)) {
+      throw InvalidGenerationSourceError(
+        '@ignore cannot coexist with @SerializedValue, @Fallback, or @Flatten on "$memberName".',
+        todo:
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten from "$memberName".',
+      );
+    }
+
+    if (mergedFlattened && mergedKey != null) {
+      throw InvalidGenerationSourceError(
+        '@Flatten cannot coexist with @SerializedValue on "$memberName".',
+        todo: 'Remove either @Flatten or @SerializedValue from "$memberName".',
+      );
+    }
+
     return FieldConfig(
-      serializeKey: other.serializeKey ?? serializeKey,
-      deserializeKey: other.deserializeKey ?? deserializeKey,
-      serializeCaseStyle: other.serializeCaseStyle ?? serializeCaseStyle,
-      deserializeCaseStyle: other.deserializeCaseStyle ?? deserializeCaseStyle,
-      fallbackCode: other.fallbackCode ?? fallbackCode,
-      serializeFallbackCode:
-          other.serializeFallbackCode ?? serializeFallbackCode,
-      converterCode: other.converterCode ?? converterCode,
-      serializeConverterCode:
-          other.serializeConverterCode ?? serializeConverterCode,
-      ignoreSerialize: ignoreSerialize || other.ignoreSerialize,
-      ignoreDeserialize: ignoreDeserialize || other.ignoreDeserialize,
+      serializedKey: mergedKey,
+      aliases: mergedAliases,
+      fallbackCode: mergedFallback,
+      converterCode: mergedConverter,
+      isFlattened: mergedFlattened,
+      flattenPrefix: mergedFlattenPrefix,
+      isIgnored: mergedIgnored,
     );
   }
 }

@@ -78,7 +78,7 @@ void main() {
       expect(map['customEpoch'], 1600000000000);
 
       // Deserialization round-trip
-      final restored = complexModelFromJson(map);
+      final restored = complexModelFromMap(map);
 
       expect(restored.id, model.id);
       expect(restored.count, model.count);
@@ -123,7 +123,7 @@ void main() {
         'customEpoch': null,
       };
 
-      final restored = complexModelFromJson(json);
+      final restored = complexModelFromMap(json);
       expect(restored.optionalTag, const None<String>());
       expect(restored.role, 'guest');
       expect(restored.customEpoch, isNull);
@@ -131,7 +131,11 @@ void main() {
       final map = complexModelToMap(restored);
       expect(map['optionalTag'], isNull);
       expect(map['role'], 'guest');
-      expect(map.containsKey('customEpoch'), false);
+      expect(map['customEpoch'], isNull);
+      expect(map.containsKey('customEpoch'), true);
+
+      final sparseMap = complexModelToMap(restored, excludeNull: true);
+      expect(sparseMap.containsKey('customEpoch'), false);
     });
   });
 
@@ -166,9 +170,13 @@ void main() {
       expect(map['containerId'], 'c-1');
       expect(map['model'], isA<Map<String, dynamic>>());
       expect(map['model']['id'], 'inner-1');
-      expect(map.containsKey('optionalModel'), false);
+      expect(map['optionalModel'], isNull);
+      expect(map.containsKey('optionalModel'), true);
 
-      final restored = nestedContainerFromJson(map);
+      final sparseMap = nestedContainerToMap(container, excludeNull: true);
+      expect(sparseMap.containsKey('optionalModel'), false);
+
+      final restored = nestedContainerFromMap(map);
       expect(restored.containerId, 'c-1');
       expect(restored.model.id, 'inner-1');
       expect(restored.optionalModel, isNull);
@@ -204,7 +212,7 @@ void main() {
       expect(map['optionalModel'], isA<Map<String, dynamic>>());
       expect(map['optionalModel']['id'], 'inner-1');
 
-      final restored = nestedContainerFromJson(map);
+      final restored = nestedContainerFromMap(map);
       expect(restored.optionalModel, isNotNull);
       expect(restored.optionalModel!.id, 'inner-1');
     });
@@ -218,7 +226,7 @@ void main() {
       expect(map['shape_type'], 'Circle');
       expect(map['radius'], 4.5);
 
-      final restored = shapeFromJson(map);
+      final restored = shapeFromMap(map);
       expect(restored, isA<Circle>());
       expect((restored as Circle).radius, 4.5);
     });
@@ -230,14 +238,14 @@ void main() {
       expect(map['shape_type'], 'Square');
       expect(map['side'], 10.0);
 
-      final restored = shapeFromJson(map);
+      final restored = shapeFromMap(map);
       expect(restored, isA<Square>());
       expect((restored as Square).side, 10.0);
     });
 
     test('throws FormatException on unknown discriminator', () {
       expect(
-        () => shapeFromJson({'shape_type': 'Triangle', 'base': 5}),
+        () => shapeFromMap({'shape_type': 'Triangle', 'base': 5}),
         throwsFormatException,
       );
     });
@@ -259,7 +267,7 @@ void main() {
       expect(map['vehicle_type'], 'car_v1');
       expect(map['seats'], 5);
 
-      final restored = vehicleFromJson(map);
+      final restored = vehicleFromMap(map);
       expect(restored, isA<Car>());
       expect((restored as Car).seats, 5);
     });
@@ -270,20 +278,20 @@ void main() {
       expect(map['vehicle_type'], 'Bike');
       expect(map['hasPedals'], true);
 
-      final restored = vehicleFromJson(map);
+      final restored = vehicleFromMap(map);
       expect(restored, isA<Bike>());
       expect((restored as Bike).hasPedals, true);
     });
   });
 
-  group('Asymmetric JSON key mapping', () {
-    test('uses incoming_key for fromJson and outgoing_key for toMap', () {
-      final model = asymmetricModelFromJson({'incoming_key': 'secret-token'});
+  group('Custom JSON wire key mapping (@SerializedValue)', () {
+    test('uses wire_key bidirectionally for fromJson and toMap', () {
+      final model = customKeyModelFromMap({'wire_key': 'secret-token'});
       expect(model.key, 'secret-token');
 
-      final map = asymmetricModelToMap(model);
-      expect(map['outgoing_key'], 'secret-token');
-      expect(map.containsKey('incoming_key'), false);
+      final map = customKeyModelToMap(model);
+      expect(map['wire_key'], 'secret-token');
+      expect(map.containsKey('key'), false);
     });
   });
 
@@ -291,9 +299,13 @@ void main() {
     test('handles null without throwing NullThrownError', () {
       final model = NullableConverterModel(null);
       final map = nullableConverterModelToMap(model);
-      expect(map.containsKey('nullableConvertedInt'), false);
+      expect(map['nullableConvertedInt'], isNull);
+      expect(map.containsKey('nullableConvertedInt'), true);
 
-      final restored = nullableConverterModelFromJson(map);
+      final sparseMap = nullableConverterModelToMap(model, excludeNull: true);
+      expect(sparseMap.containsKey('nullableConvertedInt'), false);
+
+      final restored = nullableConverterModelFromMap(map);
       expect(restored.nullableConvertedInt, isNull);
     });
 
@@ -302,7 +314,7 @@ void main() {
       final map = nullableConverterModelToMap(model);
       expect(map['nullableConvertedInt'], '42');
 
-      final restored = nullableConverterModelFromJson(map);
+      final restored = nullableConverterModelFromMap(map);
       expect(restored.nullableConvertedInt, 42);
     });
   });
@@ -327,7 +339,7 @@ void main() {
       ]);
       expect(map['mappedLists']['letters'], ['a', 'b']);
 
-      final restored = deepCollectionsModelFromJson(map);
+      final restored = deepCollectionsModelFromMap(map);
       expect(restored.matrix, model.matrix);
       expect(restored.mappedLists, model.mappedLists);
     });
@@ -343,7 +355,7 @@ void main() {
       expect(map.containsKey('internal_secret'), false);
       expect(map.containsKey('internalSecret'), false);
 
-      final restored = caseStyledModelFromJson({
+      final restored = caseStyledModelFromMap({
         'user_full_name': 'Jane Doe',
         'login_attempt_count': 5,
         'internal_secret': 'attacker_input',
@@ -365,19 +377,110 @@ void main() {
       expect(() => themeModeFromValue('unknown-theme'), throwsArgumentError);
     });
 
-    test('supports @SerializeValue and @DeserializeValue on enum entries', () {
-      // 1. Serialization name override, ignore, and fallback custom value
+    test('supports @SerializedValue and @ignore on enum entries', () {
+      // 1. Serialization name override, ignore, and custom wire value
       expect(annotatedEnumToValue(AnnotatedEnum.inProgress), 'in_progress');
-      expect(() => annotatedEnumToValue(AnnotatedEnum.internalSecret), throwsA(isA<TypeError>()));
+      expect(
+        () => annotatedEnumToValue(AnnotatedEnum.internalSecret),
+        throwsA(isA<TypeError>()),
+      );
       expect(annotatedEnumToValue(AnnotatedEnum.archived), 'archived_val');
 
-      // 2. Deserialization name override, fallback custom value, and unknown value error
+      // 2. Deserialization name override, custom wire value, and unknown value error
       expect(annotatedEnumFromValue('in_progress'), AnnotatedEnum.inProgress);
-      expect(annotatedEnumFromValue('internalSecret'), AnnotatedEnum.internalSecret);
+      expect(
+        () => annotatedEnumFromValue('internalSecret'),
+        throwsArgumentError,
+      );
       expect(annotatedEnumFromValue('archived_val'), AnnotatedEnum.archived);
-      expect(() => annotatedEnumFromValue('unknown_status_val'), throwsArgumentError);
+      expect(
+        () => annotatedEnumFromValue('unknown_status_val'),
+        throwsArgumentError,
+      );
       expect(() => annotatedEnumFromValue(null), throwsArgumentError);
       expect(() => annotatedEnumFromValue(999), throwsArgumentError);
+    });
+  });
+
+  group('Reference Usage: @Fallback, @SerializedValue, @ignore (Account & AccountType)', () {
+    test('enum fail-fast by default vs enum @Fallback', () {
+      // Normal enum fails fast on unknown
+      expect(() => themeModeFromValue('non_existent'), throwsArgumentError);
+
+      // AccountType has @Fallback(AccountType.standard)
+      expect(accountTypeFromValue('std'), AccountType.standard);
+      expect(accountTypeFromValue('prem'), AccountType.premium);
+      expect(
+        accountTypeFromValue('unrecognized_payload_string'),
+        AccountType.standard,
+      );
+      expect(
+        accountTypeFromValue('internalTest'),
+        AccountType.standard,
+      ); // @ignore stripped from cases
+      expect(accountTypeFromValue(null), AccountType.standard);
+
+      // toValue ignores internalTest
+      expect(accountTypeToValue(AccountType.standard), 'std');
+      expect(accountTypeToValue(AccountType.premium), 'prem');
+      expect(
+        () => accountTypeToValue(AccountType.internalTest),
+        throwsA(isA<TypeError>()),
+      );
+    });
+
+    test('field default injection via @Fallback on class', () {
+      // missing loginCount and acc_type fallback
+      final json = <String, dynamic>{
+        'id': 'acc_001',
+        'acc_type': 'prem',
+      };
+      final account = accountFromMap(json);
+      expect(account.id, 'acc_001');
+      expect(account.type, AccountType.premium);
+      expect(account.loginCount, 0); // fallback injected
+    });
+
+    test('total exclusion of @ignore members across all generated logic', () {
+      final timer1 = Stopwatch()..start();
+      final timer2 = Stopwatch();
+      final acc1 = Account(
+        id: 'acc_001',
+        type: AccountType.standard,
+        loginCount: 5,
+        sessionTimer: timer1,
+      );
+      final acc2 = Account(
+        id: 'acc_001',
+        type: AccountType.standard,
+        loginCount: 5,
+        sessionTimer: timer2,
+      );
+
+      // 1. Omitted from serialization toMap
+      final map = accountToMap(acc1);
+      expect(map, {
+        'id': 'acc_001',
+        'acc_type': 'std',
+        'loginCount': 5,
+      });
+      expect(map.containsKey('sessionTimer'), false);
+
+      // 2. Excluded from == and hashCode
+      expect(acc1 == acc2, true);
+      expect(acc1.hashCode, acc2.hashCode);
+
+      // 3. Excluded from toString()
+      expect(
+        acc1.toString(),
+        'Account(id: acc_001, type: AccountType.standard, loginCount: 5)',
+      );
+      expect(acc1.toString().contains('sessionTimer'), false);
+
+      // 4. Excluded from copyWith parameters
+      final updated = acc1.copyWith(id: 'acc_002');
+      expect(updated.id, 'acc_002');
+      expect(updated.sessionTimer, timer1); // preserved from this.sessionTimer
     });
   });
 
@@ -390,7 +493,7 @@ void main() {
         'type': 'LoginEvent',
       });
 
-      final restoredLogin = eventFromJson(loginMap);
+      final restoredLogin = eventFromMap(loginMap);
       expect(restoredLogin, isA<LoginEvent>());
       expect((restoredLogin as LoginEvent).userId, 'user_123');
 
@@ -400,14 +503,14 @@ void main() {
         'type': 'LogoutEvent',
       });
 
-      final restoredLogout = eventFromJson(logoutMap);
+      final restoredLogout = eventFromMap(logoutMap);
       expect(restoredLogout, isA<LogoutEvent>());
     });
 
     test('throws FormatException on missing or invalid default discriminator with source', () {
       final missingTypeJson = {'userId': 'user_123'};
       try {
-        eventFromJson(missingTypeJson);
+        eventFromMap(missingTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(e.message, contains("Missing required discriminator 'type'"));
@@ -416,10 +519,13 @@ void main() {
 
       final unknownTypeJson = {'type': 'UnknownEvent'};
       try {
-        eventFromJson(unknownTypeJson);
+        eventFromMap(unknownTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Unknown Event discriminator: 'UnknownEvent'"));
+        expect(
+          e.message,
+          contains("Unknown Event discriminator: 'UnknownEvent'"),
+        );
         expect(e.source, same(unknownTypeJson));
       }
     });
@@ -429,28 +535,37 @@ void main() {
     test('throws FormatException referring to missing field and passes json source', () {
       final input1 = {'id': 'only_id'};
       try {
-        complexModelFromJson(input1);
+        complexModelFromMap(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'count' for ComplexModel"));
+        expect(
+          e.message,
+          contains("Missing required field 'count' for ComplexModel"),
+        );
         expect(e.source, same(input1));
       }
 
       final input2 = <String, dynamic>{};
       try {
-        nestedContainerFromJson(input2);
+        nestedContainerFromMap(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'containerId' for NestedContainer"));
+        expect(
+          e.message,
+          contains("Missing required field 'containerId' for NestedContainer"),
+        );
         expect(e.source, same(input2));
       }
 
       final input3 = {'containerId': 'c1'};
       try {
-        nestedContainerFromJson(input3);
+        nestedContainerFromMap(input3);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'model' for NestedContainer"));
+        expect(
+          e.message,
+          contains("Missing required field 'model' for NestedContainer"),
+        );
         expect(e.source, same(input3));
       }
     });
@@ -458,19 +573,29 @@ void main() {
     test('throws FormatException referring to field with invalid type and passes json source', () {
       final input1 = {'radius': 'not_a_number'};
       try {
-        circleFromJson(input1);
+        circleFromMap(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'radius' on Circle: expected num, got String"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'radius' on Circle: expected num, got String",
+          ),
+        );
         expect(e.source, same(input1));
       }
 
       final input2 = {'seats': 'four'};
       try {
-        carFromJson(input2);
+        carFromMap(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'seats' on Car: expected num, got String"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'seats' on Car: expected num, got String",
+          ),
+        );
         expect(e.source, same(input2));
       }
     });
@@ -478,19 +603,29 @@ void main() {
     test('throws FormatException when a required field is explicitly null with type failure message and source', () {
       final input1 = {'radius': null};
       try {
-        circleFromJson(input1);
+        circleFromMap(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'radius' on Circle: expected num, got Null"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'radius' on Circle: expected num, got Null",
+          ),
+        );
         expect(e.source, same(input1));
       }
 
       final input2 = {'seats': null};
       try {
-        carFromJson(input2);
+        carFromMap(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'seats' on Car: expected num, got Null"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'seats' on Car: expected num, got Null",
+          ),
+        );
         expect(e.source, same(input2));
       }
     });
@@ -513,10 +648,15 @@ void main() {
         'priority': 30,
       };
       try {
-        complexModelFromJson(validMap);
+        complexModelFromMap(validMap);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'status' on ComplexModel: expected non-null value, got Null"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'status' on ComplexModel: expected non-null value, got Null",
+          ),
+        );
         expect(e.source, same(validMap));
       }
     });
@@ -542,7 +682,7 @@ void main() {
         'containerId': 'c1',
         'model': innerJson,
       };
-      final container = nestedContainerFromJson(outer);
+      final container = nestedContainerFromMap(outer);
       expect(container.containerId, 'c1');
       expect(container.model.id, 'nested-1');
 
@@ -556,10 +696,13 @@ void main() {
         'model': invalidInner,
       };
       try {
-        nestedContainerFromJson(outerWithInvalidInner);
+        nestedContainerFromMap(outerWithInvalidInner);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'count' for ComplexModel"));
+        expect(
+          e.message,
+          contains("Missing required field 'count' for ComplexModel"),
+        );
         expect(e.source, invalidInner);
       }
     });
@@ -567,7 +710,7 @@ void main() {
     test('throws FormatException on null discriminator as unknown discriminator and passes source', () {
       final nullTypeJson = {'type': null, 'userId': 'u1'};
       try {
-        eventFromJson(nullTypeJson);
+        eventFromMap(nullTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
         expect(e.message, contains("Unknown Event discriminator: 'null'"));
@@ -575,6 +718,151 @@ void main() {
       }
     });
   });
+
+  group(
+    'Reference Usage: @SerializedValue aliases, @Flatten, dynamic null handling',
+    () {
+      test(
+        'PaymentStatus enum deserializes from canonical val or any alias and serializes strictly to canonical',
+        () {
+          expect(paymentStatusFromValue('pay_pending'), PaymentStatus.pending);
+          expect(paymentStatusFromValue('pending'), PaymentStatus.pending);
+          expect(paymentStatusFromValue('PAY_PENDING'), PaymentStatus.pending);
+          expect(paymentStatusFromValue('in_progress'), PaymentStatus.pending);
+
+          expect(paymentStatusFromValue('pay_success'), PaymentStatus.success);
+          expect(paymentStatusFromValue('success'), PaymentStatus.success);
+          expect(paymentStatusFromValue('completed'), PaymentStatus.success);
+
+          expect(paymentStatusFromValue('pay_failed'), PaymentStatus.failed);
+          expect(paymentStatusFromValue('failed'), PaymentStatus.failed);
+          expect(paymentStatusFromValue('error'), PaymentStatus.failed);
+
+          expect(
+            () => paymentStatusFromValue('unknown_status'),
+            throwsArgumentError,
+          );
+
+          expect(paymentStatusToValue(PaymentStatus.pending), 'pay_pending');
+          expect(paymentStatusToValue(PaymentStatus.success), 'pay_success');
+          expect(paymentStatusToValue(PaymentStatus.failed), 'pay_failed');
+        },
+      );
+
+      test(
+        'Incoming Payload A (canonical keys and values) parses correctly',
+        () {
+          final payloadA = <String, dynamic>{
+            'id': 'ord_101',
+            'order_status': 'pay_pending',
+            'notes': null,
+            'shipping_street': '123 Market St',
+            'shipping_apt': null,
+            'shipping_city': 'Austin',
+          };
+
+          final orderA = Order.fromMap(payloadA);
+          expect(orderA.id, 'ord_101');
+          expect(orderA.status, PaymentStatus.pending);
+          expect(orderA.notes, isNull);
+          expect(orderA.shippingAddress.street, '123 Market St');
+          expect(orderA.shippingAddress.apt, isNull);
+          expect(orderA.shippingAddress.city, 'Austin');
+        },
+      );
+
+      test(
+        'Incoming Payload B (legacy/alternative aliases) parses correctly',
+        () {
+          final payloadB = <String, dynamic>{
+            'id': 'ord_101',
+            'status': 'in_progress',
+            'shipping_street': '123 Market St',
+            'shipping_city': 'Austin',
+          };
+
+          final orderB = Order.fromMap(payloadB);
+          expect(orderB.id, 'ord_101');
+          expect(orderB.status, PaymentStatus.pending);
+          expect(orderB.notes, isNull);
+          expect(orderB.shippingAddress.street, '123 Market St');
+          expect(orderB.shippingAddress.apt, isNull);
+          expect(orderB.shippingAddress.city, 'Austin');
+        },
+      );
+
+      test(
+        'Standard Serialization (order.toMap()) preserves explicit null keys',
+        () {
+          final order = Order(
+            id: 'ord_101',
+            status: PaymentStatus.pending,
+            notes: null,
+            shippingAddress: Address(
+              street: '123 Market St',
+              apt: null,
+              city: 'Austin',
+            ),
+          );
+
+          final json = order.toMap();
+          expect(json, {
+            'id': 'ord_101',
+            'order_status': 'pay_pending',
+            'notes': null,
+            'shipping_street': '123 Market St',
+            'shipping_apt': null,
+            'shipping_city': 'Austin',
+          });
+        },
+      );
+
+      test(
+        'Sparse / PATCH Serialization (order.toMap(excludeNull: true)) strips nulls across root and child',
+        () {
+          final order = Order(
+            id: 'ord_101',
+            status: PaymentStatus.pending,
+            notes: null,
+            shippingAddress: Address(
+              street: '123 Market St',
+              apt: null,
+              city: 'Austin',
+            ),
+          );
+
+          final json = order.toMap(excludeNull: true);
+          expect(json, {
+            'id': 'ord_101',
+            'order_status': 'pay_pending',
+            'shipping_street': '123 Market St',
+            'shipping_city': 'Austin',
+          });
+        },
+      );
+
+      test(
+        'Throws FormatException when required field and all aliases are missing',
+        () {
+          final invalidPayload = <String, dynamic>{
+            'id': 'ord_101',
+            // missing order_status, status, and state
+            'shipping_street': '123 Market St',
+            'shipping_city': 'Austin',
+          };
+
+          expect(
+            () => Order.fromMap(invalidPayload),
+            throwsA(
+              isA<FormatException>().having(
+                (e) => e.message,
+                'message',
+                contains("Missing required field 'order_status' for Order"),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
 }
-
-

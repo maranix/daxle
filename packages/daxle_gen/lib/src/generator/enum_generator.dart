@@ -23,49 +23,81 @@ class EnumGenerator {
     final mapEntries = StringBuffer();
     mapEntries.writeln('{');
     for (final constant in parsedEnum.constants) {
-      if (constant.config.ignoreSerialize) continue;
+      if (constant.isIgnored) continue;
       final valueCode = constant.resolvedSerializeValue(serializeCaseStyle);
       mapEntries.writeln('  $enumName.${constant.name}: $valueCode,');
     }
     mapEntries.write('}');
 
-    specs.add(Field((b) => b
-      ..name = '_${camelName}EnumMap'
-      ..modifier = FieldModifier.constant
-      ..assignment = Code(mapEntries.toString())));
+    specs.add(
+      Field(
+        (b) => b
+          ..name = '_${camelName}EnumMap'
+          ..modifier = FieldModifier.constant
+          ..assignment = Code(mapEntries.toString()),
+      ),
+    );
 
     // 2. toValue function
-    specs.add(Method((b) => b
-      ..name = '${camelName}ToValue'
-      ..returns = refer('dynamic')
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'instance'
-        ..type = refer(enumName)))
-      ..lambda = true
-      ..body = Code('_${camelName}EnumMap[instance]!')));
+    specs.add(
+      Method(
+        (b) => b
+          ..name = '${camelName}ToValue'
+          ..returns = refer('dynamic')
+          ..requiredParameters.add(
+            Parameter(
+              (p) => p
+                ..name = 'instance'
+                ..type = refer(enumName),
+            ),
+          )
+          ..lambda = true
+          ..body = Code('_${camelName}EnumMap[instance]!'),
+      ),
+    );
 
     // 3. fromValue function (switch pattern matching)
     final fromValueBody = StringBuffer();
     fromValueBody.writeln('switch (value) {');
     for (final constant in parsedEnum.constants) {
-      if (constant.config.ignoreDeserialize) continue;
-      final matchValue =
-          constant.resolvedDeserializeValue(deserializeCaseStyle);
-      fromValueBody.writeln('  $matchValue => $enumName.${constant.name},');
+      if (constant.isIgnored) continue;
+      final matchValue = constant.resolvedDeserializeValue(
+        deserializeCaseStyle,
+      );
+      final patterns = [
+        matchValue,
+        ...constant.aliases.map((a) => "'$a'"),
+      ];
+      fromValueBody.writeln(
+        '  ${patterns.join(' || ')} => $enumName.${constant.name},',
+      );
     }
 
-    fromValueBody.writeln(
-        "  _ => throw ArgumentError('Unknown $enumName value: \$value'),");
+    if (parsedEnum.fallbackCaseCode != null) {
+      fromValueBody.writeln('  _ => ${parsedEnum.fallbackCaseCode},');
+    } else {
+      fromValueBody.writeln(
+        "  _ => throw ArgumentError('Unknown $enumName value: \$value'),",
+      );
+    }
     fromValueBody.write('}');
 
-    specs.add(Method((b) => b
-      ..name = '${camelName}FromValue'
-      ..returns = refer(enumName)
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'value'
-        ..type = refer('Object?')))
-      ..lambda = true
-      ..body = Code(fromValueBody.toString())));
+    specs.add(
+      Method(
+        (b) => b
+          ..name = '${camelName}FromValue'
+          ..returns = refer(enumName)
+          ..requiredParameters.add(
+            Parameter(
+              (p) => p
+                ..name = 'value'
+                ..type = refer('Object?'),
+            ),
+          )
+          ..lambda = true
+          ..body = Code(fromValueBody.toString()),
+      ),
+    );
 
     return specs;
   }

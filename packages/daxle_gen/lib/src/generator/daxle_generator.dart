@@ -100,7 +100,11 @@ class DaxleGenerator {
           !content.contains('stringify') &&
           !content.contains('Stringify') &&
           !content.contains('copyWith') &&
-          !content.contains('CopyWith')) {
+          !content.contains('CopyWith') &&
+          !content.contains('SerializedValue') &&
+          !content.contains('Fallback') &&
+          !content.contains('ignore') &&
+          !content.contains('Ignore')) {
         continue;
       }
 

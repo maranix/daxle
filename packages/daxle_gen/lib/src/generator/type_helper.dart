@@ -35,9 +35,7 @@ class TypeHelper {
       return '$prefix$converter.fromJson($jsonExpr)';
     }
 
-    final fallbackCode = config?.fallbackCode ??
-        config?.serializeFallbackCode ??
-        parameterDefaultCode;
+    final fallbackCode = config?.fallbackCode ?? parameterDefaultCode;
 
     String expr;
     if (type.isString) {
@@ -53,13 +51,9 @@ class TypeHelper {
           ? '(($jsonExpr as num?)?.toDouble())'
           : '(($jsonExpr as num).toDouble())';
     } else if (type.isNum) {
-      expr = type.isNullable
-          ? '($jsonExpr as num?)'
-          : '($jsonExpr as num)';
+      expr = type.isNullable ? '($jsonExpr as num?)' : '($jsonExpr as num)';
     } else if (type.isBool) {
-      expr = type.isNullable
-          ? '($jsonExpr as bool?)'
-          : '($jsonExpr as bool)';
+      expr = type.isNullable ? '($jsonExpr as bool?)' : '($jsonExpr as bool)';
     } else if (type.isDynamic || (type.isObject && type.isNullable)) {
       expr = jsonExpr;
     } else if (type.isObject) {
@@ -81,8 +75,13 @@ class TypeHelper {
           ? '($jsonExpr == null ? null : Duration(microseconds: ($jsonExpr as num).toInt()))'
           : 'Duration(microseconds: ($jsonExpr as num).toInt())';
     } else if (type.isOption) {
-      final innerType = type.singleTypeArgument ??
-          const ParsedType(rawType: 'Object', baseName: 'Object', isNullable: false);
+      final innerType =
+          type.singleTypeArgument ??
+          const ParsedType(
+            rawType: 'Object',
+            baseName: 'Object',
+            isNullable: false,
+          );
       final innerDeserialize = generateDeserialize(
         innerType,
         jsonExpr,
@@ -96,8 +95,13 @@ class TypeHelper {
           : 'QueryMap(($jsonExpr as Map).cast<Object?, Object?>())';
     } else if (type.isList) {
       final itemVar = depth == 0 ? 'e' : 'e$depth';
-      final itemType = type.singleTypeArgument ??
-          const ParsedType(rawType: 'dynamic', baseName: 'dynamic', isNullable: true);
+      final itemType =
+          type.singleTypeArgument ??
+          const ParsedType(
+            rawType: 'dynamic',
+            baseName: 'dynamic',
+            isNullable: true,
+          );
       final itemDeserialize = generateDeserialize(
         itemType,
         itemVar,
@@ -105,14 +109,21 @@ class TypeHelper {
         depth: depth + 1,
       );
       if (type.isNullable) {
-        expr = '($jsonExpr as List<dynamic>?)?.map(($itemVar) => $itemDeserialize).toList()';
+        expr =
+            '($jsonExpr as List<dynamic>?)?.map(($itemVar) => $itemDeserialize).toList()';
       } else {
-        expr = '($jsonExpr as List<dynamic>).map(($itemVar) => $itemDeserialize).toList()';
+        expr =
+            '($jsonExpr as List<dynamic>).map(($itemVar) => $itemDeserialize).toList()';
       }
     } else if (type.isSet) {
       final itemVar = depth == 0 ? 'e' : 'e$depth';
-      final itemType = type.singleTypeArgument ??
-          const ParsedType(rawType: 'dynamic', baseName: 'dynamic', isNullable: true);
+      final itemType =
+          type.singleTypeArgument ??
+          const ParsedType(
+            rawType: 'dynamic',
+            baseName: 'dynamic',
+            isNullable: true,
+          );
       final itemDeserialize = generateDeserialize(
         itemType,
         itemVar,
@@ -120,16 +131,22 @@ class TypeHelper {
         depth: depth + 1,
       );
       if (type.isNullable) {
-        expr = '($jsonExpr as List<dynamic>?)?.map(($itemVar) => $itemDeserialize).toSet()';
+        expr =
+            '($jsonExpr as List<dynamic>?)?.map(($itemVar) => $itemDeserialize).toSet()';
       } else {
-        expr = '($jsonExpr as List<dynamic>).map(($itemVar) => $itemDeserialize).toSet()';
+        expr =
+            '($jsonExpr as List<dynamic>).map(($itemVar) => $itemDeserialize).toSet()';
       }
     } else if (type.isMap) {
       final kVar = depth == 0 ? 'k' : 'k$depth';
       final vVar = depth == 0 ? 'v' : 'v$depth';
       final valType = type.typeArguments.length > 1
           ? type.typeArguments[1]
-          : const ParsedType(rawType: 'dynamic', baseName: 'dynamic', isNullable: true);
+          : const ParsedType(
+              rawType: 'dynamic',
+              baseName: 'dynamic',
+              isNullable: true,
+            );
       final valDeserialize = generateDeserialize(
         valType,
         vVar,
@@ -152,7 +169,7 @@ class TypeHelper {
       if (!explicitFromJson) {
         expr = '($jsonExpr as ${type.rawType})';
       } else {
-        final fn = '${toCamelCase(type.baseName)}FromJson';
+        final fn = '${toCamelCase(type.baseName)}FromMap';
         expr = type.isNullable
             ? '($jsonExpr == null ? null : $fn($jsonExpr as Map<String, dynamic>))'
             : '$fn($jsonExpr as Map<String, dynamic>)';
@@ -183,9 +200,6 @@ class TypeHelper {
       return '$prefix$converter.toJson($fieldExpr)';
     }
 
-    final serializeFallback =
-        config?.serializeFallbackCode ?? config?.fallbackCode;
-
     String expr;
     if (type.isPrimitive) {
       expr = fieldExpr;
@@ -202,8 +216,13 @@ class TypeHelper {
           ? '$fieldExpr?.inMicroseconds'
           : '$fieldExpr.inMicroseconds';
     } else if (type.isOption) {
-      final innerType = type.singleTypeArgument ??
-          const ParsedType(rawType: 'Object', baseName: 'Object', isNullable: false);
+      final innerType =
+          type.singleTypeArgument ??
+          const ParsedType(
+            rawType: 'Object',
+            baseName: 'Object',
+            isNullable: false,
+          );
       final innerSerialize = generateSerialize(
         innerType,
         'value',
@@ -239,9 +258,7 @@ class TypeHelper {
       final itemVar = depth == 0 ? 'e' : 'e$depth';
       final itemType = type.singleTypeArgument;
       if (itemType == null || itemType.isPrimitive) {
-        expr = type.isNullable
-            ? '$fieldExpr?.toList()'
-            : '$fieldExpr.toList()';
+        expr = type.isNullable ? '$fieldExpr?.toList()' : '$fieldExpr.toList()';
       } else {
         final itemSerialize = generateSerialize(
           itemType,
@@ -256,7 +273,9 @@ class TypeHelper {
     } else if (type.isMap) {
       final kVar = depth == 0 ? 'k' : 'k$depth';
       final vVar = depth == 0 ? 'v' : 'v$depth';
-      final valType = type.typeArguments.length > 1 ? type.typeArguments[1] : null;
+      final valType = type.typeArguments.length > 1
+          ? type.typeArguments[1]
+          : null;
       if (valType == null || (valType.isPrimitive && explicitToJson)) {
         expr = fieldExpr;
       } else {
@@ -286,6 +305,7 @@ class TypeHelper {
       }
     }
 
+    final serializeFallback = config?.fallbackCode;
     if (serializeFallback != null && type.isNullable) {
       if (type.isPrimitive) {
         return '$fieldExpr ?? $serializeFallback';
@@ -320,8 +340,13 @@ class TypeHelper {
     } else if (type.isDuration) {
       return '$fieldExpr!.inMicroseconds';
     } else if (type.isOption) {
-      final innerType = type.singleTypeArgument ??
-          const ParsedType(rawType: 'Object', baseName: 'Object', isNullable: false);
+      final innerType =
+          type.singleTypeArgument ??
+          const ParsedType(
+            rawType: 'Object',
+            baseName: 'Object',
+            isNullable: false,
+          );
       final innerSerialize = generateSerialize(
         innerType,
         'value',
@@ -360,7 +385,9 @@ class TypeHelper {
     } else if (type.isMap) {
       final kVar = depth == 0 ? 'k' : 'k$depth';
       final vVar = depth == 0 ? 'v' : 'v$depth';
-      final valType = type.typeArguments.length > 1 ? type.typeArguments[1] : null;
+      final valType = type.typeArguments.length > 1
+          ? type.typeArguments[1]
+          : null;
       if (valType == null || (valType.isPrimitive && explicitToJson)) {
         return fieldExpr;
       }

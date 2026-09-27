@@ -105,7 +105,10 @@ extension type const Concurrency._(int poolSize) {
     Future<R> Function(T item) worker, {
     bool Function(R)? shouldStop,
   }) => process(
-    items.map((item) => () => worker(item)),
+    items.map(
+      (item) =>
+          () => worker(item),
+    ),
     shouldStop: shouldStop,
   );
 

@@ -1,5 +1,6 @@
 import 'package:daxle/daxle.dart';
 import 'package:daxle_gen/src/parser/daxle_ast_parser.dart';
+import 'package:daxle_gen/src/parser/generation_error.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -12,8 +13,7 @@ import 'package:daxle/daxle.dart';
 @serialize
 @deserialize
 class User(
-  @SerializeValue(name: 'user_id')
-  @DeserializeValue(name: 'user_id')
+  @SerializedValue('user_id')
   final String id,
   final String name,
   final Option<String> nickname, {
@@ -53,10 +53,10 @@ import 'package:daxle/daxle.dart';
 @serialize
 @deserialize
 class LegacyItem {
-  @SerializeValue(name: 'item_id')
+  @SerializedValue('item_id')
   final String id;
 
-  @DeserializeValue(fallback: 'unnamed')
+  @Fallback('unnamed')
   final String name;
 
   final DateTime createdAt;
@@ -162,7 +162,7 @@ part 'vehicle.daxle.dart';
 @Serialize(discriminator: 'v_type')
 sealed class Vehicle {}
 
-@SerializeValue(name: 'custom_car')
+@SerializedValue('custom_car')
 class Car implements Vehicle {
   final int wheels;
   Car(this.wheels);
@@ -218,7 +218,10 @@ enum ItemCategory { bookItem, electronicDevice }
     expect(account.serialize?.ignoreFields, contains('secretToken'));
     expect(account.deserialize?.ignoreFields, contains('secretToken'));
 
-    expect(account.fields[0].resolvedSerializeKey(account.serialize?.caseStyle), 'account_id');
+    expect(
+      account.fields[0].resolvedSerializeKey(account.serialize?.caseStyle),
+      'account_id',
+    );
     expect(account.fields[1].isIgnoredForSerialize(account.serialize), true);
 
     final category = parsedFile.enums.first;
@@ -227,20 +230,22 @@ enum ItemCategory { bookItem, electronicDevice }
     expect(category.constants[1].explicitValueCode, "'electronic-device'");
   });
 
-  test('parses enum constant annotations with fallback custom values', () {
+  test('parses enum constant annotations with SerializedValue, Fallback and ignore', () {
     const code = '''
 import 'package:daxle/daxle.dart';
 
+@Fallback(Status.standard)
 @serializeEnum
 @deserializeEnum
 enum Status {
-  @SerializeValue(fallback: 'in_progress')
-  @DeserializeValue(fallback: 'in_progress')
+  @SerializedValue('in_progress')
   inProgress,
 
-  @SerializeValue(fallback: 101)
-  @DeserializeValue(fallback: 101)
+  @SerializedValue(101)
   codeEntry,
+
+  @ignore
+  internalTest,
 
   standard,
 }
@@ -248,22 +253,333 @@ enum Status {
 
     final parsedFile = parser.parseContent(code);
     final status = parsedFile.enums.first;
-    expect(status.constants.length, 3);
+    expect(status.fallbackCaseCode, 'Status.standard');
+    expect(status.constants.length, 4);
 
     final inProgress = status.constants[0];
-    expect(inProgress.config.serializeFallbackCode, "'in_progress'");
-    expect(inProgress.config.fallbackCode, "'in_progress'");
+    expect(inProgress.config.serializedKey, 'in_progress');
     expect(inProgress.resolvedSerializeValue(null), "'in_progress'");
     expect(inProgress.resolvedDeserializeValue(null), "'in_progress'");
 
     final codeEntry = status.constants[1];
-    expect(codeEntry.config.serializeFallbackCode, '101');
-    expect(codeEntry.config.fallbackCode, '101');
+    expect(codeEntry.config.serializedKey, '101');
     expect(codeEntry.resolvedSerializeValue(null), '101');
     expect(codeEntry.resolvedDeserializeValue(null), '101');
 
-    final standard = status.constants[2];
+    final internalTest = status.constants[2];
+    expect(internalTest.isIgnored, true);
+
+    final standard = status.constants[3];
     expect(standard.resolvedSerializeValue(null), "'standard'");
     expect(standard.resolvedDeserializeValue(null), "'standard'");
   });
+
+  test('throws InvalidGenerationSourceError when @ignore is paired with @SerializedValue', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadModel {
+  @ignore
+  @SerializedValue('bad')
+  final String badField;
+
+  BadModel(this.badField);
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(isA<InvalidGenerationSourceError>()),
+    );
+  });
+
+  test(
+    'throws InvalidGenerationSourceError when @ignore is paired with @Fallback',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadModel {
+  @ignore
+  @Fallback('bad')
+  final String badField;
+
+  BadModel(this.badField);
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(isA<InvalidGenerationSourceError>()),
+      );
+    },
+  );
+
+  test('parses aliases on enum cases and class fields', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serializeEnum
+enum Status {
+  @SerializedValue('pay_pending', aliases: ['pending', 'in_progress'])
+  pending,
+}
+
+@serialize
+class Order {
+  @SerializedValue('order_status', aliases: ['status', 'state'])
+  final Status status;
+
+  Order(this.status);
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final statusEnum = parsedFile.enums.first;
+    expect(statusEnum.constants.first.aliases, ['pending', 'in_progress']);
+
+    final orderClass = parsedFile.classes.first;
+    expect(orderClass.fields.first.aliases, ['status', 'state']);
+  });
+
+  test('parses @Flatten and @flatten with prefix', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+class Address {
+  final String street;
+  Address(this.street);
+}
+
+@serialize
+class Order {
+  @Flatten(prefix: 'shipping_')
+  final Address shippingAddress;
+
+  @flatten
+  final Address billingAddress;
+
+  Order(this.shippingAddress, this.billingAddress);
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final orderClass = parsedFile.classes.firstWhere((c) => c.name == 'Order');
+    expect(orderClass.fields[0].isFlattened, true);
+    expect(orderClass.fields[0].flattenPrefix, 'shipping_');
+    expect(orderClass.fields[1].isFlattened, true);
+    expect(orderClass.fields[1].flattenPrefix, '');
+  });
+
+  test('throws InvalidGenerationSourceError on duplicate wire key or alias in enum', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serializeEnum
+enum ConflictEnum {
+  @SerializedValue('same_val', aliases: ['alias1'])
+  first,
+
+  @SerializedValue('other_val', aliases: ['alias1'])
+  second,
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains('Duplicate wire key or alias "alias1"'),
+        ),
+      ),
+    );
+  });
+
+  test('throws InvalidGenerationSourceError on duplicate wire key or alias in class', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class ConflictClass {
+  @SerializedValue('shared_key')
+  final String a;
+
+  @SerializedValue('b_val', aliases: ['shared_key'])
+  final String b;
+
+  ConflictClass(this.a, this.b);
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains('Duplicate wire key or alias "shared_key"'),
+        ),
+      ),
+    );
+  });
+
+  test('throws InvalidGenerationSourceError when @Flatten is used on primitive or collection types', () {
+    const primitiveCode = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadPrimitive {
+  @Flatten()
+  final int count;
+
+  BadPrimitive(this.count);
+}
+''';
+
+    expect(
+      () => parser.parseContent(primitiveCode),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains('@Flatten cannot be used on field "count" of type "int"'),
+        ),
+      ),
+    );
+
+    const collectionCode = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadCollection {
+  @flatten
+  final List<String> items;
+
+  BadCollection(this.items);
+}
+''';
+
+    expect(
+      () => parser.parseContent(collectionCode),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains(
+            '@Flatten cannot be used on field "items" of type "List<String>"',
+          ),
+        ),
+      ),
+    );
+  });
+
+  test(
+    'throws InvalidGenerationSourceError when @ignore is paired with @Flatten',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+class Address {
+  final String street;
+  Address(this.street);
+}
+
+@serialize
+class BadModel {
+  @ignore
+  @Flatten(prefix: 'addr_')
+  final Address address;
+
+  BadModel(this.address);
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(isA<InvalidGenerationSourceError>()),
+      );
+    },
+  );
+
+  test('throws InvalidGenerationSourceError when @Flatten is paired with @SerializedValue', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+class Address {
+  final String street;
+  Address(this.street);
+}
+
+@serialize
+class BadModel {
+  @SerializedValue('addr')
+  @Flatten(prefix: 'addr_')
+  final Address address;
+
+  BadModel(this.address);
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(isA<InvalidGenerationSourceError>()),
+    );
+  });
+
+  test(
+    'throws InvalidGenerationSourceError when class has member annotations but no root annotation',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+class UnannotatedClass {
+  @SerializedValue('my_field')
+  final String myField;
+
+  UnannotatedClass(this.myField);
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(
+          isA<InvalidGenerationSourceError>().having(
+            (e) => e.message,
+            'message',
+            contains('is not marked with any root annotation'),
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'throws InvalidGenerationSourceError when enum has case annotations but no root annotation',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+enum UnannotatedEnum {
+  @SerializedValue('first_case')
+  first,
+  second,
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(
+          isA<InvalidGenerationSourceError>().having(
+            (e) => e.message,
+            'message',
+            contains('is not marked with any root annotation'),
+          ),
+        ),
+      );
+    },
+  );
 }
