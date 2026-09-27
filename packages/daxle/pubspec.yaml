@@ -21,6 +21,6 @@ dependencies:
   meta: ^1.19.0
 
 dev_dependencies:
-  daxle_gen:
+  daxle_gen: 0.1.0-alpha
   lints: ^6.1.0
   test: ^1.31.2
