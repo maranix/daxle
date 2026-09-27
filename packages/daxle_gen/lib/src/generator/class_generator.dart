@@ -56,6 +56,9 @@ class ClassGenerator {
       return 'Duration(microseconds: $varName.toInt())';
     } else if (type.isQueryMap) {
       return 'QueryMap($varName.cast<Object?, Object?>())';
+    } else if (typeHelper.knownExtensionTypes.contains(type.baseName)) {
+      final fn = '${TypeHelper.toCamelCase(type.baseName)}FromMap';
+      return '$fn($varName)';
     } else if (typeHelper.knownEnums.contains(type.baseName)) {
       final fn = '${TypeHelper.toCamelCase(type.baseName)}FromValue';
       return '$fn($varName)';

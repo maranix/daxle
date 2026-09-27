@@ -865,4 +865,51 @@ void main() {
       );
     },
   );
+
+  group('Extension Types', () {
+    test('standalone serialization and deserialization', () {
+      final uid = UserId('usr_123');
+      expect(userIdToMap(uid), 'usr_123');
+      expect(uid.toMap(), 'usr_123');
+      expect(userIdFromMap('usr_123'), uid);
+
+      final score = Score(100);
+      expect(scoreToMap(score), 100);
+      expect(score.toMap(), 100);
+      expect(scoreFromMap(100), score);
+    });
+
+    test('model with extension type fields round-trip', () {
+      final profile = UserProfile(UserId('u1'), Score(42), UserId('backup_u1'));
+      final map = userProfileToMap(profile);
+      expect(map, {
+        'id': 'u1',
+        'score': 42,
+        'backupId': 'backup_u1',
+      });
+
+      final restored = userProfileFromMap(map);
+      expect(restored.id, profile.id);
+      expect(restored.score, profile.score);
+      expect(restored.backupId, profile.backupId);
+
+      // Nullable field handling
+      final profileNullBackup = UserProfile(UserId('u2'), Score(50), null);
+      final mapNull = userProfileToMap(profileNullBackup);
+      expect(mapNull, {
+        'id': 'u2',
+        'score': 50,
+        'backupId': null,
+      });
+
+      final sparseMap = userProfileToMap(profileNullBackup, excludeNull: true);
+      expect(sparseMap.containsKey('backupId'), false);
+
+      final restoredNull = userProfileFromMap(mapNull);
+      expect(restoredNull.id, UserId('u2'));
+      expect(restoredNull.score, Score(50));
+      expect(restoredNull.backupId, isNull);
+    });
+  });
 }
+

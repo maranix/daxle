@@ -41,6 +41,7 @@ class DaxleAstParser {
   }) {
     final classes = <ParsedClass>[];
     final enums = <ParsedEnum>[];
+    final extensionTypes = <ParsedExtensionType>[];
     final partDirectives = <String>[];
 
     for (final directive in unit.directives) {
@@ -58,6 +59,11 @@ class DaxleAstParser {
       } else if (declaration is EnumDeclaration) {
         final parsedEnum = _parseEnum(declaration);
         enums.add(parsedEnum);
+      } else if (declaration is ExtensionTypeDeclaration) {
+        final parsedExtType = _parseExtensionType(declaration);
+        if (parsedExtType != null) {
+          extensionTypes.add(parsedExtType);
+        }
       }
     }
 
@@ -134,7 +140,50 @@ class DaxleAstParser {
       fileName: fileName,
       classes: classes,
       enums: enums,
+      extensionTypes: extensionTypes,
       partDirectives: partDirectives,
+    );
+  }
+
+  ParsedExtensionType? _parseExtensionType(ExtensionTypeDeclaration declaration) {
+    final name = declaration.namePart.typeName.lexeme;
+
+    SerializeInfo? serializeInfo;
+    DeserializeInfo? deserializeInfo;
+
+    for (final annotation in declaration.metadata) {
+      final annotName = _getAnnotationName(annotation);
+      if (annotName == 'Serialize' || annotName == 'serialize') {
+        serializeInfo = _parseSerializeAnnotation(annotation);
+      } else if (annotName == 'Deserialize' || annotName == 'deserialize') {
+        deserializeInfo = _parseDeserializeAnnotation(annotation);
+      }
+    }
+
+    // Only parse if annotated
+    if (serializeInfo == null && deserializeInfo == null) return null;
+
+    // Extract representation field from the primary constructor
+    String fieldName;
+    ParsedType fieldType;
+
+    if (declaration.namePart case PrimaryConstructorDeclaration primary) {
+      final params = primary.formalParameters.parameters;
+      if (params.isEmpty) return null;
+      final param = params.first;
+      fieldName = param.name?.lexeme ?? '';
+      final fieldTypeStr = _getParameterTypeString(param);
+      fieldType = ParsedType.parse(fieldTypeStr);
+    } else {
+      return null;
+    }
+
+    return ParsedExtensionType(
+      name: name,
+      representationFieldName: fieldName,
+      representationType: fieldType,
+      serialize: serializeInfo,
+      deserialize: deserializeInfo,
     );
   }
 
@@ -165,14 +214,10 @@ class DaxleAstParser {
     for (final annotation in declaration.metadata) {
       final name = _getAnnotationName(annotation);
       if (name == 'Serialize' ||
-          name == 'serialize' ||
-          name == 'SerializeClass' ||
-          name == 'serializeClass') {
+          name == 'serialize') {
         serializeInfo = _parseSerializeAnnotation(annotation);
       } else if (name == 'Deserialize' ||
-          name == 'deserialize' ||
-          name == 'DeserializeClass' ||
-          name == 'deserializeClass') {
+          name == 'deserialize') {
         deserializeInfo = _parseDeserializeAnnotation(annotation);
       } else if (name == 'EqualsAndHashCode' || name == 'equalsAndHashCode') {
         equalsAndHashCodeInfo = _parseEqualsAndHashCodeAnnotation(annotation);

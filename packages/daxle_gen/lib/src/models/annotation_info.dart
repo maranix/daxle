@@ -2,7 +2,7 @@ import 'case_style.dart';
 
 import '../parser/generation_error.dart';
 
-/// Parsed metadata for `@Serialize` / `@SerializeClass`.
+/// Parsed metadata for `@Serialize`.
 class SerializeInfo {
   final String? discriminator;
   final CaseStyle? caseStyle;
@@ -15,7 +15,7 @@ class SerializeInfo {
   });
 }
 
-/// Parsed metadata for `@Deserialize` / `@DeserializeClass`.
+/// Parsed metadata for `@Deserialize`.
 class DeserializeInfo {
   final String? discriminator;
   final CaseStyle? caseStyle;

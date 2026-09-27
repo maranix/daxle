@@ -5,10 +5,12 @@ import '../models/parsed_type.dart';
 class TypeHelper {
   final Set<String> knownEnums;
   final Set<String> knownClasses;
+  final Set<String> knownExtensionTypes;
 
   const TypeHelper({
     this.knownEnums = const {},
     this.knownClasses = const {},
+    this.knownExtensionTypes = const {},
   });
 
   static String toCamelCase(String s) {
@@ -165,6 +167,11 @@ class TypeHelper {
       expr = type.isNullable
           ? '($jsonExpr == null ? null : $fn($jsonExpr))'
           : '$fn($jsonExpr)';
+    } else if (knownExtensionTypes.contains(type.baseName)) {
+      final fn = '${toCamelCase(type.baseName)}FromMap';
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : $fn($jsonExpr))'
+          : '$fn($jsonExpr)';
     } else {
       if (!explicitFromJson) {
         expr = '($jsonExpr as ${type.rawType})';
@@ -294,6 +301,11 @@ class TypeHelper {
       expr = type.isNullable
           ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
           : '$fn($fieldExpr)';
+    } else if (knownExtensionTypes.contains(type.baseName)) {
+      final fn = '${toCamelCase(type.baseName)}ToMap';
+      expr = type.isNullable
+          ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
+          : '$fn($fieldExpr)';
     } else {
       if (!explicitToJson) {
         expr = fieldExpr;
@@ -400,6 +412,9 @@ class TypeHelper {
       return '$fieldExpr!.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))';
     } else if (knownEnums.contains(type.baseName)) {
       final fn = '${toCamelCase(type.baseName)}ToValue';
+      return '$fn($fieldExpr!)';
+    } else if (knownExtensionTypes.contains(type.baseName)) {
+      final fn = '${toCamelCase(type.baseName)}ToMap';
       return '$fn($fieldExpr!)';
     } else {
       if (!explicitToJson) {
