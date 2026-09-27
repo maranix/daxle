@@ -1,6 +1,6 @@
 name: daxle_gen
 description: AST code generator and compile-time validation hook for Daxle.
-version: 0.1.0-alpha
+version: 0.1.0+1-alpha
 homepage: https://github.com/maranix/daxle/tree/main/packages/daxle_gen
 repository: https://github.com/maranix/daxle/tree/main/packages/daxle_gen
 issues: https://github.com/maranix/daxle/issues?q=state%3Aopen%20label%3Adaxle
