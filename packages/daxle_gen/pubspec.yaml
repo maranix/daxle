@@ -9,17 +9,17 @@ environment:
 resolution: workspace
 
 dependencies:
-  analyzer: any
-  args: any
-  code_builder: any
-  crypto: any
-  dart_style: any
-  daxle:
-  glob: any
-  meta: any
-  path: any
-  watcher: any
+  analyzer: ^14.4.0
+  args: ^2.7.0
+  code_builder: ^4.12.0
+  crypto: ^3.0.7
+  dart_style: ^3.1.13
+  glob: ^2.2.0
+  meta: ^1.19.0
+  path: ^1.9.1
+  watcher: ^1.2.1
 
 dev_dependencies:
+  daxle:
   lints: ^6.1.0
   test: ^1.31.2

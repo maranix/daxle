@@ -10,6 +10,7 @@ export 'src/generator/file_generator.dart';
 export 'src/generator/sealed_generator.dart';
 export 'src/generator/type_helper.dart';
 export 'src/models/annotation_info.dart';
+export 'src/models/case_style.dart';
 export 'src/models/parsed_element.dart';
 export 'src/models/parsed_type.dart';
 export 'src/parser/daxle_ast_parser.dart';

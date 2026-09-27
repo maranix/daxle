@@ -1,4 +1,4 @@
-import 'package:daxle/daxle.dart';
+import 'case_style.dart';
 
 import 'annotation_info.dart';
 import 'parsed_type.dart';

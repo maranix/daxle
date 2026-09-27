@@ -1,5 +1,4 @@
-import 'package:daxle/daxle.dart';
-import 'package:daxle_gen/src/parser/daxle_ast_parser.dart';
+import 'package:daxle_gen/daxle_gen.dart';
 import 'package:daxle_gen/src/parser/generation_error.dart';
 import 'package:test/test.dart';
 
