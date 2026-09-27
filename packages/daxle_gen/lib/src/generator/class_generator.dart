@@ -390,93 +390,117 @@ class ClassGenerator {
           !f.isIgnoredForDeserialize(clazz.deserialize),
     );
 
-    final bodyBuffer = StringBuffer();
-    bodyBuffer.writeln('return switch (json) {');
-
     if (mapPatternEntries.isEmpty) {
       if (unhandledFields.isEmpty) {
-        bodyBuffer.writeln('  _ => $constructorName($allArgs),');
-      } else {
-        bodyBuffer.writeln('  _ => () {');
-        bodyBuffer.writeln('    final instance = $constructorName($allArgs);');
-        for (final field in unhandledFields) {
-          final key = field.resolvedDeserializeKey(caseStyle);
-          final jsonExpr = "json['$key']";
-          final deserializeExpr = typeHelper.generateDeserialize(
-            field.type,
-            jsonExpr,
-            config: field.config,
-            parameterDefaultCode: field.defaultValueCode,
-            explicitFromJson: true,
-          );
-          bodyBuffer.writeln("    if (json.containsKey('$key')) {");
-          bodyBuffer.writeln(
-            '      instance.${field.name} = $deserializeExpr;',
-          );
-          bodyBuffer.writeln('    }');
-        }
-        bodyBuffer.writeln('    return instance;');
-        bodyBuffer.writeln('  }(),');
-      }
-    } else {
-      bodyBuffer.writeln('  {');
-      for (final entry in mapPatternEntries) {
-        bodyBuffer.writeln('    $entry,');
-      }
-      if (unhandledFields.isEmpty) {
-        bodyBuffer.writeln('  } => $constructorName($allArgs),');
-      } else {
-        bodyBuffer.writeln('  } => () {');
-        bodyBuffer.writeln('    final instance = $constructorName($allArgs);');
-        for (final field in unhandledFields) {
-          final key = field.resolvedDeserializeKey(caseStyle);
-          final jsonExpr = "json['$key']";
-          final deserializeExpr = typeHelper.generateDeserialize(
-            field.type,
-            jsonExpr,
-            config: field.config,
-            parameterDefaultCode: field.defaultValueCode,
-            explicitFromJson: true,
-          );
-          bodyBuffer.writeln("    if (json.containsKey('$key')) {");
-          bodyBuffer.writeln(
-            '      instance.${field.name} = $deserializeExpr;',
-          );
-          bodyBuffer.writeln('    }');
-        }
-        bodyBuffer.writeln('    return instance;');
-        bodyBuffer.writeln('  }(),');
-      }
-      bodyBuffer.writeln('  _ => () {');
-      for (final check in requiredChecks) {
-        bodyBuffer.writeln("    if (!json.containsKey('${check.key}')) {");
-        bodyBuffer.writeln(
-          "      throw FormatException(\"Missing required field '${check.key}' for ${clazz.name}\", json);",
+        return Method(
+          (b) => b
+            ..name = '${camelName}FromMap'
+            ..returns = refer(clazz.name)
+            ..requiredParameters.add(
+              Parameter(
+                (p) => p
+                  ..name = 'json'
+                  ..type = refer('Map<String, dynamic>'),
+              ),
+            )
+            ..lambda = true
+            ..body = Code('$constructorName($allArgs)'),
         );
-        bodyBuffer.writeln('    }');
-        if (check.patternType != 'Object') {
-          bodyBuffer.writeln(
-            "    if (json['${check.key}'] is! ${check.patternType}) {",
+      } else {
+        final bodyBuffer = StringBuffer();
+        bodyBuffer.writeln('final instance = $constructorName($allArgs);');
+        for (final field in unhandledFields) {
+          final key = field.resolvedDeserializeKey(caseStyle);
+          final jsonExpr = "json['$key']";
+          final deserializeExpr = typeHelper.generateDeserialize(
+            field.type,
+            jsonExpr,
+            config: field.config,
+            parameterDefaultCode: field.defaultValueCode,
+            explicitFromJson: true,
           );
+          bodyBuffer.writeln("if (json.containsKey('$key')) {");
           bodyBuffer.writeln(
-            "      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected ${check.patternType}, got \${json['${check.key}'].runtimeType}\", json);",
+            '  instance.${field.name} = $deserializeExpr;',
           );
-          bodyBuffer.writeln('    }');
-        } else {
-          bodyBuffer.writeln("    if (json['${check.key}'] == null) {");
-          bodyBuffer.writeln(
-            "      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected non-null value, got Null\", json);",
-          );
-          bodyBuffer.writeln('    }');
+          bodyBuffer.writeln('}');
         }
+        bodyBuffer.writeln('return instance;');
+
+        return Method(
+          (b) => b
+            ..name = '${camelName}FromMap'
+            ..returns = refer(clazz.name)
+            ..requiredParameters.add(
+              Parameter(
+                (p) => p
+                  ..name = 'json'
+                  ..type = refer('Map<String, dynamic>'),
+              ),
+            )
+            ..body = Code(bodyBuffer.toString()),
+        );
       }
-      final expectedKeys = requiredChecks.map((c) => c.key).join(', ');
-      bodyBuffer.writeln(
-        "    throw FormatException('Invalid JSON shape for ${clazz.name}: missing or invalid required keys (expected: $expectedKeys)', json);",
-      );
-      bodyBuffer.writeln('  }(),');
     }
 
+    final bodyBuffer = StringBuffer();
+    bodyBuffer.writeln('return switch (json) {');
+    bodyBuffer.writeln('  {');
+    for (final entry in mapPatternEntries) {
+      bodyBuffer.writeln('    $entry,');
+    }
+    if (unhandledFields.isEmpty) {
+      bodyBuffer.writeln('  } => $constructorName($allArgs),');
+    } else {
+      bodyBuffer.writeln('  } => () {');
+      bodyBuffer.writeln('    final instance = $constructorName($allArgs);');
+      for (final field in unhandledFields) {
+        final key = field.resolvedDeserializeKey(caseStyle);
+        final jsonExpr = "json['$key']";
+        final deserializeExpr = typeHelper.generateDeserialize(
+          field.type,
+          jsonExpr,
+          config: field.config,
+          parameterDefaultCode: field.defaultValueCode,
+          explicitFromJson: true,
+        );
+        bodyBuffer.writeln("    if (json.containsKey('$key')) {");
+        bodyBuffer.writeln(
+          '      instance.${field.name} = $deserializeExpr;',
+        );
+        bodyBuffer.writeln('    }');
+      }
+      bodyBuffer.writeln('    return instance;');
+      bodyBuffer.writeln('  }(),');
+    }
+    bodyBuffer.writeln('  _ => () {');
+    for (final check in requiredChecks) {
+      bodyBuffer.writeln("    if (!json.containsKey('${check.key}')) {");
+      bodyBuffer.writeln(
+        "      throw FormatException(\"Missing required field '${check.key}' for ${clazz.name}\", json);",
+      );
+      bodyBuffer.writeln('    }');
+      if (check.patternType != 'Object') {
+        bodyBuffer.writeln(
+          "    if (json['${check.key}'] is! ${check.patternType}) {",
+        );
+        bodyBuffer.writeln(
+          "      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected ${check.patternType}, got \${json['${check.key}'].runtimeType}\", json);",
+        );
+        bodyBuffer.writeln('    }');
+      } else {
+        bodyBuffer.writeln("    if (json['${check.key}'] == null) {");
+        bodyBuffer.writeln(
+          "      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected non-null value, got Null\", json);",
+        );
+        bodyBuffer.writeln('    }');
+      }
+    }
+    final expectedKeys = requiredChecks.map((c) => c.key).join(', ');
+    bodyBuffer.writeln(
+      "    throw FormatException('Invalid JSON shape for ${clazz.name}: missing or invalid required keys (expected: $expectedKeys)', json);",
+    );
+    bodyBuffer.writeln('  }(),');
     bodyBuffer.write('};');
 
     return Method(

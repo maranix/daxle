@@ -210,15 +210,6 @@ class FileGenerator {
       }
     }
 
-    // 5. Deep equality helpers if collections are present in any class using equality
-    final hasCollectionFields = parsedFile.classes
-        .where((c) => c.shouldEqualsAndHashCode)
-        .any(equalityGen.hasCollections);
-
-    if (hasCollectionFields) {
-      specs.add(const Code(EqualityGenerator.deepEqualityHelpers));
-    }
-
     // 6. Daxle key and prefix resolution helpers if aliases or Flatten are used
     final hasFlattenOrAliases = parsedFile.classes.any(
       (c) =>

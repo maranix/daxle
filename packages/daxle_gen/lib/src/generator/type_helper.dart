@@ -142,6 +142,13 @@ class TypeHelper {
     } else if (type.isMap) {
       final kVar = depth == 0 ? 'k' : 'k$depth';
       final vVar = depth == 0 ? 'v' : 'v$depth';
+      final keyType = type.typeArguments.isNotEmpty
+          ? type.typeArguments[0]
+          : const ParsedType(
+              rawType: 'String',
+              baseName: 'String',
+              isNullable: false,
+            );
       final valType = type.typeArguments.length > 1
           ? type.typeArguments[1]
           : const ParsedType(
@@ -149,6 +156,11 @@ class TypeHelper {
               baseName: 'dynamic',
               isNullable: true,
             );
+      final keyDeserialize = _generateKeyDeserialize(
+        keyType,
+        kVar,
+        explicitFromJson: explicitFromJson,
+      );
       final valDeserialize = generateDeserialize(
         valType,
         vVar,
@@ -157,10 +169,10 @@ class TypeHelper {
       );
       if (type.isNullable) {
         expr =
-            '($jsonExpr as Map<String, dynamic>?)?.map(($kVar, $vVar) => MapEntry($kVar, $valDeserialize))';
+            '($jsonExpr as Map<String, dynamic>?)?.map(($kVar, $vVar) => MapEntry($keyDeserialize, $valDeserialize))';
       } else {
         expr =
-            '($jsonExpr as Map<String, dynamic>).map(($kVar, $vVar) => MapEntry($kVar, $valDeserialize))';
+            '($jsonExpr as Map<String, dynamic>).map(($kVar, $vVar) => MapEntry($keyDeserialize, $valDeserialize))';
       }
     } else if (knownEnums.contains(type.baseName)) {
       final fn = '${toCamelCase(type.baseName)}FromValue';
@@ -280,21 +292,40 @@ class TypeHelper {
     } else if (type.isMap) {
       final kVar = depth == 0 ? 'k' : 'k$depth';
       final vVar = depth == 0 ? 'v' : 'v$depth';
+      final keyType = type.typeArguments.isNotEmpty
+          ? type.typeArguments[0]
+          : const ParsedType(
+              rawType: 'String',
+              baseName: 'String',
+              isNullable: false,
+            );
       final valType = type.typeArguments.length > 1
           ? type.typeArguments[1]
           : null;
-      if (valType == null || (valType.isPrimitive && explicitToJson)) {
+      final keyNeedsConversion =
+          !keyType.isString && !keyType.isDynamic && !keyType.isObject;
+      final valNeedsConversion =
+          valType != null && !(valType.isPrimitive && explicitToJson);
+
+      if (!keyNeedsConversion && !valNeedsConversion) {
         expr = fieldExpr;
       } else {
-        final valSerialize = generateSerialize(
-          valType,
-          vVar,
+        final keySerialize = _generateKeySerialize(
+          keyType,
+          kVar,
           explicitToJson: explicitToJson,
-          depth: depth + 1,
         );
+        final valSerialize = valType == null
+            ? vVar
+            : generateSerialize(
+                valType,
+                vVar,
+                explicitToJson: explicitToJson,
+                depth: depth + 1,
+              );
         expr = type.isNullable
-            ? '$fieldExpr?.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))'
-            : '$fieldExpr.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))';
+            ? '$fieldExpr?.map(($kVar, $vVar) => MapEntry($keySerialize, $valSerialize))'
+            : '$fieldExpr.map(($kVar, $vVar) => MapEntry($keySerialize, $valSerialize))';
       }
     } else if (knownEnums.contains(type.baseName)) {
       final fn = '${toCamelCase(type.baseName)}ToValue';
@@ -397,19 +428,38 @@ class TypeHelper {
     } else if (type.isMap) {
       final kVar = depth == 0 ? 'k' : 'k$depth';
       final vVar = depth == 0 ? 'v' : 'v$depth';
+      final keyType = type.typeArguments.isNotEmpty
+          ? type.typeArguments[0]
+          : const ParsedType(
+              rawType: 'String',
+              baseName: 'String',
+              isNullable: false,
+            );
       final valType = type.typeArguments.length > 1
           ? type.typeArguments[1]
           : null;
-      if (valType == null || (valType.isPrimitive && explicitToJson)) {
+      final keyNeedsConversion =
+          !keyType.isString && !keyType.isDynamic && !keyType.isObject;
+      final valNeedsConversion =
+          valType != null && !(valType.isPrimitive && explicitToJson);
+
+      if (!keyNeedsConversion && !valNeedsConversion) {
         return fieldExpr;
       }
-      final valSerialize = generateSerialize(
-        valType,
-        vVar,
+      final keySerialize = _generateKeySerialize(
+        keyType,
+        kVar,
         explicitToJson: explicitToJson,
-        depth: depth + 1,
       );
-      return '$fieldExpr!.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))';
+      final valSerialize = valType == null
+          ? vVar
+          : generateSerialize(
+              valType,
+              vVar,
+              explicitToJson: explicitToJson,
+              depth: depth + 1,
+            );
+      return '$fieldExpr!.map(($kVar, $vVar) => MapEntry($keySerialize, $valSerialize))';
     } else if (knownEnums.contains(type.baseName)) {
       final fn = '${toCamelCase(type.baseName)}ToValue';
       return '$fn($fieldExpr!)';
@@ -422,6 +472,71 @@ class TypeHelper {
       }
       final fn = '${toCamelCase(type.baseName)}ToMap';
       return '$fn($fieldExpr!)';
+    }
+  }
+
+  String _generateKeyDeserialize(
+    ParsedType keyType,
+    String kVar, {
+    bool explicitFromJson = true,
+  }) {
+    if (keyType.isString ||
+        keyType.isDynamic ||
+        (keyType.isObject && keyType.isNullable)) {
+      return kVar;
+    } else if (keyType.isObject) {
+      return '($kVar as Object)';
+    } else if (keyType.isInt) {
+      return 'int.parse($kVar)';
+    } else if (keyType.isDouble) {
+      return 'double.parse($kVar)';
+    } else if (keyType.isNum) {
+      return 'num.parse($kVar)';
+    } else if (keyType.isBigInt) {
+      return 'BigInt.parse($kVar)';
+    } else if (keyType.isUri) {
+      return 'Uri.parse($kVar)';
+    } else if (keyType.isDateTime) {
+      return 'DateTime.parse($kVar)';
+    } else if (knownEnums.contains(keyType.baseName)) {
+      final fn = '${toCamelCase(keyType.baseName)}FromValue';
+      return '$fn($kVar)';
+    } else if (knownExtensionTypes.contains(keyType.baseName)) {
+      final fn = '${toCamelCase(keyType.baseName)}FromMap';
+      return '$fn($kVar)';
+    } else {
+      if (!explicitFromJson) {
+        return '($kVar as ${keyType.rawType})';
+      } else {
+        return '$kVar';
+      }
+    }
+  }
+
+  String _generateKeySerialize(
+    ParsedType keyType,
+    String kVar, {
+    bool explicitToJson = true,
+  }) {
+    if (keyType.isString || keyType.isDynamic || keyType.isObject) {
+      return kVar;
+    } else if (keyType.isInt ||
+        keyType.isDouble ||
+        keyType.isNum ||
+        keyType.isBool ||
+        keyType.isBigInt ||
+        keyType.isUri) {
+      return '$kVar.toString()';
+    } else if (keyType.isDateTime) {
+      return '$kVar.toIso8601String()';
+    } else if (knownEnums.contains(keyType.baseName)) {
+      final fn = '${toCamelCase(keyType.baseName)}ToValue';
+      return '$fn($kVar).toString()';
+    } else if (knownExtensionTypes.contains(keyType.baseName)) {
+      final fn = '${toCamelCase(keyType.baseName)}ToMap';
+      return '$fn($kVar).toString()';
+    } else {
+      return '$kVar.toString()';
     }
   }
 }

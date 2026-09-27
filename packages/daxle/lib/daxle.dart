@@ -326,6 +326,7 @@ export 'src/types/task.dart';
 export 'src/types/task_either.dart';
 export 'src/types/unit.dart';
 export 'src/util/concurrency.dart';
+export 'src/util/equality.dart';
 export 'src/util/query_map.dart';
 
 // Export some useful utilities from `async` package

@@ -66,8 +66,16 @@ class EqualityGenerator {
     } else {
       final comparisons = activeFields
           .map((f) {
-            if (isCollectionField(f)) {
-              return '_daxleDeepEquals(self.${f.name}, other.${f.name})';
+            if (f.type.isList) {
+              return '\$listEquals(self.${f.name}, other.${f.name})';
+            } else if (f.type.isSet) {
+              return '\$setEquals(self.${f.name}, other.${f.name})';
+            } else if (f.type.isMap) {
+              return '\$mapEquals(self.${f.name}, other.${f.name})';
+            } else if (f.type.isQueryMap) {
+              return '\$mapEquals(self.${f.name}.map, other.${f.name}.map)';
+            } else if (isCollectionField(f)) {
+              return '\$deepEquals(self.${f.name}, other.${f.name})';
             } else {
               return 'self.${f.name} == other.${f.name}';
             }
@@ -115,8 +123,16 @@ class EqualityGenerator {
     }
 
     final fieldExprs = activeFields.map((f) {
-      if (isCollectionField(f)) {
-        return '_daxleDeepHashCode(self.${f.name})';
+      if (f.type.isList) {
+        return '\$listHashCode(self.${f.name})';
+      } else if (f.type.isSet) {
+        return '\$setHashCode(self.${f.name})';
+      } else if (f.type.isMap) {
+        return '\$mapHashCode(self.${f.name})';
+      } else if (f.type.isQueryMap) {
+        return '\$mapHashCode(self.${f.name}.map)';
+      } else if (isCollectionField(f)) {
+        return '\$deepHashCode(self.${f.name})';
       } else {
         return 'self.${f.name}';
       }
@@ -159,102 +175,4 @@ class EqualityGenerator {
         ]),
     );
   }
-
-  static const String deepEqualityHelpers = '''
-bool _daxleDeepEquals(Object? a, Object? b) {
-  if (identical(a, b)) return true;
-  if (a == null || b == null) return false;
-
-  if (a is List && b is List) {
-    final length = a.length;
-    if (length != b.length) return false;
-    for (var i = 0; i < length; i++) {
-      if (!_daxleDeepEquals(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  if (a is Set && b is Set) {
-    if (a.length != b.length) return false;
-    for (final element in a) {
-      if (!b.contains(element)) {
-        var found = false;
-        for (final otherElement in b) {
-          if (_daxleDeepEquals(element, otherElement)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) return false;
-      }
-    }
-    return true;
-  }
-
-  if (a is Map && b is Map) {
-    if (a.length != b.length) return false;
-    for (final entry in a.entries) {
-      if (!b.containsKey(entry.key)) return false;
-      if (!_daxleDeepEquals(entry.value, b[entry.key])) return false;
-    }
-    return true;
-  }
-
-  if (a is Iterable && b is Iterable) {
-    final itA = a.iterator;
-    final itB = b.iterator;
-    while (itA.moveNext()) {
-      if (!itB.moveNext()) return false;
-      if (!_daxleDeepEquals(itA.current, itB.current)) return false;
-    }
-    return !itB.moveNext();
-  }
-
-  return a == b;
-}
-
-int _daxleDeepHashCode(Object? value) {
-  if (value == null) return 0;
-  if (value is List) {
-    var hash = 1;
-    for (var i = 0; i < value.length; i++) {
-      hash = 0x1fffffff & (hash + _daxleDeepHashCode(value[i]));
-      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-      hash ^= hash >> 6;
-    }
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    hash ^= hash >> 11;
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-  if (value is Set) {
-    var hash = 0;
-    for (final element in value) {
-      hash = (hash + _daxleDeepHashCode(element)) & 0x3fffffff;
-    }
-    return hash;
-  }
-  if (value is Map) {
-    var hash = 0;
-    for (final entry in value.entries) {
-      final entryHash =
-          (_daxleDeepHashCode(entry.key) ^ _daxleDeepHashCode(entry.value)) &
-              0x3fffffff;
-      hash = (hash + entryHash) & 0x3fffffff;
-    }
-    return hash;
-  }
-  if (value is Iterable) {
-    var hash = 1;
-    for (final element in value) {
-      hash = 0x1fffffff & (hash + _daxleDeepHashCode(element));
-      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-      hash ^= hash >> 6;
-    }
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    hash ^= hash >> 11;
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-  return value.hashCode;
-}
-''';
 }
