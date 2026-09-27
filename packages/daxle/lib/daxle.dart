@@ -319,6 +319,7 @@
 /// ```
 library;
 
+export 'src/annotations/codegen.dart';
 export 'src/types/either.dart';
 export 'src/types/option.dart';
 export 'src/types/task.dart';
