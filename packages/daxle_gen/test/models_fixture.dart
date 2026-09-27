@@ -332,3 +332,20 @@ class Order with _$Order {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       orderToMap(this, excludeNull: excludeNull);
 }
+
+// 19. Extension Types
+@serialize
+@deserialize
+extension type UserId(String id) {}
+
+@serialize
+@deserialize
+extension type Score(int value) {}
+
+@serialize
+@deserialize
+class UserProfile(
+  final UserId id,
+  final Score score,
+  final UserId? backupId,
+);

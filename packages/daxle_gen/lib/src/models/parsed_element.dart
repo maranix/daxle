@@ -215,12 +215,33 @@ class ParsedEnum {
   bool get shouldStringify => stringify != null;
 }
 
+/// Represents a parsed extension type definition.
+class ParsedExtensionType {
+  final String name;
+  final String representationFieldName;
+  final ParsedType representationType;
+  final SerializeInfo? serialize;
+  final DeserializeInfo? deserialize;
+
+  const ParsedExtensionType({
+    required this.name,
+    required this.representationFieldName,
+    required this.representationType,
+    this.serialize,
+    this.deserialize,
+  });
+
+  bool get shouldSerialize => serialize != null;
+  bool get shouldDeserialize => deserialize != null;
+}
+
 /// Represents an entire parsed Dart file.
 class ParsedFile {
   final String filePath;
   final String fileName;
   final List<ParsedClass> classes;
   final List<ParsedEnum> enums;
+  final List<ParsedExtensionType> extensionTypes;
   final List<String> partDirectives;
 
   const ParsedFile({
@@ -228,6 +249,7 @@ class ParsedFile {
     required this.fileName,
     required this.classes,
     required this.enums,
+    this.extensionTypes = const [],
     this.partDirectives = const [],
   });
 
@@ -242,7 +264,8 @@ class ParsedFile {
       ) ||
       enums.any(
         (e) => e.shouldSerialize || e.shouldDeserialize || e.shouldStringify,
-      );
+      ) ||
+      extensionTypes.any((e) => e.shouldSerialize || e.shouldDeserialize);
 
   bool get hasDaxlePartDirective =>
       partDirectives.any((p) => p.endsWith('.daxle.dart'));

@@ -78,6 +78,50 @@ class DaxleGenerator {
       }
     }
 
+    final projectEnums = <String>{};
+    final projectClasses = <String>{};
+    final projectExtensionTypes = <String>{};
+
+    final discoveryFiles = <File>[...filesToProcess];
+    if (targetFile.existsSync()) {
+      var dir = targetFile.parent;
+      while (dir.path != dir.parent.path) {
+        if (File(p.join(dir.path, 'pubspec.yaml')).existsSync()) {
+          break;
+        }
+        dir = dir.parent;
+      }
+      if (dir.existsSync()) {
+        try {
+          for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+            if (entity is File &&
+                entity.path.endsWith('.dart') &&
+                !entity.path.endsWith('.daxle.dart')) {
+              discoveryFiles.add(entity);
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    final seenDiscoveryPaths = <String>{};
+    for (final file in discoveryFiles) {
+      final normPath = p.normalize(file.path);
+      if (!seenDiscoveryPaths.add(normPath)) continue;
+
+      try {
+        final fileContent = file.readAsStringSync();
+        if (fileContent.contains('enum') ||
+            fileContent.contains('class') ||
+            fileContent.contains('extension type')) {
+          final parsed = parser.parseContent(fileContent, filePath: normPath);
+          projectEnums.addAll(parsed.enums.map((e) => e.name));
+          projectClasses.addAll(parsed.classes.map((c) => c.name));
+          projectExtensionTypes.addAll(parsed.extensionTypes.map((e) => e.name));
+        }
+      } catch (_) {}
+    }
+
     var scanned = 0;
     var generated = 0;
     var cached = 0;
@@ -128,7 +172,12 @@ class DaxleGenerator {
           );
         }
 
-        final generatedCode = fileGenerator.generate(parsedFile);
+        final generatedCode = fileGenerator.generate(
+          parsedFile,
+          projectEnums: projectEnums,
+          projectClasses: projectClasses,
+          projectExtensionTypes: projectExtensionTypes,
+        );
         if (generatedCode == null) continue;
 
         if (check) {

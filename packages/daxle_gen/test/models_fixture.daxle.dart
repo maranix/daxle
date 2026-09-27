@@ -119,6 +119,20 @@ mixin _$PaymentStatusStringify on Enum {
   };
 }
 
+dynamic userIdToMap(UserId instance) => instance.id;
+
+extension UserIdToMapExtension on UserId {
+  dynamic toMap() => userIdToMap(this);
+}
+
+UserId userIdFromMap(Object? json) => UserId((json as String));
+dynamic scoreToMap(Score instance) => instance.value;
+
+extension ScoreToMapExtension on Score {
+  dynamic toMap() => scoreToMap(this);
+}
+
+Score scoreFromMap(Object? json) => Score(((json as num).toInt()));
 ComplexModel complexModelFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {
@@ -1763,6 +1777,63 @@ extension OrderCopyWithExtension on Order {
       shippingAddress: this.shippingAddress,
     );
   }
+}
+
+UserProfile userProfileFromMap(Map<String, dynamic> json) {
+  return switch (json) {
+    {'id': final Object idRaw, 'score': final Object scoreRaw} => UserProfile(
+      userIdFromMap(idRaw),
+      scoreFromMap(scoreRaw),
+      (json['backupId'] == null ? null : userIdFromMap(json['backupId'])),
+    ),
+    _ => () {
+      if (!json.containsKey('id')) {
+        throw FormatException(
+          "Missing required field 'id' for UserProfile",
+          json,
+        );
+      }
+      if (json['id'] == null) {
+        throw FormatException(
+          "Invalid type for field 'id' on UserProfile: expected non-null value, got Null",
+          json,
+        );
+      }
+      if (!json.containsKey('score')) {
+        throw FormatException(
+          "Missing required field 'score' for UserProfile",
+          json,
+        );
+      }
+      if (json['score'] == null) {
+        throw FormatException(
+          "Invalid type for field 'score' on UserProfile: expected non-null value, got Null",
+          json,
+        );
+      }
+      throw FormatException(
+        'Invalid JSON shape for UserProfile: missing or invalid required keys (expected: id, score)',
+        json,
+      );
+    }(),
+  };
+}
+
+Map<String, dynamic> userProfileToMap(
+  UserProfile instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'id': userIdToMap(instance.id),
+  'score': scoreToMap(instance.score),
+  if (!excludeNull || instance.backupId != null)
+    'backupId': instance.backupId == null
+        ? null
+        : userIdToMap(instance.backupId!),
+};
+
+extension UserProfileToMapExtension on UserProfile {
+  Map<String, dynamic> toMap({bool excludeNull = false}) =>
+      userProfileToMap(this, excludeNull: excludeNull);
 }
 
 Shape shapeFromMap(Map<String, dynamic> json) {

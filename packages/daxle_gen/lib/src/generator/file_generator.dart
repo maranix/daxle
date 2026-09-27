@@ -6,6 +6,7 @@ import 'class_generator.dart';
 import 'copy_with_generator.dart';
 import 'enum_generator.dart';
 import 'equality_generator.dart';
+import 'extension_type_generator.dart';
 import 'sealed_generator.dart';
 import 'stringify_generator.dart';
 import 'type_helper.dart';
@@ -23,20 +24,37 @@ class FileGenerator {
 
   /// Generates the code string for the `.daxle.dart` part file.
   /// Returns `null` if the file has no annotated classes or enums.
-  String? generate(ParsedFile parsedFile) {
+  String? generate(
+    ParsedFile parsedFile, {
+    Set<String> projectEnums = const {},
+    Set<String> projectClasses = const {},
+    Set<String> projectExtensionTypes = const {},
+  }) {
     if (!parsedFile.hasDaxleAnnotations) {
       return null;
     }
 
-    final knownEnums = parsedFile.enums.map((e) => e.name).toSet();
-    final knownClasses = parsedFile.classes.map((c) => c.name).toSet();
+    final knownEnums = {
+      ...parsedFile.enums.map((e) => e.name),
+      ...projectEnums,
+    };
+    final knownClasses = {
+      ...parsedFile.classes.map((c) => c.name),
+      ...projectClasses,
+    };
+    final knownExtensionTypes = {
+      ...parsedFile.extensionTypes.map((e) => e.name),
+      ...projectExtensionTypes,
+    };
     final typeHelper = TypeHelper(
       knownEnums: knownEnums,
       knownClasses: knownClasses,
+      knownExtensionTypes: knownExtensionTypes,
     );
 
     final classGen = ClassGenerator(typeHelper);
     final enumGen = EnumGenerator();
+    final extTypeGen = ExtensionTypeGenerator(typeHelper);
     final sealedGen = SealedGenerator();
     final equalityGen = EqualityGenerator(typeHelper);
     final stringifyGen = const StringifyGenerator();
@@ -51,6 +69,13 @@ class FileGenerator {
       }
       if (parsedEnum.shouldStringify) {
         specs.add(stringifyGen.buildEnumMixin(parsedEnum));
+      }
+    }
+
+    // 1.5. Extension types
+    for (final extType in parsedFile.extensionTypes) {
+      if (extType.shouldSerialize || extType.shouldDeserialize) {
+        specs.addAll(extTypeGen.build(extType));
       }
     }
 
