@@ -55,6 +55,9 @@ class ParsedField {
   String get jsonKey => config.serializedKey ?? name;
   String get serializeKey => config.serializedKey ?? name;
   String get deserializeKey => config.serializedKey ?? name;
+  List<String> get aliases => config.aliases;
+  bool get isFlattened => config.isFlattened;
+  String get flattenPrefix => config.flattenPrefix;
 }
 
 /// Represents a constructor parameter.
@@ -94,6 +97,9 @@ class ParsedConstructorParam {
 
   String get jsonKey => config.serializedKey ?? name;
   String get deserializeKey => config.serializedKey ?? name;
+  List<String> get aliases => config.aliases;
+  bool get isFlattened => config.isFlattened;
+  String get flattenPrefix => config.flattenPrefix;
 }
 
 /// Represents a parsed class definition.
@@ -153,6 +159,7 @@ class ParsedEnumConstant {
   });
 
   bool get isIgnored => config.isIgnored;
+  List<String> get aliases => config.aliases;
 
   String resolvedValue(CaseStyle? enumCaseStyle) =>
       resolvedWireValue(enumCaseStyle);

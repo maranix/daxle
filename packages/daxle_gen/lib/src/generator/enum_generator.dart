@@ -64,7 +64,13 @@ class EnumGenerator {
       final matchValue = constant.resolvedDeserializeValue(
         deserializeCaseStyle,
       );
-      fromValueBody.writeln('  $matchValue => $enumName.${constant.name},');
+      final patterns = [
+        matchValue,
+        ...constant.aliases.map((a) => "'$a'"),
+      ];
+      fromValueBody.writeln(
+        '  ${patterns.join(' || ')} => $enumName.${constant.name},',
+      );
     }
 
     if (parsedEnum.fallbackCaseCode != null) {

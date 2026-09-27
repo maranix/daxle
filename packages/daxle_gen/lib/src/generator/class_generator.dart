@@ -123,6 +123,205 @@ class ClassGenerator {
         ? clazz.name
         : '${clazz.name}.${clazz.constructorName}';
 
+    final hasFlattenedOrAliases =
+        clazz.fields.any(
+          (f) => f.config.isFlattened || f.config.aliases.isNotEmpty,
+        ) ||
+        clazz.constructorParams.any(
+          (p) => p.config.isFlattened || p.config.aliases.isNotEmpty,
+        );
+
+    if (hasFlattenedOrAliases) {
+      final bodyBuffer = StringBuffer();
+      final positionalArgs = <String>[];
+      final namedArgs = <String>[];
+      final handledFields = <String>{};
+
+      for (final param in clazz.constructorParams) {
+        handledFields.add(param.name);
+        if (param.isIgnoredForDeserialize(clazz.deserialize)) {
+          final dummyVal = param.hasDefault
+              ? param.defaultValueCode!
+              : _dummyValueFor(param.type);
+          if (!param.isNamed) {
+            positionalArgs.add(dummyVal);
+          } else if (param.isRequired) {
+            namedArgs.add('${param.name}: $dummyVal');
+          }
+          continue;
+        }
+
+        if (param.config.isFlattened) {
+          final prefix = param.config.flattenPrefix;
+          final jsonVar = '${param.name}Json';
+          bodyBuffer.writeln(
+            "  final $jsonVar = _daxleExtractPrefix(json, '$prefix');",
+          );
+          final childFn = typeHelper.knownClasses.contains(param.type.baseName)
+              ? '${TypeHelper.toCamelCase(param.type.baseName)}FromJson'
+              : '${param.type.baseName}.fromJson';
+          final expr = param.type.isNullable
+              ? '$jsonVar.isEmpty ? null : $childFn($jsonVar)'
+              : '$childFn($jsonVar)';
+          if (param.isNamed) {
+            namedArgs.add('${param.name}: $expr');
+          } else {
+            positionalArgs.add(expr);
+          }
+          continue;
+        }
+
+        final key = param.resolvedDeserializeKey(caseStyle);
+        final hasFallback = param.config.fallbackCode != null;
+        final isRequiredInJson =
+            !param.type.isNullable &&
+            !param.type.isOption &&
+            !hasFallback &&
+            !param.hasDefault;
+
+        String deserializeExpr;
+        if (param.config.aliases.isNotEmpty) {
+          final aliasesCode =
+              "const [${param.config.aliases.map((a) => "'$a'").join(', ')}]";
+          if (isRequiredInJson) {
+            bodyBuffer.writeln(
+              "  if (!_daxleHasKey(json, '$key', $aliasesCode)) {",
+            );
+            bodyBuffer.writeln(
+              "    throw FormatException(\"Missing required field '$key' for ${clazz.name}\", json);",
+            );
+            bodyBuffer.writeln('  }');
+          }
+          final rawVar = '${param.name}Raw';
+          bodyBuffer.writeln(
+            "  final $rawVar = _daxleResolveKey(json, '$key', $aliasesCode);",
+          );
+          deserializeExpr = typeHelper.generateDeserialize(
+            param.type,
+            rawVar,
+            config: param.config,
+            parameterDefaultCode: param.defaultValueCode,
+            explicitFromJson: true,
+          );
+        } else {
+          if (isRequiredInJson) {
+            bodyBuffer.writeln("  if (!json.containsKey('$key')) {");
+            bodyBuffer.writeln(
+              "    throw FormatException(\"Missing required field '$key' for ${clazz.name}\", json);",
+            );
+            bodyBuffer.writeln('  }');
+            final rawVar = '${param.name}Raw';
+            bodyBuffer.writeln("  final $rawVar = json['$key'];");
+            deserializeExpr = typeHelper.generateDeserialize(
+              param.type,
+              rawVar,
+              config: param.config,
+              parameterDefaultCode: param.defaultValueCode,
+              explicitFromJson: true,
+            );
+          } else {
+            deserializeExpr = typeHelper.generateDeserialize(
+              param.type,
+              "json['$key']",
+              config: param.config,
+              parameterDefaultCode: param.defaultValueCode,
+              explicitFromJson: true,
+            );
+          }
+        }
+
+        if (param.isNamed) {
+          namedArgs.add('${param.name}: $deserializeExpr');
+        } else {
+          positionalArgs.add(deserializeExpr);
+        }
+      }
+
+      final allArgs = [...positionalArgs, ...namedArgs].join(', ');
+      final unhandledFields = clazz.fields.where(
+        (f) =>
+            !handledFields.contains(f.name) &&
+            !f.isFinal &&
+            !f.isIgnoredForDeserialize(clazz.deserialize),
+      );
+
+      if (unhandledFields.isEmpty) {
+        bodyBuffer.writeln('  return $constructorName($allArgs);');
+      } else {
+        bodyBuffer.writeln('  final instance = $constructorName($allArgs);');
+        for (final field in unhandledFields) {
+          if (field.config.isFlattened) {
+            final prefix = field.config.flattenPrefix;
+            final jsonVar = '${field.name}Json';
+            bodyBuffer.writeln(
+              "  final $jsonVar = _daxleExtractPrefix(json, '$prefix');",
+            );
+            final childFn =
+                typeHelper.knownClasses.contains(field.type.baseName)
+                ? '${TypeHelper.toCamelCase(field.type.baseName)}FromJson'
+                : '${field.type.baseName}.fromJson';
+            final expr = field.type.isNullable
+                ? '$jsonVar.isEmpty ? null : $childFn($jsonVar)'
+                : '$childFn($jsonVar)';
+            bodyBuffer.writeln('  instance.${field.name} = $expr;');
+            continue;
+          }
+
+          final key = field.resolvedDeserializeKey(caseStyle);
+          if (field.config.aliases.isNotEmpty) {
+            final aliasesCode =
+                "const [${field.config.aliases.map((a) => "'$a'").join(', ')}]";
+            final rawVar = '${field.name}Raw';
+            bodyBuffer.writeln(
+              "  if (_daxleHasKey(json, '$key', $aliasesCode)) {",
+            );
+            bodyBuffer.writeln(
+              "    final $rawVar = _daxleResolveKey(json, '$key', $aliasesCode);",
+            );
+            final deserializeExpr = typeHelper.generateDeserialize(
+              field.type,
+              rawVar,
+              config: field.config,
+              parameterDefaultCode: field.defaultValueCode,
+              explicitFromJson: true,
+            );
+            bodyBuffer.writeln(
+              '    instance.${field.name} = $deserializeExpr;',
+            );
+            bodyBuffer.writeln('  }');
+          } else {
+            bodyBuffer.writeln("  if (json.containsKey('$key')) {");
+            final deserializeExpr = typeHelper.generateDeserialize(
+              field.type,
+              "json['$key']",
+              config: field.config,
+              parameterDefaultCode: field.defaultValueCode,
+              explicitFromJson: true,
+            );
+            bodyBuffer.writeln(
+              '    instance.${field.name} = $deserializeExpr;',
+            );
+            bodyBuffer.writeln('  }');
+          }
+        }
+        bodyBuffer.writeln('  return instance;');
+      }
+
+      return Method(
+        (b) => b
+          ..name = '${camelName}FromJson'
+          ..returns = refer(clazz.name)
+          ..requiredParameters.add(
+            Parameter(
+              (p) => p
+                ..name = 'json'
+                ..type = refer('Map<String, dynamic>'),
+            ),
+          )
+          ..body = Code(bodyBuffer.toString()),
+      );
+    }
+
     final positionalArgs = <String>[];
     final namedArgs = <String>[];
     final handledFields = <String>{};
@@ -303,8 +502,29 @@ class ClassGenerator {
     for (final field in clazz.fields) {
       if (field.isIgnoredForSerialize(clazz.serialize)) continue;
 
-      final key = field.resolvedSerializeKey(caseStyle);
       final fieldExpr = 'instance.${field.name}';
+
+      if (field.config.isFlattened) {
+        final childToMapCall =
+            typeHelper.knownClasses.contains(field.type.baseName)
+            ? '${TypeHelper.toCamelCase(field.type.baseName)}ToMap($fieldExpr${field.type.isNullable ? '!' : ''}, excludeNull: excludeNull)'
+            : '$fieldExpr${field.type.isNullable ? '!' : ''}.toJson(excludeNull: excludeNull)';
+
+        if (field.type.isNullable) {
+          buffer.writeln('  if ($fieldExpr != null)');
+        }
+        buffer.writeln('    for (final entry in $childToMapCall.entries)');
+        if (field.config.flattenPrefix.isNotEmpty) {
+          buffer.writeln(
+            "      '${field.config.flattenPrefix}\${entry.key}': entry.value,",
+          );
+        } else {
+          buffer.writeln('      entry.key: entry.value,');
+        }
+        continue;
+      }
+
+      final key = field.resolvedSerializeKey(caseStyle);
       final hasSerializeFallback = field.config.fallbackCode != null;
 
       if (field.type.isNullable &&
@@ -317,7 +537,23 @@ class ClassGenerator {
           explicitToJson: true,
         );
         buffer.writeln(
-          "  if ($fieldExpr != null) '$key': $serializeNonNullExpr,",
+          "  if (!excludeNull || $fieldExpr != null) '$key': $fieldExpr == null ? null : $serializeNonNullExpr,",
+        );
+      } else if (field.type.isOption) {
+        final innerType =
+            field.type.singleTypeArgument ??
+            const ParsedType(
+              rawType: 'Object',
+              baseName: 'Object',
+              isNullable: false,
+            );
+        final innerSerialize = typeHelper.generateSerialize(
+          innerType,
+          'value',
+          explicitToJson: true,
+        );
+        buffer.writeln(
+          "  if (!excludeNull || $fieldExpr.isSome) '$key': switch ($fieldExpr) { Some(:final value) => $innerSerialize, None() => null },",
         );
       } else {
         final serializeExpr = typeHelper.generateSerialize(
@@ -341,6 +577,15 @@ class ClassGenerator {
             (p) => p
               ..name = 'instance'
               ..type = refer(clazz.name),
+          ),
+        )
+        ..optionalParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'excludeNull'
+              ..type = refer('bool')
+              ..named = true
+              ..defaultTo = const Code('false'),
           ),
         )
         ..lambda = true

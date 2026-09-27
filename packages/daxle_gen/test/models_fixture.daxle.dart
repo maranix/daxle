@@ -93,6 +93,32 @@ mixin _$AccountTypeStringify on Enum {
   };
 }
 
+const _paymentStatusEnumMap = {
+  PaymentStatus.pending: 'pay_pending',
+  PaymentStatus.success: 'pay_success',
+  PaymentStatus.failed: 'pay_failed',
+};
+dynamic paymentStatusToValue(PaymentStatus instance) =>
+    _paymentStatusEnumMap[instance]!;
+PaymentStatus paymentStatusFromValue(Object? value) => switch (value) {
+  'pay_pending' ||
+  'pending' ||
+  'PAY_PENDING' ||
+  'in_progress' => PaymentStatus.pending,
+  'pay_success' || 'success' || 'completed' => PaymentStatus.success,
+  'pay_failed' || 'failed' || 'error' => PaymentStatus.failed,
+  _ => throw ArgumentError('Unknown PaymentStatus value: $value'),
+};
+
+mixin _$PaymentStatusStringify on Enum {
+  @override
+  String toString() => switch (this as PaymentStatus) {
+    PaymentStatus.pending => 'PaymentStatus.pending',
+    PaymentStatus.success => 'PaymentStatus.success',
+    PaymentStatus.failed => 'PaymentStatus.failed',
+  };
+}
+
 ComplexModel complexModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {
@@ -314,8 +340,9 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> complexModelToMap(
-  ComplexModel instance,
-) => <String, dynamic>{
+  ComplexModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
   'id': instance.id,
   'count': instance.count,
   'rating': instance.rating,
@@ -324,10 +351,11 @@ Map<String, dynamic> complexModelToMap(
   'website': instance.website.toString(),
   'score': instance.score.toString(),
   'timeout': instance.timeout.inMicroseconds,
-  'optionalTag': switch (instance.optionalTag) {
-    Some(:final value) => value,
-    None() => null,
-  },
+  if (!excludeNull || instance.optionalTag.isSome)
+    'optionalTag': switch (instance.optionalTag) {
+      Some(:final value) => value,
+      None() => null,
+    },
   'metadata': instance.metadata.map,
   'tags': instance.tags,
   'numbers': instance.numbers.toList(),
@@ -335,9 +363,16 @@ Map<String, dynamic> complexModelToMap(
   'status': statusToValue(instance.status),
   'priority': priorityToValue(instance.priority),
   'role': instance.role,
-  if (instance.customEpoch != null)
-    'customEpoch': const EpochDateTimeConverter().toJson(instance.customEpoch!),
+  if (!excludeNull || instance.customEpoch != null)
+    'customEpoch': instance.customEpoch == null
+        ? null
+        : const EpochDateTimeConverter().toJson(instance.customEpoch!),
 };
+
+extension ComplexModelJsonExtension on ComplexModel {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      complexModelToMap(this, excludeNull: excludeNull);
+}
 
 mixin _$ComplexModelEqualsAndHashCode {
   @override
@@ -591,13 +626,22 @@ NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> nestedContainerToMap(NestedContainer instance) =>
-    <String, dynamic>{
-      'containerId': instance.containerId,
-      'model': complexModelToMap(instance.model),
-      if (instance.optionalModel != null)
-        'optionalModel': complexModelToMap(instance.optionalModel!),
-    };
+Map<String, dynamic> nestedContainerToMap(
+  NestedContainer instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'containerId': instance.containerId,
+  'model': complexModelToMap(instance.model),
+  if (!excludeNull || instance.optionalModel != null)
+    'optionalModel': instance.optionalModel == null
+        ? null
+        : complexModelToMap(instance.optionalModel!),
+};
+
+extension NestedContainerJsonExtension on NestedContainer {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      nestedContainerToMap(this, excludeNull: excludeNull);
+}
 
 mixin _$NestedContainerEqualsAndHashCode {
   @override
@@ -709,9 +753,14 @@ Circle circleFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> circleToMap(Circle instance) => <String, dynamic>{
-  'radius': instance.radius,
-};
+Map<String, dynamic> circleToMap(Circle instance, {bool excludeNull = false}) =>
+    <String, dynamic>{'radius': instance.radius};
+
+extension CircleJsonExtension on Circle {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      circleToMap(this, excludeNull: excludeNull);
+}
+
 Square squareFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'side': final num sideRaw} => Square(sideRaw.toDouble()),
@@ -733,9 +782,14 @@ Square squareFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> squareToMap(Square instance) => <String, dynamic>{
-  'side': instance.side,
-};
+Map<String, dynamic> squareToMap(Square instance, {bool excludeNull = false}) =>
+    <String, dynamic>{'side': instance.side};
+
+extension SquareJsonExtension on Square {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      squareToMap(this, excludeNull: excludeNull);
+}
+
 Car carFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'seats': final num seatsRaw} => Car(seatsRaw.toInt()),
@@ -757,9 +811,14 @@ Car carFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> carToMap(Car instance) => <String, dynamic>{
-  'seats': instance.seats,
-};
+Map<String, dynamic> carToMap(Car instance, {bool excludeNull = false}) =>
+    <String, dynamic>{'seats': instance.seats};
+
+extension CarJsonExtension on Car {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      carToMap(this, excludeNull: excludeNull);
+}
+
 Bike bikeFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'hasPedals': final bool hasPedalsRaw} => Bike(hasPedalsRaw),
@@ -784,9 +843,14 @@ Bike bikeFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> bikeToMap(Bike instance) => <String, dynamic>{
-  'hasPedals': instance.hasPedals,
-};
+Map<String, dynamic> bikeToMap(Bike instance, {bool excludeNull = false}) =>
+    <String, dynamic>{'hasPedals': instance.hasPedals};
+
+extension BikeJsonExtension on Bike {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      bikeToMap(this, excludeNull: excludeNull);
+}
+
 CustomKeyModel customKeyModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'wire_key': final String keyRaw} => CustomKeyModel(keyRaw),
@@ -811,8 +875,16 @@ CustomKeyModel customKeyModelFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> customKeyModelToMap(CustomKeyModel instance) =>
-    <String, dynamic>{'wire_key': instance.key};
+Map<String, dynamic> customKeyModelToMap(
+  CustomKeyModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'wire_key': instance.key};
+
+extension CustomKeyModelJsonExtension on CustomKeyModel {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      customKeyModelToMap(this, excludeNull: excludeNull);
+}
+
 NullableConverterModel nullableConverterModelFromJson(
   Map<String, dynamic> json,
 ) {
@@ -826,13 +898,20 @@ NullableConverterModel nullableConverterModelFromJson(
 }
 
 Map<String, dynamic> nullableConverterModelToMap(
-  NullableConverterModel instance,
-) => <String, dynamic>{
-  if (instance.nullableConvertedInt != null)
-    'nullableConvertedInt': const StringIntConverter().toJson(
-      instance.nullableConvertedInt!,
-    ),
+  NullableConverterModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  if (!excludeNull || instance.nullableConvertedInt != null)
+    'nullableConvertedInt': instance.nullableConvertedInt == null
+        ? null
+        : const StringIntConverter().toJson(instance.nullableConvertedInt!),
 };
+
+extension NullableConverterModelJsonExtension on NullableConverterModel {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      nullableConverterModelToMap(this, excludeNull: excludeNull);
+}
+
 DeepCollectionsModel deepCollectionsModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'matrix': final List matrixRaw, 'mappedLists': final Map mappedListsRaw} =>
@@ -885,11 +964,19 @@ DeepCollectionsModel deepCollectionsModelFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> deepCollectionsModelToMap(DeepCollectionsModel instance) =>
-    <String, dynamic>{
-      'matrix': instance.matrix.map((e) => e).toList(),
-      'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
-    };
+Map<String, dynamic> deepCollectionsModelToMap(
+  DeepCollectionsModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'matrix': instance.matrix.map((e) => e).toList(),
+  'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
+};
+
+extension DeepCollectionsModelJsonExtension on DeepCollectionsModel {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      deepCollectionsModelToMap(this, excludeNull: excludeNull);
+}
+
 CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {
@@ -930,11 +1017,18 @@ CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> caseStyledModelToMap(CaseStyledModel instance) =>
-    <String, dynamic>{
-      'user_full_name': instance.userFullName,
-      'login_attempt_count': instance.loginAttemptCount,
-    };
+Map<String, dynamic> caseStyledModelToMap(
+  CaseStyledModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'user_full_name': instance.userFullName,
+  'login_attempt_count': instance.loginAttemptCount,
+};
+
+extension CaseStyledModelJsonExtension on CaseStyledModel {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      caseStyledModelToMap(this, excludeNull: excludeNull);
+}
 
 mixin _$CaseStyledModelEqualsAndHashCode {
   @override
@@ -1027,17 +1121,31 @@ LoginEvent loginEventFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> loginEventToMap(LoginEvent instance) => <String, dynamic>{
-  'userId': instance.userId,
-};
+Map<String, dynamic> loginEventToMap(
+  LoginEvent instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'userId': instance.userId};
+
+extension LoginEventJsonExtension on LoginEvent {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      loginEventToMap(this, excludeNull: excludeNull);
+}
+
 LogoutEvent logoutEventFromJson(Map<String, dynamic> json) {
   return switch (json) {
     _ => LogoutEvent(),
   };
 }
 
-Map<String, dynamic> logoutEventToMap(LogoutEvent instance) =>
-    <String, dynamic>{};
+Map<String, dynamic> logoutEventToMap(
+  LogoutEvent instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{};
+
+extension LogoutEventJsonExtension on LogoutEvent {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      logoutEventToMap(this, excludeNull: excludeNull);
+}
 
 mixin _$EqualsOnlyModelEqualsAndHashCode {
   @override
@@ -1312,11 +1420,19 @@ Account accountFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> accountToMap(Account instance) => <String, dynamic>{
+Map<String, dynamic> accountToMap(
+  Account instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
   'id': instance.id,
   'acc_type': accountTypeToValue(instance.type),
   'loginCount': instance.loginCount,
 };
+
+extension AccountJsonExtension on Account {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      accountToMap(this, excludeNull: excludeNull);
+}
 
 mixin _$AccountEqualsAndHashCode {
   @override
@@ -1385,6 +1501,270 @@ extension AccountCopyWithExtension on Account {
   }
 }
 
+Address addressFromJson(Map<String, dynamic> json) {
+  return switch (json) {
+    {'street': final String streetRaw, 'city': final String cityRaw} => Address(
+      street: streetRaw,
+      apt: (json['apt'] as String?),
+      city: cityRaw,
+    ),
+    _ => () {
+      if (!json.containsKey('street')) {
+        throw FormatException(
+          "Missing required field 'street' for Address",
+          json,
+        );
+      }
+      if (json['street'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'street' on Address: expected String, got ${json['street'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('city')) {
+        throw FormatException(
+          "Missing required field 'city' for Address",
+          json,
+        );
+      }
+      if (json['city'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'city' on Address: expected String, got ${json['city'].runtimeType}",
+          json,
+        );
+      }
+      throw FormatException(
+        'Invalid JSON shape for Address: missing or invalid required keys (expected: street, city)',
+        json,
+      );
+    }(),
+  };
+}
+
+Map<String, dynamic> addressToMap(
+  Address instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'street': instance.street,
+  if (!excludeNull || instance.apt != null)
+    'apt': instance.apt == null ? null : instance.apt,
+  'city': instance.city,
+};
+
+extension AddressJsonExtension on Address {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      addressToMap(this, excludeNull: excludeNull);
+}
+
+mixin _$AddressEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Address || runtimeType != other.runtimeType) return false;
+    final self = this as Address;
+    return self.street == other.street &&
+        self.apt == other.apt &&
+        self.city == other.city;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as Address;
+    return Object.hash(self.street, self.apt, self.city);
+  }
+}
+
+mixin _$AddressStringify {
+  @override
+  String toString() {
+    final self = this as Address;
+    return 'Address(street: ${self.street}, apt: ${self.apt}, city: ${self.city})';
+  }
+}
+
+mixin _$Address implements _$AddressEqualsAndHashCode, _$AddressStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Address || runtimeType != other.runtimeType) return false;
+    final self = this as Address;
+    return self.street == other.street &&
+        self.apt == other.apt &&
+        self.city == other.city;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as Address;
+    return Object.hash(self.street, self.apt, self.city);
+  }
+
+  @override
+  String toString() {
+    final self = this as Address;
+    return 'Address(street: ${self.street}, apt: ${self.apt}, city: ${self.city})';
+  }
+}
+
+extension AddressCopyWithExtension on Address {
+  Address copyWith({String? street, String? apt, String? city}) {
+    if ((street == null || identical(street, this.street)) &&
+        (apt == null || identical(apt, this.apt)) &&
+        (city == null || identical(city, this.city))) {
+      return this;
+    }
+
+    return Address(
+      street: street ?? this.street,
+      apt: apt ?? this.apt,
+      city: city ?? this.city,
+    );
+  }
+
+  Address copyWithNull({bool apt = false}) {
+    if (!apt) {
+      return this;
+    }
+
+    return Address(
+      street: this.street,
+      apt: apt ? null : this.apt,
+      city: this.city,
+    );
+  }
+}
+
+Order orderFromJson(Map<String, dynamic> json) {
+  if (!json.containsKey('id')) {
+    throw FormatException("Missing required field 'id' for Order", json);
+  }
+  final idRaw = json['id'];
+  if (!_daxleHasKey(json, 'order_status', const ['status', 'state'])) {
+    throw FormatException(
+      "Missing required field 'order_status' for Order",
+      json,
+    );
+  }
+  final statusRaw = _daxleResolveKey(json, 'order_status', const [
+    'status',
+    'state',
+  ]);
+  final shippingAddressJson = _daxleExtractPrefix(json, 'shipping_');
+  return Order(
+    id: (idRaw as String),
+    status: paymentStatusFromValue(statusRaw),
+    notes: (json['notes'] as String?),
+    shippingAddress: addressFromJson(shippingAddressJson),
+  );
+}
+
+Map<String, dynamic> orderToMap(Order instance, {bool excludeNull = false}) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'order_status': paymentStatusToValue(instance.status),
+      if (!excludeNull || instance.notes != null)
+        'notes': instance.notes == null ? null : instance.notes,
+      for (final entry in addressToMap(
+        instance.shippingAddress,
+        excludeNull: excludeNull,
+      ).entries)
+        'shipping_${entry.key}': entry.value,
+    };
+
+extension OrderJsonExtension on Order {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      orderToMap(this, excludeNull: excludeNull);
+}
+
+mixin _$OrderEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Order || runtimeType != other.runtimeType) return false;
+    final self = this as Order;
+    return self.id == other.id &&
+        self.status == other.status &&
+        self.notes == other.notes &&
+        self.shippingAddress == other.shippingAddress;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as Order;
+    return Object.hash(self.id, self.status, self.notes, self.shippingAddress);
+  }
+}
+
+mixin _$OrderStringify {
+  @override
+  String toString() {
+    final self = this as Order;
+    return 'Order(id: ${self.id}, status: ${self.status}, notes: ${self.notes}, shippingAddress: ${self.shippingAddress})';
+  }
+}
+
+mixin _$Order implements _$OrderEqualsAndHashCode, _$OrderStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Order || runtimeType != other.runtimeType) return false;
+    final self = this as Order;
+    return self.id == other.id &&
+        self.status == other.status &&
+        self.notes == other.notes &&
+        self.shippingAddress == other.shippingAddress;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as Order;
+    return Object.hash(self.id, self.status, self.notes, self.shippingAddress);
+  }
+
+  @override
+  String toString() {
+    final self = this as Order;
+    return 'Order(id: ${self.id}, status: ${self.status}, notes: ${self.notes}, shippingAddress: ${self.shippingAddress})';
+  }
+}
+
+extension OrderCopyWithExtension on Order {
+  Order copyWith({
+    String? id,
+    PaymentStatus? status,
+    String? notes,
+    Address? shippingAddress,
+  }) {
+    if ((id == null || identical(id, this.id)) &&
+        (status == null || identical(status, this.status)) &&
+        (notes == null || identical(notes, this.notes)) &&
+        (shippingAddress == null ||
+            identical(shippingAddress, this.shippingAddress))) {
+      return this;
+    }
+
+    return Order(
+      id: id ?? this.id,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
+    );
+  }
+
+  Order copyWithNull({bool notes = false}) {
+    if (!notes) {
+      return this;
+    }
+
+    return Order(
+      id: this.id,
+      status: this.status,
+      notes: notes ? null : this.notes,
+      shippingAddress: this.shippingAddress,
+    );
+  }
+}
+
 Shape shapeFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'shape_type': 'Circle'} => circleFromJson(json),
@@ -1404,11 +1784,22 @@ Shape shapeFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> shapeToMap(Shape instance) {
+Map<String, dynamic> shapeToMap(Shape instance, {bool excludeNull = false}) {
   return switch (instance) {
-    final Circle circle => circleToMap(circle)..['shape_type'] = 'Circle',
-    final Square square => squareToMap(square)..['shape_type'] = 'Square',
+    final Circle circle => circleToMap(
+      circle,
+      excludeNull: excludeNull,
+    )..['shape_type'] = 'Circle',
+    final Square square => squareToMap(
+      square,
+      excludeNull: excludeNull,
+    )..['shape_type'] = 'Square',
   };
+}
+
+extension ShapeJsonExtension on Shape {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      shapeToMap(this, excludeNull: excludeNull);
 }
 
 Vehicle vehicleFromJson(Map<String, dynamic> json) {
@@ -1430,11 +1821,25 @@ Vehicle vehicleFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> vehicleToMap(Vehicle instance) {
+Map<String, dynamic> vehicleToMap(
+  Vehicle instance, {
+  bool excludeNull = false,
+}) {
   return switch (instance) {
-    final Car car => carToMap(car)..['vehicle_type'] = 'car_v1',
-    final Bike bike => bikeToMap(bike)..['vehicle_type'] = 'Bike',
+    final Car car => carToMap(
+      car,
+      excludeNull: excludeNull,
+    )..['vehicle_type'] = 'car_v1',
+    final Bike bike => bikeToMap(
+      bike,
+      excludeNull: excludeNull,
+    )..['vehicle_type'] = 'Bike',
   };
+}
+
+extension VehicleJsonExtension on Vehicle {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      vehicleToMap(this, excludeNull: excludeNull);
 }
 
 Event eventFromJson(Map<String, dynamic> json) {
@@ -1456,15 +1861,22 @@ Event eventFromJson(Map<String, dynamic> json) {
   };
 }
 
-Map<String, dynamic> eventToMap(Event instance) {
+Map<String, dynamic> eventToMap(Event instance, {bool excludeNull = false}) {
   return switch (instance) {
     final LoginEvent loginEvent => loginEventToMap(
       loginEvent,
+      excludeNull: excludeNull,
     )..['type'] = 'LoginEvent',
     final LogoutEvent logoutEvent => logoutEventToMap(
       logoutEvent,
+      excludeNull: excludeNull,
     )..['type'] = 'LogoutEvent',
   };
+}
+
+extension EventJsonExtension on Event {
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      eventToMap(this, excludeNull: excludeNull);
 }
 
 bool _daxleDeepEquals(Object? a, Object? b) {
@@ -1561,4 +1973,38 @@ int _daxleDeepHashCode(Object? value) {
     return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
   }
   return value.hashCode;
+}
+
+Object? _daxleResolveKey(
+  Map<String, dynamic> json,
+  String key,
+  List<String> aliases,
+) {
+  if (json.containsKey(key)) return json[key];
+  for (final alias in aliases) {
+    if (json.containsKey(alias)) return json[alias];
+  }
+  return null;
+}
+
+bool _daxleHasKey(Map<String, dynamic> json, String key, List<String> aliases) {
+  if (json.containsKey(key)) return true;
+  for (final alias in aliases) {
+    if (json.containsKey(alias)) return true;
+  }
+  return false;
+}
+
+Map<String, dynamic> _daxleExtractPrefix(
+  Map<String, dynamic> json,
+  String prefix,
+) {
+  if (prefix.isEmpty) return json;
+  final result = <String, dynamic>{};
+  for (final entry in json.entries) {
+    if (entry.key.startsWith(prefix)) {
+      result[entry.key.substring(prefix.length)] = entry.value;
+    }
+  }
+  return result;
 }

@@ -269,3 +269,66 @@ class Account with _$Account {
     required this.sessionTimer,
   });
 }
+
+// 18. Reference Usage: PaymentStatus (aliases), Address, Order (@Flatten, aliases, dynamic null handling)
+@serializeEnum
+@deserializeEnum
+@stringify
+enum PaymentStatus with _$PaymentStatusStringify {
+  @SerializedValue(
+    'pay_pending',
+    aliases: ['pending', 'PAY_PENDING', 'in_progress'],
+  )
+  pending,
+
+  @SerializedValue('pay_success', aliases: ['success', 'completed'])
+  success,
+
+  @SerializedValue('pay_failed', aliases: ['failed', 'error'])
+  failed,
+}
+
+@serialize
+@deserialize
+@equalsAndHashCode
+@stringify
+@copyWith
+class Address with _$Address {
+  final String street;
+  final String? apt;
+  final String city;
+
+  Address({required this.street, this.apt, required this.city});
+
+  factory Address.fromJson(Map<String, dynamic> json) => addressFromJson(json);
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      addressToMap(this, excludeNull: excludeNull);
+}
+
+@serialize
+@deserialize
+@equalsAndHashCode
+@stringify
+@copyWith
+class Order with _$Order {
+  final String id;
+
+  @SerializedValue('order_status', aliases: ['status', 'state'])
+  final PaymentStatus status;
+
+  final String? notes;
+
+  @Flatten(prefix: 'shipping_')
+  final Address shippingAddress;
+
+  Order({
+    required this.id,
+    required this.status,
+    this.notes,
+    required this.shippingAddress,
+  });
+
+  factory Order.fromJson(Map<String, dynamic> json) => orderFromJson(json);
+  Map<String, dynamic> toJson({bool excludeNull = false}) =>
+      orderToMap(this, excludeNull: excludeNull);
+}

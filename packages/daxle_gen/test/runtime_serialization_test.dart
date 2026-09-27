@@ -131,7 +131,11 @@ void main() {
       final map = complexModelToMap(restored);
       expect(map['optionalTag'], isNull);
       expect(map['role'], 'guest');
-      expect(map.containsKey('customEpoch'), false);
+      expect(map['customEpoch'], isNull);
+      expect(map.containsKey('customEpoch'), true);
+
+      final sparseMap = complexModelToMap(restored, excludeNull: true);
+      expect(sparseMap.containsKey('customEpoch'), false);
     });
   });
 
@@ -166,7 +170,11 @@ void main() {
       expect(map['containerId'], 'c-1');
       expect(map['model'], isA<Map<String, dynamic>>());
       expect(map['model']['id'], 'inner-1');
-      expect(map.containsKey('optionalModel'), false);
+      expect(map['optionalModel'], isNull);
+      expect(map.containsKey('optionalModel'), true);
+
+      final sparseMap = nestedContainerToMap(container, excludeNull: true);
+      expect(sparseMap.containsKey('optionalModel'), false);
 
       final restored = nestedContainerFromJson(map);
       expect(restored.containerId, 'c-1');
@@ -291,7 +299,11 @@ void main() {
     test('handles null without throwing NullThrownError', () {
       final model = NullableConverterModel(null);
       final map = nullableConverterModelToMap(model);
-      expect(map.containsKey('nullableConvertedInt'), false);
+      expect(map['nullableConvertedInt'], isNull);
+      expect(map.containsKey('nullableConvertedInt'), true);
+
+      final sparseMap = nullableConverterModelToMap(model, excludeNull: true);
+      expect(sparseMap.containsKey('nullableConvertedInt'), false);
 
       final restored = nullableConverterModelFromJson(map);
       expect(restored.nullableConvertedInt, isNull);
@@ -706,4 +718,151 @@ void main() {
       }
     });
   });
+
+  group(
+    'Reference Usage: @SerializedValue aliases, @Flatten, dynamic null handling',
+    () {
+      test(
+        'PaymentStatus enum deserializes from canonical val or any alias and serializes strictly to canonical',
+        () {
+          expect(paymentStatusFromValue('pay_pending'), PaymentStatus.pending);
+          expect(paymentStatusFromValue('pending'), PaymentStatus.pending);
+          expect(paymentStatusFromValue('PAY_PENDING'), PaymentStatus.pending);
+          expect(paymentStatusFromValue('in_progress'), PaymentStatus.pending);
+
+          expect(paymentStatusFromValue('pay_success'), PaymentStatus.success);
+          expect(paymentStatusFromValue('success'), PaymentStatus.success);
+          expect(paymentStatusFromValue('completed'), PaymentStatus.success);
+
+          expect(paymentStatusFromValue('pay_failed'), PaymentStatus.failed);
+          expect(paymentStatusFromValue('failed'), PaymentStatus.failed);
+          expect(paymentStatusFromValue('error'), PaymentStatus.failed);
+
+          expect(
+            () => paymentStatusFromValue('unknown_status'),
+            throwsArgumentError,
+          );
+
+          expect(paymentStatusToValue(PaymentStatus.pending), 'pay_pending');
+          expect(paymentStatusToValue(PaymentStatus.success), 'pay_success');
+          expect(paymentStatusToValue(PaymentStatus.failed), 'pay_failed');
+        },
+      );
+
+      test(
+        'Incoming Payload A (canonical keys and values) parses correctly',
+        () {
+          final payloadA = <String, dynamic>{
+            'id': 'ord_101',
+            'order_status': 'pay_pending',
+            'notes': null,
+            'shipping_street': '123 Market St',
+            'shipping_apt': null,
+            'shipping_city': 'Austin',
+          };
+
+          final orderA = Order.fromJson(payloadA);
+          expect(orderA.id, 'ord_101');
+          expect(orderA.status, PaymentStatus.pending);
+          expect(orderA.notes, isNull);
+          expect(orderA.shippingAddress.street, '123 Market St');
+          expect(orderA.shippingAddress.apt, isNull);
+          expect(orderA.shippingAddress.city, 'Austin');
+        },
+      );
+
+      test(
+        'Incoming Payload B (legacy/alternative aliases) parses correctly',
+        () {
+          final payloadB = <String, dynamic>{
+            'id': 'ord_101',
+            'status': 'in_progress',
+            'shipping_street': '123 Market St',
+            'shipping_city': 'Austin',
+          };
+
+          final orderB = Order.fromJson(payloadB);
+          expect(orderB.id, 'ord_101');
+          expect(orderB.status, PaymentStatus.pending);
+          expect(orderB.notes, isNull);
+          expect(orderB.shippingAddress.street, '123 Market St');
+          expect(orderB.shippingAddress.apt, isNull);
+          expect(orderB.shippingAddress.city, 'Austin');
+        },
+      );
+
+      test(
+        'Standard Serialization (order.toJson()) preserves explicit null keys',
+        () {
+          final order = Order(
+            id: 'ord_101',
+            status: PaymentStatus.pending,
+            notes: null,
+            shippingAddress: Address(
+              street: '123 Market St',
+              apt: null,
+              city: 'Austin',
+            ),
+          );
+
+          final json = order.toJson();
+          expect(json, {
+            'id': 'ord_101',
+            'order_status': 'pay_pending',
+            'notes': null,
+            'shipping_street': '123 Market St',
+            'shipping_apt': null,
+            'shipping_city': 'Austin',
+          });
+        },
+      );
+
+      test(
+        'Sparse / PATCH Serialization (order.toJson(excludeNull: true)) strips nulls across root and child',
+        () {
+          final order = Order(
+            id: 'ord_101',
+            status: PaymentStatus.pending,
+            notes: null,
+            shippingAddress: Address(
+              street: '123 Market St',
+              apt: null,
+              city: 'Austin',
+            ),
+          );
+
+          final json = order.toJson(excludeNull: true);
+          expect(json, {
+            'id': 'ord_101',
+            'order_status': 'pay_pending',
+            'shipping_street': '123 Market St',
+            'shipping_city': 'Austin',
+          });
+        },
+      );
+
+      test(
+        'Throws FormatException when required field and all aliases are missing',
+        () {
+          final invalidPayload = <String, dynamic>{
+            'id': 'ord_101',
+            // missing order_status, status, and state
+            'shipping_street': '123 Market St',
+            'shipping_city': 'Austin',
+          };
+
+          expect(
+            () => Order.fromJson(invalidPayload),
+            throwsA(
+              isA<FormatException>().having(
+                (e) => e.message,
+                'message',
+                contains("Missing required field 'order_status' for Order"),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
 }

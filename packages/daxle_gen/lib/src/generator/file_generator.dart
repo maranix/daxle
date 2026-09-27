@@ -83,6 +83,34 @@ class FileGenerator {
       }
       if (shouldSer) {
         specs.add(classGen.buildToMap(clazz));
+        final camelName = TypeHelper.toCamelCase(clazz.name);
+        specs.add(
+          Extension(
+            (b) => b
+              ..name = '${clazz.name}JsonExtension'
+              ..on = refer(clazz.name)
+              ..methods.add(
+                Method(
+                  (m) => m
+                    ..name = 'toJson'
+                    ..returns = refer('Map<String, dynamic>')
+                    ..optionalParameters.add(
+                      Parameter(
+                        (p) => p
+                          ..name = 'excludeNull'
+                          ..type = refer('bool')
+                          ..named = true
+                          ..defaultTo = const Code('false'),
+                      ),
+                    )
+                    ..lambda = true
+                    ..body = Code(
+                      '${camelName}ToMap(this, excludeNull: excludeNull)',
+                    ),
+                ),
+              ),
+          ),
+        );
       }
 
       // Equality and Stringify mixins
@@ -126,6 +154,34 @@ class FileGenerator {
       }
       if (sc.shouldSerialize) {
         specs.add(sealedGen.buildToMap(sc, subs));
+        final camelName = TypeHelper.toCamelCase(sc.name);
+        specs.add(
+          Extension(
+            (b) => b
+              ..name = '${sc.name}JsonExtension'
+              ..on = refer(sc.name)
+              ..methods.add(
+                Method(
+                  (m) => m
+                    ..name = 'toJson'
+                    ..returns = refer('Map<String, dynamic>')
+                    ..optionalParameters.add(
+                      Parameter(
+                        (p) => p
+                          ..name = 'excludeNull'
+                          ..type = refer('bool')
+                          ..named = true
+                          ..defaultTo = const Code('false'),
+                      ),
+                    )
+                    ..lambda = true
+                    ..body = Code(
+                      '${camelName}ToMap(this, excludeNull: excludeNull)',
+                    ),
+                ),
+              ),
+          ),
+        );
       }
     }
 
@@ -136,6 +192,61 @@ class FileGenerator {
 
     if (hasCollectionFields) {
       specs.add(const Code(EqualityGenerator.deepEqualityHelpers));
+    }
+
+    // 6. Daxle key and prefix resolution helpers if aliases or Flatten are used
+    final hasFlattenOrAliases = parsedFile.classes.any(
+      (c) =>
+          c.fields.any(
+            (f) => f.config.isFlattened || f.config.aliases.isNotEmpty,
+          ) ||
+          c.constructorParams.any(
+            (p) => p.config.isFlattened || p.config.aliases.isNotEmpty,
+          ),
+    );
+
+    if (hasFlattenOrAliases) {
+      specs.add(
+        const Code('''
+Object? _daxleResolveKey(
+  Map<String, dynamic> json,
+  String key,
+  List<String> aliases,
+) {
+  if (json.containsKey(key)) return json[key];
+  for (final alias in aliases) {
+    if (json.containsKey(alias)) return json[alias];
+  }
+  return null;
+}
+
+bool _daxleHasKey(
+  Map<String, dynamic> json,
+  String key,
+  List<String> aliases,
+) {
+  if (json.containsKey(key)) return true;
+  for (final alias in aliases) {
+    if (json.containsKey(alias)) return true;
+  }
+  return false;
+}
+
+Map<String, dynamic> _daxleExtractPrefix(
+  Map<String, dynamic> json,
+  String prefix,
+) {
+  if (prefix.isEmpty) return json;
+  final result = <String, dynamic>{};
+  for (final entry in json.entries) {
+    if (entry.key.startsWith(prefix)) {
+      result[entry.key.substring(prefix.length)] = entry.value;
+    }
+  }
+  return result;
+}
+'''),
+      );
     }
 
     final library = Library((b) => b..body.addAll(specs));

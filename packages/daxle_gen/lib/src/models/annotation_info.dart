@@ -77,17 +77,23 @@ class DeserializeEnumInfo {
   });
 }
 
-/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, and `@ignore`.
+/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, `@Flatten`, and `@ignore`.
 class FieldConfig {
   final String? serializedKey;
+  final List<String> aliases;
   final String? fallbackCode;
   final String? converterCode;
+  final bool isFlattened;
+  final String flattenPrefix;
   final bool isIgnored;
 
   const FieldConfig({
     this.serializedKey,
+    this.aliases = const [],
     this.fallbackCode,
     this.converterCode,
+    this.isFlattened = false,
+    this.flattenPrefix = '',
     this.isIgnored = false,
   });
 
@@ -101,21 +107,37 @@ class FieldConfig {
   FieldConfig merge(FieldConfig other, [String memberName = 'member']) {
     final mergedIgnored = isIgnored || other.isIgnored;
     final mergedKey = other.serializedKey ?? serializedKey;
+    final mergedAliases = other.aliases.isNotEmpty ? other.aliases : aliases;
     final mergedFallback = other.fallbackCode ?? fallbackCode;
     final mergedConverter = other.converterCode ?? converterCode;
+    final mergedFlattened = isFlattened || other.isFlattened;
+    final mergedFlattenPrefix = other.flattenPrefix.isNotEmpty
+        ? other.flattenPrefix
+        : flattenPrefix;
 
-    if (mergedIgnored && (mergedKey != null || mergedFallback != null)) {
+    if (mergedIgnored &&
+        (mergedKey != null || mergedFallback != null || mergedFlattened)) {
       throw InvalidGenerationSourceError(
-        '@ignore cannot coexist with @SerializedValue or @Fallback on "$memberName".',
+        '@ignore cannot coexist with @SerializedValue, @Fallback, or @Flatten on "$memberName".',
         todo:
-            'Remove either @ignore or @SerializedValue/@Fallback from "$memberName".',
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten from "$memberName".',
+      );
+    }
+
+    if (mergedFlattened && mergedKey != null) {
+      throw InvalidGenerationSourceError(
+        '@Flatten cannot coexist with @SerializedValue on "$memberName".',
+        todo: 'Remove either @Flatten or @SerializedValue from "$memberName".',
       );
     }
 
     return FieldConfig(
       serializedKey: mergedKey,
+      aliases: mergedAliases,
       fallbackCode: mergedFallback,
       converterCode: mergedConverter,
+      isFlattened: mergedFlattened,
+      flattenPrefix: mergedFlattenPrefix,
       isIgnored: mergedIgnored,
     );
   }

@@ -86,7 +86,7 @@ class SealedGenerator {
           : sub.name;
       final tag = sub.customDiscriminatorName ?? defaultTag;
       buffer.writeln(
-        "  final ${sub.name} $subVar => ${subVar}ToMap($subVar)..['$discriminator'] = '$tag',",
+        "  final ${sub.name} $subVar => ${subVar}ToMap($subVar, excludeNull: excludeNull)..['$discriminator'] = '$tag',",
       );
     }
 
@@ -101,6 +101,15 @@ class SealedGenerator {
             (p) => p
               ..name = 'instance'
               ..type = refer(sealedClass.name),
+          ),
+        )
+        ..optionalParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'excludeNull'
+              ..type = refer('bool')
+              ..named = true
+              ..defaultTo = const Code('false'),
           ),
         )
         ..body = Code(buffer.toString()),

@@ -39,7 +39,9 @@ class User(
       );
       expect(
         generated,
-        contains('Map<String, dynamic> userToMap(User instance)'),
+        contains(
+          'Map<String, dynamic> userToMap(User instance, {bool excludeNull = false})',
+        ),
       );
       expect(generated, contains("'user_id': instance.id"));
       expect(generated, contains("'user_id': final String idRaw"));
@@ -110,9 +112,16 @@ class Square extends Shape {
     expect(generated, contains("{'kind': 'Square'} => squareFromJson(json)"));
     expect(
       generated,
-      contains('Map<String, dynamic> shapeToMap(Shape instance)'),
+      contains(
+        'Map<String, dynamic> shapeToMap(Shape instance, {bool excludeNull = false})',
+      ),
     );
-    expect(generated, contains("circleToMap(circle)..['kind'] = 'Circle'"));
+    expect(
+      generated,
+      contains(
+        "circleToMap(\n      circle,\n      excludeNull: excludeNull,\n    )..['kind'] = 'Circle'",
+      ),
+    );
   });
 
   test('generates case conversion and ignores fields', () {

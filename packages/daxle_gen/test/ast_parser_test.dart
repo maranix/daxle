@@ -316,4 +316,217 @@ class BadModel {
       );
     },
   );
+
+  test('parses aliases on enum cases and class fields', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serializeEnum
+enum Status {
+  @SerializedValue('pay_pending', aliases: ['pending', 'in_progress'])
+  pending,
+}
+
+@serialize
+class Order {
+  @SerializedValue('order_status', aliases: ['status', 'state'])
+  final Status status;
+
+  Order(this.status);
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final statusEnum = parsedFile.enums.first;
+    expect(statusEnum.constants.first.aliases, ['pending', 'in_progress']);
+
+    final orderClass = parsedFile.classes.first;
+    expect(orderClass.fields.first.aliases, ['status', 'state']);
+  });
+
+  test('parses @Flatten and @flatten with prefix', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+class Address {
+  final String street;
+  Address(this.street);
+}
+
+@serialize
+class Order {
+  @Flatten(prefix: 'shipping_')
+  final Address shippingAddress;
+
+  @flatten
+  final Address billingAddress;
+
+  Order(this.shippingAddress, this.billingAddress);
+}
+''';
+
+    final parsedFile = parser.parseContent(code);
+    final orderClass = parsedFile.classes.firstWhere((c) => c.name == 'Order');
+    expect(orderClass.fields[0].isFlattened, true);
+    expect(orderClass.fields[0].flattenPrefix, 'shipping_');
+    expect(orderClass.fields[1].isFlattened, true);
+    expect(orderClass.fields[1].flattenPrefix, '');
+  });
+
+  test('throws InvalidGenerationSourceError on duplicate wire key or alias in enum', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serializeEnum
+enum ConflictEnum {
+  @SerializedValue('same_val', aliases: ['alias1'])
+  first,
+
+  @SerializedValue('other_val', aliases: ['alias1'])
+  second,
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains('Duplicate wire key or alias "alias1"'),
+        ),
+      ),
+    );
+  });
+
+  test('throws InvalidGenerationSourceError on duplicate wire key or alias in class', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class ConflictClass {
+  @SerializedValue('shared_key')
+  final String a;
+
+  @SerializedValue('b_val', aliases: ['shared_key'])
+  final String b;
+
+  ConflictClass(this.a, this.b);
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains('Duplicate wire key or alias "shared_key"'),
+        ),
+      ),
+    );
+  });
+
+  test('throws InvalidGenerationSourceError when @Flatten is used on primitive or collection types', () {
+    const primitiveCode = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadPrimitive {
+  @Flatten()
+  final int count;
+
+  BadPrimitive(this.count);
+}
+''';
+
+    expect(
+      () => parser.parseContent(primitiveCode),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains('@Flatten cannot be used on field "count" of type "int"'),
+        ),
+      ),
+    );
+
+    const collectionCode = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadCollection {
+  @flatten
+  final List<String> items;
+
+  BadCollection(this.items);
+}
+''';
+
+    expect(
+      () => parser.parseContent(collectionCode),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains(
+            '@Flatten cannot be used on field "items" of type "List<String>"',
+          ),
+        ),
+      ),
+    );
+  });
+
+  test(
+    'throws InvalidGenerationSourceError when @ignore is paired with @Flatten',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+class Address {
+  final String street;
+  Address(this.street);
+}
+
+@serialize
+class BadModel {
+  @ignore
+  @Flatten(prefix: 'addr_')
+  final Address address;
+
+  BadModel(this.address);
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(isA<InvalidGenerationSourceError>()),
+      );
+    },
+  );
+
+  test('throws InvalidGenerationSourceError when @Flatten is paired with @SerializedValue', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+class Address {
+  final String street;
+  Address(this.street);
+}
+
+@serialize
+class BadModel {
+  @SerializedValue('addr')
+  @Flatten(prefix: 'addr_')
+  final Address address;
+
+  BadModel(this.address);
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(isA<InvalidGenerationSourceError>()),
+    );
+  });
 }

@@ -285,6 +285,54 @@ class DaxleAstParser {
       }
     }
 
+    // Validate @Flatten target contract
+    for (final field in fields) {
+      if (field.config.isFlattened) {
+        final t = field.type;
+        if (t.isPrimitive ||
+            t.isList ||
+            t.isSet ||
+            t.isMap ||
+            t.isQueryMap ||
+            t.isOption ||
+            t.isDynamic ||
+            t.isObject) {
+          throw InvalidGenerationSourceError(
+            '@Flatten cannot be used on field "${field.name}" of type "${t.rawType}". '
+            'The target type must be a custom class implementing toJson({bool excludeNull = false}) and fromJson(Map<String, dynamic> json).',
+            todo:
+                'Remove @Flatten from "${field.name}" or use a custom class type.',
+          );
+        }
+      }
+    }
+
+    // Validate duplicate wire keys and aliases
+    final seenClassKeys = <String, String>{};
+    for (final field in fields) {
+      if (field.config.isIgnored || field.config.isFlattened) continue;
+      final wireKey = field.resolvedSerializeKey(serializeInfo?.caseStyle);
+      if (seenClassKeys.containsKey(wireKey)) {
+        throw InvalidGenerationSourceError(
+          'Duplicate wire key or alias "$wireKey" found on field "${field.name}" in class "$className" (conflicts with "${seenClassKeys[wireKey]}").',
+          todo:
+              'Ensure all serialized keys and aliases within "$className" are unique.',
+        );
+      }
+      seenClassKeys[wireKey] = field.name;
+
+      for (final alias in field.config.aliases) {
+        if (seenClassKeys.containsKey(alias)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate wire key or alias "$alias" found on field "${field.name}" in class "$className" (conflicts with "${seenClassKeys[alias]}").',
+            todo:
+                'Ensure all serialized keys and aliases within "$className" are unique.',
+          );
+        }
+        seenClassKeys[alias] = field.name;
+      }
+    }
+
     return ParsedClass(
       name: className,
       isSealed: isSealed,
@@ -452,6 +500,33 @@ class DaxleAstParser {
       }
     }
 
+    // Validate duplicate wire keys and aliases
+    final seenEnumKeys = <String, String>{};
+    for (final constant in constants) {
+      if (constant.isIgnored) continue;
+      final wireVal = constant.resolvedSerializeValue(serializeInfo?.caseStyle);
+      final cleanWireVal = wireVal.replaceAll("'", '').replaceAll('"', '');
+      if (seenEnumKeys.containsKey(cleanWireVal)) {
+        throw InvalidGenerationSourceError(
+          'Duplicate wire key or alias "$cleanWireVal" found on enum constant "${constant.name}" in enum "$enumName" (conflicts with "${seenEnumKeys[cleanWireVal]}").',
+          todo:
+              'Ensure all wire values and aliases within "$enumName" are unique.',
+        );
+      }
+      seenEnumKeys[cleanWireVal] = constant.name;
+
+      for (final alias in constant.config.aliases) {
+        if (seenEnumKeys.containsKey(alias)) {
+          throw InvalidGenerationSourceError(
+            'Duplicate wire key or alias "$alias" found on enum constant "${constant.name}" in enum "$enumName" (conflicts with "${seenEnumKeys[alias]}").',
+            todo:
+                'Ensure all wire values and aliases within "$enumName" are unique.',
+          );
+        }
+        seenEnumKeys[alias] = constant.name;
+      }
+    }
+
     return ParsedEnum(
       name: enumName,
       serialize: serializeInfo,
@@ -611,8 +686,11 @@ class DaxleAstParser {
     String memberName = 'member',
   }) {
     String? serializedKey;
+    var aliases = <String>[];
     String? fallbackCode;
     String? converterCode;
+    var isFlattened = false;
+    var flattenPrefix = '';
     var isIgnored = false;
     var hasSerializedValue = false;
     var hasFallback = false;
@@ -621,6 +699,17 @@ class DaxleAstParser {
       final annotName = _getAnnotationName(annotation);
       if (annotName == 'ignore' || annotName == 'Ignore') {
         isIgnored = true;
+      } else if (annotName == 'Flatten' || annotName == 'flatten') {
+        isFlattened = true;
+        if (annotation.arguments != null) {
+          for (final arg in annotation.arguments!.arguments) {
+            if (arg is NamedArgument && arg.name.lexeme == 'prefix') {
+              flattenPrefix = _extractStringValue(arg.argumentExpression) ?? '';
+            } else if (arg is Expression) {
+              flattenPrefix = _extractStringValue(arg) ?? '';
+            }
+          }
+        }
       } else if (annotName == 'SerializedValue' ||
           annotName == 'SerializeValue' ||
           annotName == 'DeserializeValue') {
@@ -632,6 +721,8 @@ class DaxleAstParser {
               if (argName == 'value' || argName == 'name') {
                 final strVal = _extractStringValue(arg.argumentExpression);
                 serializedKey = strVal ?? arg.argumentExpression.toSource();
+              } else if (argName == 'aliases') {
+                aliases = _extractStringList(arg.argumentExpression);
               } else if (argName == 'converter') {
                 converterCode = arg.argumentExpression.toSource();
               }
@@ -660,20 +751,43 @@ class DaxleAstParser {
       }
     }
 
-    if (isIgnored && (hasSerializedValue || hasFallback)) {
+    if (isIgnored && (hasSerializedValue || hasFallback || isFlattened)) {
       throw InvalidGenerationSourceError(
-        '@ignore cannot coexist with @SerializedValue or @Fallback on "$memberName".',
+        '@ignore cannot coexist with @SerializedValue, @Fallback, or @Flatten on "$memberName".',
         todo:
-            'Remove either @ignore or @SerializedValue/@Fallback from "$memberName".',
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten from "$memberName".',
+      );
+    }
+
+    if (isFlattened && hasSerializedValue) {
+      throw InvalidGenerationSourceError(
+        '@Flatten cannot coexist with @SerializedValue on "$memberName".',
+        todo: 'Remove either @Flatten or @SerializedValue from "$memberName".',
       );
     }
 
     return FieldConfig(
       serializedKey: serializedKey,
+      aliases: aliases,
       fallbackCode: fallbackCode,
       converterCode: converterCode,
+      isFlattened: isFlattened,
+      flattenPrefix: flattenPrefix,
       isIgnored: isIgnored,
     );
+  }
+
+  List<String> _extractStringList(Expression expr) {
+    final result = <String>[];
+    if (expr is ListLiteral) {
+      for (final elem in expr.elements) {
+        if (elem is Expression) {
+          final str = _extractStringValue(elem);
+          if (str != null) result.add(str);
+        }
+      }
+    }
+    return result;
   }
 
   CaseStyle? _extractCaseStyle(Expression expr) {

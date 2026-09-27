@@ -87,7 +87,9 @@ class Item(final String id, final int price);
         );
         expect(
           content,
-          contains('Map<String, dynamic> itemToMap(Item instance)'),
+          contains(
+            'Map<String, dynamic> itemToMap(Item instance, {bool excludeNull = false})',
+          ),
         );
       },
     );
