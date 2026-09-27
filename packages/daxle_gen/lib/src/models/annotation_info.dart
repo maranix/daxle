@@ -66,20 +66,14 @@ class FieldConfig {
     this.deserializeKey,
     this.serializeCaseStyle,
     this.deserializeCaseStyle,
-    String? fallbackCode,
-    String? defaultValueCode,
-    String? serializeFallbackCode,
-    String? serializeDefaultValueCode,
+    this.fallbackCode,
+    this.serializeFallbackCode,
     this.converterCode,
     this.serializeConverterCode,
     this.ignoreSerialize = false,
     this.ignoreDeserialize = false,
-  })  : fallbackCode = fallbackCode ?? defaultValueCode,
-        serializeFallbackCode =
-            serializeFallbackCode ?? serializeDefaultValueCode;
+  });
 
-  String? get defaultValueCode => fallbackCode;
-  String? get serializeDefaultValueCode => serializeFallbackCode;
   String? get effectiveSerializeKey => serializeKey;
   String? get effectiveDeserializeKey => deserializeKey;
   String? get effectiveSerializeConverter =>

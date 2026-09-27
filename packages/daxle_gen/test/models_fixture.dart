@@ -169,3 +169,18 @@ enum AnnotatedEnum {
   @DeserializeValue(fallback: true)
   fallbackStatus,
 }
+
+// 14. Sealed hierarchy with default discriminator ('type' and class name tags)
+@serialize
+@deserialize
+sealed class Event {}
+
+class LoginEvent extends Event {
+  final String userId;
+  LoginEvent(this.userId);
+}
+
+class LogoutEvent extends Event {
+  LogoutEvent();
+}
+

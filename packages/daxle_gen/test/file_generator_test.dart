@@ -61,10 +61,10 @@ enum const Priority(final int code) {
     final generated = generator.generate(parsedFile);
 
     expect(generated, isNotNull);
-    expect(generated, contains('const statusEnumMap ='));
+    expect(generated, contains('const _statusEnumMap ='));
     expect(generated, contains('Status statusFromValue(Object? value)'));
     expect(generated, contains('dynamic statusToValue(Status instance)'));
-    expect(generated, contains('const priorityEnumMap ='));
+    expect(generated, contains('const _priorityEnumMap ='));
     expect(generated, contains('Priority.low: 10'));
     expect(generated, contains('Priority.high: 20'));
   });

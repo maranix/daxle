@@ -176,6 +176,58 @@ void main() {
 }
 ```
 
+### Functional Serialization & Sealed Polymorphism (`daxle_gen`)
+Automate type-safe serialization (`toMap`) and deserialization (`fromJson`) using Dart 3 switch pattern matching.
+
+#### Default vs Custom Discriminator Comparison
+
+- **Default Discriminator (`@serialize` / `@deserialize`)**: Defaults to `'type'` with subclass name tags:
+  ```dart
+  @serialize
+  @deserialize
+  sealed class Event {}
+  class LoginEvent extends Event { final String userId; LoginEvent(this.userId); }
+  class LogoutEvent extends Event { LogoutEvent(); }
+  ```
+  Generated Switch Pattern (`event.daxle.dart`):
+  ```dart
+  Event eventFromJson(Map<String, dynamic> json) => switch (json) {
+    {'type': 'LoginEvent'} => loginEventFromJson(json),
+    {'type': 'LogoutEvent'} => logoutEventFromJson(json),
+    _ => () {
+      if (!json.containsKey('type') || json['type'] == null) {
+        throw FormatException("Missing required discriminator 'type' for Event", json);
+      }
+      throw FormatException("Unknown Event discriminator: '${json['type']}'", json);
+    }(),
+  };
+  ```
+
+- **Custom Discriminator & Custom Tags (`@Serialize(discriminator: ...)` + `@SerializeValue(name: ...)`)**:
+  ```dart
+  @Serialize(discriminator: 'vehicle_type')
+  @Deserialize(discriminator: 'vehicle_type')
+  sealed class Vehicle {}
+
+  @SerializeValue(name: 'car_v1')
+  @DeserializeValue(name: 'car_v1')
+  class Car implements Vehicle { final int seats; Car(this.seats); }
+  class Bike implements Vehicle { final bool hasPedals; Bike(this.hasPedals); }
+  ```
+  Generated Switch Pattern (`vehicle.daxle.dart`):
+  ```dart
+  Vehicle vehicleFromJson(Map<String, dynamic> json) => switch (json) {
+    {'vehicle_type': 'car_v1'} => carFromJson(json),
+    {'vehicle_type': 'Bike'} => bikeFromJson(json),
+    _ => () {
+      if (!json.containsKey('vehicle_type') || json['vehicle_type'] == null) {
+        throw FormatException("Missing required discriminator 'vehicle_type' for Vehicle", json);
+      }
+      throw FormatException("Unknown Vehicle discriminator: '${json['vehicle_type']}'", json);
+    }(),
+  };
+  ```
+
 ---
 
 ## Ready to build safer apps?

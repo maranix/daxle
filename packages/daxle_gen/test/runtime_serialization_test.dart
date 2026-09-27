@@ -15,12 +15,6 @@ void main() {
       expect(statusFromValue('completed'), Status.completed);
 
       expect(() => statusFromValue('invalid'), throwsArgumentError);
-
-      expect(statusEnumMap, {
-        Status.pending: 'pending',
-        Status.active: 'active',
-        Status.completed: 'completed',
-      });
     });
 
     test('enhanced enum with valueField', () {
@@ -33,12 +27,6 @@ void main() {
       expect(priorityFromValue(30), Priority.high);
 
       expect(() => priorityFromValue(999), throwsArgumentError);
-
-      expect(priorityEnumMap, {
-        Priority.low: 10,
-        Priority.medium: 20,
-        Priority.high: 30,
-      });
     });
   });
 
@@ -261,10 +249,6 @@ void main() {
       expect(multiParamEnumToValue(MultiParamEnum.second), 202);
       expect(multiParamEnumFromValue(101), MultiParamEnum.first);
       expect(multiParamEnumFromValue(202), MultiParamEnum.second);
-      expect(multiParamEnumEnumMap, {
-        MultiParamEnum.first: 101,
-        MultiParamEnum.second: 202,
-      });
     });
   });
 
@@ -371,19 +355,19 @@ void main() {
     });
 
     test('transforms enum keys using kebab-case', () {
-      expect(themeModeEnumMap[ThemeMode.lightTheme], 'light-theme');
-      expect(themeModeEnumMap[ThemeMode.darkTheme], 'dark-theme');
-      expect(themeModeEnumMap[ThemeMode.systemDefault], 'system-default');
-
       expect(themeModeToValue(ThemeMode.lightTheme), 'light-theme');
+      expect(themeModeToValue(ThemeMode.darkTheme), 'dark-theme');
+      expect(themeModeToValue(ThemeMode.systemDefault), 'system-default');
+
+      expect(themeModeFromValue('light-theme'), ThemeMode.lightTheme);
       expect(themeModeFromValue('dark-theme'), ThemeMode.darkTheme);
+      expect(themeModeFromValue('system-default'), ThemeMode.systemDefault);
     });
 
     test('supports @SerializeValue and @DeserializeValue on enum entries', () {
       // 1. Serialization name override and ignore
       expect(annotatedEnumToValue(AnnotatedEnum.inProgress), 'in_progress');
-      expect(annotatedEnumEnumMap[AnnotatedEnum.inProgress], 'in_progress');
-      expect(annotatedEnumEnumMap.containsKey(AnnotatedEnum.internalSecret), false);
+      expect(() => annotatedEnumToValue(AnnotatedEnum.internalSecret), throwsA(isA<TypeError>()));
 
       // 2. Deserialization name override and fallback
       expect(annotatedEnumFromValue('in_progress'), AnnotatedEnum.inProgress);
@@ -391,27 +375,98 @@ void main() {
     });
   });
 
-  group('Switch-based pattern matching JSON shape and type validation', () {
-    test('throws FormatException when required JSON keys are missing', () {
-      expect(
-        () => complexModelFromJson({'id': 'only_id'}),
-        throwsA(isA<FormatException>()),
-      );
-      expect(
-        () => nestedContainerFromJson({}),
-        throwsA(isA<FormatException>()),
-      );
+  group('Default Discriminator Sealed Hierarchy (Event)', () {
+    test('serializes and deserializes with default type discriminator', () {
+      final Event login = LoginEvent('user_123');
+      final loginMap = eventToMap(login);
+      expect(loginMap, {
+        'userId': 'user_123',
+        'type': 'LoginEvent',
+      });
+
+      final restoredLogin = eventFromJson(loginMap);
+      expect(restoredLogin, isA<LoginEvent>());
+      expect((restoredLogin as LoginEvent).userId, 'user_123');
+
+      final Event logout = LogoutEvent();
+      final logoutMap = eventToMap(logout);
+      expect(logoutMap, {
+        'type': 'LogoutEvent',
+      });
+
+      final restoredLogout = eventFromJson(logoutMap);
+      expect(restoredLogout, isA<LogoutEvent>());
     });
 
-    test('throws FormatException when JSON key types do not match expected shape', () {
-      expect(
-        () => circleFromJson({'radius': 'not_a_number'}),
-        throwsA(isA<FormatException>()),
-      );
-      expect(
-        () => carFromJson({'seats': 'four'}),
-        throwsA(isA<FormatException>()),
-      );
+    test('throws FormatException on missing or invalid default discriminator with source', () {
+      final missingTypeJson = {'userId': 'user_123'};
+      try {
+        eventFromJson(missingTypeJson);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Missing required discriminator 'type'"));
+        expect(e.source, same(missingTypeJson));
+      }
+
+      final unknownTypeJson = {'type': 'UnknownEvent'};
+      try {
+        eventFromJson(unknownTypeJson);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Unknown Event discriminator: 'UnknownEvent'"));
+        expect(e.source, same(unknownTypeJson));
+      }
+    });
+  });
+
+  group('Switch-based pattern matching JSON shape and type validation', () {
+    test('throws FormatException referring to missing field and passes json source', () {
+      final input1 = {'id': 'only_id'};
+      try {
+        complexModelFromJson(input1);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Missing required field 'count' for ComplexModel"));
+        expect(e.source, same(input1));
+      }
+
+      final input2 = <String, dynamic>{};
+      try {
+        nestedContainerFromJson(input2);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Missing required field 'containerId' for NestedContainer"));
+        expect(e.source, same(input2));
+      }
+
+      final input3 = {'containerId': 'c1'};
+      try {
+        nestedContainerFromJson(input3);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Missing required field 'model' for NestedContainer"));
+        expect(e.source, same(input3));
+      }
+    });
+
+    test('throws FormatException referring to field with invalid type and passes json source', () {
+      final input1 = {'radius': 'not_a_number'};
+      try {
+        circleFromJson(input1);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Invalid type for field 'radius' on Circle: expected num, got String"));
+        expect(e.source, same(input1));
+      }
+
+      final input2 = {'seats': 'four'};
+      try {
+        carFromJson(input2);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Invalid type for field 'seats' on Car: expected num, got String"));
+        expect(e.source, same(input2));
+      }
     });
   });
 }

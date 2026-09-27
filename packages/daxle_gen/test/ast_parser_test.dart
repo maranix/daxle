@@ -79,7 +79,6 @@ class LegacyItem {
     expect(item.fields[0].jsonKey, 'item_id');
     expect(item.fields[1].name, 'name');
     expect(item.fields[1].config.fallbackCode, "'unnamed'");
-    expect(item.fields[1].config.defaultValueCode, "'unnamed'");
     expect(item.fields[2].name, 'createdAt');
     expect(item.fields[2].type.isDateTime, true);
   });

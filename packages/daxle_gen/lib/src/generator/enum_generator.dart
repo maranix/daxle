@@ -30,7 +30,7 @@ class EnumGenerator {
     mapEntries.write('}');
 
     specs.add(Field((b) => b
-      ..name = '${camelName}EnumMap'
+      ..name = '_${camelName}EnumMap'
       ..modifier = FieldModifier.constant
       ..assignment = Code(mapEntries.toString())));
 
@@ -42,7 +42,7 @@ class EnumGenerator {
         ..name = 'instance'
         ..type = refer(enumName)))
       ..lambda = true
-      ..body = Code('${camelName}EnumMap[instance]!')));
+      ..body = Code('_${camelName}EnumMap[instance]!')));
 
     // 3. fromValue function (switch pattern matching)
     final fromValueBody = StringBuffer();

@@ -525,7 +525,7 @@ class DaxleAstParser {
                 final style = _extractCaseStyle(arg.argumentExpression);
                 if (isSerializeVal) serializeCaseStyle = style;
                 if (isDeserializeVal) deserializeCaseStyle = style;
-              } else if (argName == 'fallback' || argName == 'defaultValue') {
+              } else if (argName == 'fallback') {
                 final code = arg.argumentExpression.toSource();
                 if (isDeserializeVal) fallbackCode = code;
                 if (isSerializeVal) serializeFallbackCode = code;

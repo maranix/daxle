@@ -99,6 +99,7 @@ class ClassGenerator {
     final namedArgs = <String>[];
     final handledFields = <String>{};
     final mapPatternEntries = <String>[];
+    final requiredChecks = <({String key, String patternType})>[];
 
     for (final param in clazz.constructorParams) {
       handledFields.add(param.name);
@@ -122,6 +123,7 @@ class ClassGenerator {
         final varName = '${param.name}Raw';
         final patternType = _patternTypeFor(param.type, param.config);
         mapPatternEntries.add("'$key': final $patternType $varName");
+        requiredChecks.add((key: key, patternType: patternType));
         deserializeExpr = _patternArgExpr(param.type, varName, param.config);
       } else {
         final jsonExpr = "json['$key']";
@@ -206,8 +208,20 @@ class ClassGenerator {
         bodyBuffer.writeln('    return instance;');
         bodyBuffer.writeln('  }(),');
       }
-      bodyBuffer.writeln(
-          "  _ => throw FormatException('Invalid JSON shape for ${clazz.name}: \$json'),");
+      bodyBuffer.writeln('  _ => () {');
+      for (final check in requiredChecks) {
+        bodyBuffer.writeln("    if (!json.containsKey('${check.key}') || json['${check.key}'] == null) {");
+        bodyBuffer.writeln("      throw FormatException(\"Missing required field '${check.key}' for ${clazz.name}\", json);");
+        bodyBuffer.writeln('    }');
+        if (check.patternType != 'Object') {
+          bodyBuffer.writeln("    if (json['${check.key}'] is! ${check.patternType}) {");
+          bodyBuffer.writeln("      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected ${check.patternType}, got \${json['${check.key}'].runtimeType}\", json);");
+          bodyBuffer.writeln('    }');
+        }
+      }
+      final expectedKeys = requiredChecks.map((c) => c.key).join(', ');
+      bodyBuffer.writeln("    throw FormatException('Invalid JSON shape for ${clazz.name}: missing or invalid required keys (expected: $expectedKeys)', json);");
+      bodyBuffer.writeln('  }(),');
     }
 
     bodyBuffer.write('};');
@@ -234,11 +248,11 @@ class ClassGenerator {
 
       final key = field.resolvedSerializeKey(caseStyle);
       final fieldExpr = 'instance.${field.name}';
-      final hasSerializeDefault = field.config.serializeDefaultValueCode != null;
+      final hasSerializeFallback = field.config.serializeFallbackCode != null;
 
       if (field.type.isNullable &&
           !field.type.isOption &&
-          !hasSerializeDefault) {
+          !hasSerializeFallback) {
         final serializeNonNullExpr = typeHelper.generateSerializeNonNull(
           field.type,
           fieldExpr,
