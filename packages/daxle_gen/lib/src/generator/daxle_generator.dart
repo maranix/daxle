@@ -1,0 +1,161 @@
+import 'dart:io';
+import 'package:path/path.dart' as p;
+
+import '../cache/content_cache.dart';
+import '../cli/glob_filter.dart';
+import '../parser/daxle_ast_parser.dart';
+import 'file_generator.dart';
+
+/// Result summary of a generation run.
+class GenerationResult {
+  final int filesScanned;
+  final int filesGenerated;
+  final int filesCached;
+  final List<String> driftFiles;
+  final List<String> errorFiles;
+
+  const GenerationResult({
+    this.filesScanned = 0,
+    this.filesGenerated = 0,
+    this.filesCached = 0,
+    this.driftFiles = const [],
+    this.errorFiles = const [],
+  });
+
+  bool get hasDrift => driftFiles.isNotEmpty;
+  bool get hasErrors => errorFiles.isNotEmpty;
+  bool get isSuccess => !hasDrift && !hasErrors;
+}
+
+/// Orchestrates the entire AST generation pipeline.
+class DaxleGenerator {
+  final DaxleAstParser parser;
+  final FileGenerator fileGenerator;
+  final ContentCache cache;
+
+  DaxleGenerator({
+    DaxleAstParser? parser,
+    FileGenerator? fileGenerator,
+    ContentCache? cache,
+  })  : parser = parser ?? const DaxleAstParser(),
+        fileGenerator = fileGenerator ?? FileGenerator(),
+        cache = cache ?? ContentCache();
+
+  /// Runs code generation across [targetPath] with glob filtering.
+  Future<GenerationResult> run({
+    String targetPath = '.',
+    GlobFilter? filter,
+    bool check = false,
+    bool verbose = false,
+    void Function(String msg)? log,
+  }) async {
+    final logger = log ?? (msg) => verbose ? print(msg) : null;
+    final globFilter = filter ?? GlobFilter.fromPatterns([]);
+
+    final targetFile = File(targetPath);
+    final filesToProcess = <File>[];
+
+    if (targetFile.existsSync()) {
+      if (globFilter.matches(targetFile.path)) {
+        filesToProcess.add(targetFile);
+      }
+    } else {
+      final targetDir = Directory(targetPath);
+      if (!targetDir.existsSync()) {
+        throw ArgumentError('Target does not exist: $targetPath');
+      }
+
+      await for (final entity in targetDir.list(recursive: true, followLinks: false)) {
+        if (entity is File && entity.path.endsWith('.dart')) {
+          if (globFilter.matches(entity.path)) {
+            filesToProcess.add(entity);
+          }
+        }
+      }
+    }
+
+    var scanned = 0;
+    var generated = 0;
+    var cached = 0;
+    final driftList = <String>[];
+    final errorList = <String>[];
+
+    for (final file in filesToProcess) {
+      scanned++;
+      final srcPath = p.normalize(file.path);
+      final genPath = _computeGeneratedPath(srcPath);
+
+      // Fast check: does source file contain any annotation keywords?
+      final content = await file.readAsString();
+      if (!content.contains('serialize') &&
+          !content.contains('Serialize') &&
+          !content.contains('deserialize') &&
+          !content.contains('Deserialize')) {
+        continue;
+      }
+
+      // Check cache for instant hit
+      if (!check && cache.isUpToDate(srcPath, genPath)) {
+        cached++;
+        logger('[CACHE HIT] $srcPath');
+        continue;
+      }
+
+      try {
+        final parsedFile = parser.parseContent(content, filePath: srcPath);
+        if (!parsedFile.hasDaxleAnnotations) {
+          continue;
+        }
+
+        final expectedGenFileName = p.basename(genPath);
+        if (!parsedFile.hasDaxlePartDirective) {
+          logger('[DIAGNOSTIC] $srcPath is missing directive: part \'$expectedGenFileName\';');
+        }
+
+        final generatedCode = fileGenerator.generate(parsedFile);
+        if (generatedCode == null) continue;
+
+        if (check) {
+          final genFile = File(genPath);
+          if (!genFile.existsSync() ||
+              genFile.readAsStringSync() != generatedCode) {
+            driftList.add(srcPath);
+            logger('[DRIFT DETECTED] $genPath is missing or out-of-date');
+          } else {
+            cached++;
+          }
+        } else {
+          final genFile = File(genPath);
+          await genFile.writeAsString(generatedCode);
+          cache.record(srcPath, genPath, generatedCode);
+          generated++;
+          logger('[GENERATED] $genPath');
+        }
+      } catch (e, st) {
+        errorList.add(srcPath);
+        logger('[ERROR] Failed generating for $srcPath: $e\n$st');
+      }
+    }
+
+    if (!check) {
+      cache.save();
+    }
+
+    return GenerationResult(
+      filesScanned: scanned,
+      filesGenerated: generated,
+      filesCached: cached,
+      driftFiles: driftList,
+      errorFiles: errorList,
+    );
+  }
+
+  /// Converts a `.dart` path to `.daxle.dart`.
+  static String _computeGeneratedPath(String sourcePath) {
+    if (sourcePath.endsWith('.dart')) {
+      final withoutExt = sourcePath.substring(0, sourcePath.length - 5);
+      return '$withoutExt.daxle.dart';
+    }
+    return '$sourcePath.daxle.dart';
+  }
+}

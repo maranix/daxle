@@ -1,0 +1,379 @@
+import '../models/annotation_info.dart';
+import '../models/parsed_type.dart';
+
+/// Helper for generating Dart code expressions for serialization and deserialization.
+class TypeHelper {
+  final Set<String> knownEnums;
+  final Set<String> knownClasses;
+
+  const TypeHelper({
+    this.knownEnums = const {},
+    this.knownClasses = const {},
+  });
+
+  static String toCamelCase(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toLowerCase() + s.substring(1);
+  }
+
+  /// Generates the deserialization expression for [type] from [jsonExpr].
+  String generateDeserialize(
+    ParsedType type,
+    String jsonExpr, {
+    FieldConfig? config,
+    String? parameterDefaultCode,
+    bool explicitFromJson = true,
+    int depth = 0,
+  }) {
+    // Custom converter takes highest precedence
+    final converter = config?.effectiveDeserializeConverter;
+    if (converter != null) {
+      final prefix = converter.startsWith('const ') ? '' : 'const ';
+      if (type.isNullable) {
+        return '$jsonExpr == null ? null : $prefix$converter.fromJson($jsonExpr)';
+      }
+      return '$prefix$converter.fromJson($jsonExpr)';
+    }
+
+    final fallbackCode = config?.defaultValueCode ?? parameterDefaultCode;
+
+    String expr;
+    if (type.isString) {
+      expr = type.isNullable
+          ? '($jsonExpr as String?)'
+          : '($jsonExpr as String)';
+    } else if (type.isInt) {
+      expr = type.isNullable
+          ? '(($jsonExpr as num?)?.toInt())'
+          : '(($jsonExpr as num).toInt())';
+    } else if (type.isDouble) {
+      expr = type.isNullable
+          ? '(($jsonExpr as num?)?.toDouble())'
+          : '(($jsonExpr as num).toDouble())';
+    } else if (type.isNum) {
+      expr = type.isNullable
+          ? '($jsonExpr as num?)'
+          : '($jsonExpr as num)';
+    } else if (type.isBool) {
+      expr = type.isNullable
+          ? '($jsonExpr as bool?)'
+          : '($jsonExpr as bool)';
+    } else if (type.isDynamic || (type.isObject && type.isNullable)) {
+      expr = jsonExpr;
+    } else if (type.isObject) {
+      expr = '($jsonExpr as Object)';
+    } else if (type.isDateTime) {
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : DateTime.parse($jsonExpr as String))'
+          : 'DateTime.parse($jsonExpr as String)';
+    } else if (type.isUri) {
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : Uri.parse($jsonExpr as String))'
+          : 'Uri.parse($jsonExpr as String)';
+    } else if (type.isBigInt) {
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : BigInt.parse($jsonExpr as String))'
+          : 'BigInt.parse($jsonExpr as String)';
+    } else if (type.isDuration) {
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : Duration(microseconds: ($jsonExpr as num).toInt()))'
+          : 'Duration(microseconds: ($jsonExpr as num).toInt())';
+    } else if (type.isOption) {
+      final innerType = type.singleTypeArgument ??
+          const ParsedType(rawType: 'Object', baseName: 'Object', isNullable: false);
+      final innerDeserialize = generateDeserialize(
+        innerType,
+        jsonExpr,
+        explicitFromJson: explicitFromJson,
+        depth: depth,
+      );
+      expr = '($jsonExpr == null ? const None() : Some($innerDeserialize))';
+    } else if (type.isQueryMap) {
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : QueryMap(($jsonExpr as Map).cast<Object?, Object?>()))'
+          : 'QueryMap(($jsonExpr as Map).cast<Object?, Object?>())';
+    } else if (type.isList) {
+      final itemVar = depth == 0 ? 'e' : 'e$depth';
+      final itemType = type.singleTypeArgument ??
+          const ParsedType(rawType: 'dynamic', baseName: 'dynamic', isNullable: true);
+      final itemDeserialize = generateDeserialize(
+        itemType,
+        itemVar,
+        explicitFromJson: explicitFromJson,
+        depth: depth + 1,
+      );
+      if (type.isNullable) {
+        expr = '($jsonExpr as List<dynamic>?)?.map(($itemVar) => $itemDeserialize).toList()';
+      } else {
+        expr = '($jsonExpr as List<dynamic>).map(($itemVar) => $itemDeserialize).toList()';
+      }
+    } else if (type.isSet) {
+      final itemVar = depth == 0 ? 'e' : 'e$depth';
+      final itemType = type.singleTypeArgument ??
+          const ParsedType(rawType: 'dynamic', baseName: 'dynamic', isNullable: true);
+      final itemDeserialize = generateDeserialize(
+        itemType,
+        itemVar,
+        explicitFromJson: explicitFromJson,
+        depth: depth + 1,
+      );
+      if (type.isNullable) {
+        expr = '($jsonExpr as List<dynamic>?)?.map(($itemVar) => $itemDeserialize).toSet()';
+      } else {
+        expr = '($jsonExpr as List<dynamic>).map(($itemVar) => $itemDeserialize).toSet()';
+      }
+    } else if (type.isMap) {
+      final kVar = depth == 0 ? 'k' : 'k$depth';
+      final vVar = depth == 0 ? 'v' : 'v$depth';
+      final valType = type.typeArguments.length > 1
+          ? type.typeArguments[1]
+          : const ParsedType(rawType: 'dynamic', baseName: 'dynamic', isNullable: true);
+      final valDeserialize = generateDeserialize(
+        valType,
+        vVar,
+        explicitFromJson: explicitFromJson,
+        depth: depth + 1,
+      );
+      if (type.isNullable) {
+        expr =
+            '($jsonExpr as Map<String, dynamic>?)?.map(($kVar, $vVar) => MapEntry($kVar, $valDeserialize))';
+      } else {
+        expr =
+            '($jsonExpr as Map<String, dynamic>).map(($kVar, $vVar) => MapEntry($kVar, $valDeserialize))';
+      }
+    } else if (knownEnums.contains(type.baseName)) {
+      final fn = '${toCamelCase(type.baseName)}FromValue';
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : $fn($jsonExpr))'
+          : '$fn($jsonExpr)';
+    } else {
+      if (!explicitFromJson) {
+        expr = '($jsonExpr as ${type.rawType})';
+      } else {
+        final fn = '${toCamelCase(type.baseName)}FromJson';
+        expr = type.isNullable
+            ? '($jsonExpr == null ? null : $fn($jsonExpr as Map<String, dynamic>))'
+            : '$fn($jsonExpr as Map<String, dynamic>)';
+      }
+    }
+
+    if (fallbackCode != null) {
+      return '$jsonExpr == null ? $fallbackCode : $expr';
+    }
+
+    return expr;
+  }
+
+  /// Generates the serialization expression for [type] from [fieldExpr].
+  String generateSerialize(
+    ParsedType type,
+    String fieldExpr, {
+    FieldConfig? config,
+    bool explicitToJson = true,
+    int depth = 0,
+  }) {
+    final converter = config?.effectiveSerializeConverter;
+    if (converter != null) {
+      final prefix = converter.startsWith('const ') ? '' : 'const ';
+      if (type.isNullable) {
+        return '$fieldExpr == null ? null : $prefix$converter.toJson($fieldExpr!)';
+      }
+      return '$prefix$converter.toJson($fieldExpr)';
+    }
+
+    final serializeDefault = config?.serializeDefaultValueCode;
+
+    String expr;
+    if (type.isPrimitive) {
+      expr = fieldExpr;
+    } else if (type.isDateTime) {
+      expr = type.isNullable
+          ? '$fieldExpr?.toIso8601String()'
+          : '$fieldExpr.toIso8601String()';
+    } else if (type.isUri || type.isBigInt) {
+      expr = type.isNullable
+          ? '$fieldExpr?.toString()'
+          : '$fieldExpr.toString()';
+    } else if (type.isDuration) {
+      expr = type.isNullable
+          ? '$fieldExpr?.inMicroseconds'
+          : '$fieldExpr.inMicroseconds';
+    } else if (type.isOption) {
+      final innerType = type.singleTypeArgument ??
+          const ParsedType(rawType: 'Object', baseName: 'Object', isNullable: false);
+      final innerSerialize = generateSerialize(
+        innerType,
+        'value',
+        explicitToJson: explicitToJson,
+        depth: depth,
+      );
+      if (type.isNullable) {
+        expr =
+            '$fieldExpr == null ? null : switch ($fieldExpr!) { Some(:final value) => $innerSerialize, None() => null }';
+      } else {
+        expr =
+            'switch ($fieldExpr) { Some(:final value) => $innerSerialize, None() => null }';
+      }
+    } else if (type.isQueryMap) {
+      expr = type.isNullable ? '$fieldExpr?.map' : '$fieldExpr.map';
+    } else if (type.isList) {
+      final itemVar = depth == 0 ? 'e' : 'e$depth';
+      final itemType = type.singleTypeArgument;
+      if (itemType == null || (itemType.isPrimitive && explicitToJson)) {
+        expr = fieldExpr;
+      } else {
+        final itemSerialize = generateSerialize(
+          itemType,
+          itemVar,
+          explicitToJson: explicitToJson,
+          depth: depth + 1,
+        );
+        expr = type.isNullable
+            ? '$fieldExpr?.map(($itemVar) => $itemSerialize).toList()'
+            : '$fieldExpr.map(($itemVar) => $itemSerialize).toList()';
+      }
+    } else if (type.isSet) {
+      final itemVar = depth == 0 ? 'e' : 'e$depth';
+      final itemType = type.singleTypeArgument;
+      if (itemType == null || itemType.isPrimitive) {
+        expr = type.isNullable
+            ? '$fieldExpr?.toList()'
+            : '$fieldExpr.toList()';
+      } else {
+        final itemSerialize = generateSerialize(
+          itemType,
+          itemVar,
+          explicitToJson: explicitToJson,
+          depth: depth + 1,
+        );
+        expr = type.isNullable
+            ? '$fieldExpr?.map(($itemVar) => $itemSerialize).toList()'
+            : '$fieldExpr.map(($itemVar) => $itemSerialize).toList()';
+      }
+    } else if (type.isMap) {
+      final kVar = depth == 0 ? 'k' : 'k$depth';
+      final vVar = depth == 0 ? 'v' : 'v$depth';
+      final valType = type.typeArguments.length > 1 ? type.typeArguments[1] : null;
+      if (valType == null || (valType.isPrimitive && explicitToJson)) {
+        expr = fieldExpr;
+      } else {
+        final valSerialize = generateSerialize(
+          valType,
+          vVar,
+          explicitToJson: explicitToJson,
+          depth: depth + 1,
+        );
+        expr = type.isNullable
+            ? '$fieldExpr?.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))'
+            : '$fieldExpr.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))';
+      }
+    } else if (knownEnums.contains(type.baseName)) {
+      final fn = '${toCamelCase(type.baseName)}ToValue';
+      expr = type.isNullable
+          ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
+          : '$fn($fieldExpr)';
+    } else {
+      if (!explicitToJson) {
+        expr = fieldExpr;
+      } else {
+        final fn = '${toCamelCase(type.baseName)}ToMap';
+        expr = type.isNullable
+            ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
+            : '$fn($fieldExpr)';
+      }
+    }
+
+    if (serializeDefault != null && type.isNullable) {
+      return '$fieldExpr == null ? $serializeDefault : $expr';
+    }
+
+    return expr;
+  }
+
+  /// Generates the serialization expression for [type] from [fieldExpr] when caller
+  /// guarantees [fieldExpr] is not null (e.g. inside `if ($fieldExpr != null)`).
+  String generateSerializeNonNull(
+    ParsedType type,
+    String fieldExpr, {
+    FieldConfig? config,
+    bool explicitToJson = true,
+    int depth = 0,
+  }) {
+    final converter = config?.effectiveSerializeConverter;
+    if (converter != null) {
+      final prefix = converter.startsWith('const ') ? '' : 'const ';
+      return '$prefix$converter.toJson($fieldExpr!)';
+    }
+
+    if (type.isPrimitive) {
+      return fieldExpr;
+    } else if (type.isDateTime) {
+      return '$fieldExpr!.toIso8601String()';
+    } else if (type.isUri || type.isBigInt) {
+      return '$fieldExpr!.toString()';
+    } else if (type.isDuration) {
+      return '$fieldExpr!.inMicroseconds';
+    } else if (type.isOption) {
+      final innerType = type.singleTypeArgument ??
+          const ParsedType(rawType: 'Object', baseName: 'Object', isNullable: false);
+      final innerSerialize = generateSerialize(
+        innerType,
+        'value',
+        explicitToJson: explicitToJson,
+        depth: depth,
+      );
+      return 'switch ($fieldExpr!) { Some(:final value) => $innerSerialize, None() => null }';
+    } else if (type.isQueryMap) {
+      return '$fieldExpr!.map';
+    } else if (type.isList) {
+      final itemVar = depth == 0 ? 'e' : 'e$depth';
+      final itemType = type.singleTypeArgument;
+      if (itemType == null || (itemType.isPrimitive && explicitToJson)) {
+        return fieldExpr;
+      }
+      final itemSerialize = generateSerialize(
+        itemType,
+        itemVar,
+        explicitToJson: explicitToJson,
+        depth: depth + 1,
+      );
+      return '$fieldExpr!.map(($itemVar) => $itemSerialize).toList()';
+    } else if (type.isSet) {
+      final itemVar = depth == 0 ? 'e' : 'e$depth';
+      final itemType = type.singleTypeArgument;
+      if (itemType == null || itemType.isPrimitive) {
+        return '$fieldExpr!.toList()';
+      }
+      final itemSerialize = generateSerialize(
+        itemType,
+        itemVar,
+        explicitToJson: explicitToJson,
+        depth: depth + 1,
+      );
+      return '$fieldExpr!.map(($itemVar) => $itemSerialize).toList()';
+    } else if (type.isMap) {
+      final kVar = depth == 0 ? 'k' : 'k$depth';
+      final vVar = depth == 0 ? 'v' : 'v$depth';
+      final valType = type.typeArguments.length > 1 ? type.typeArguments[1] : null;
+      if (valType == null || (valType.isPrimitive && explicitToJson)) {
+        return fieldExpr;
+      }
+      final valSerialize = generateSerialize(
+        valType,
+        vVar,
+        explicitToJson: explicitToJson,
+        depth: depth + 1,
+      );
+      return '$fieldExpr!.map(($kVar, $vVar) => MapEntry($kVar, $valSerialize))';
+    } else if (knownEnums.contains(type.baseName)) {
+      final fn = '${toCamelCase(type.baseName)}ToValue';
+      return '$fn($fieldExpr!)';
+    } else {
+      if (!explicitToJson) {
+        return fieldExpr;
+      }
+      final fn = '${toCamelCase(type.baseName)}ToMap';
+      return '$fn($fieldExpr!)';
+    }
+  }
+}
