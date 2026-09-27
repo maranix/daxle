@@ -46,16 +46,20 @@ enum CaseStyle {
         return words.map((w) => w.toUpperCase()).join();
       case CaseStyle.pascalCase:
         return words
-            .map((w) => w.isEmpty
-                ? ''
-                : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+            .map(
+              (w) => w.isEmpty
+                  ? ''
+                  : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}',
+            )
             .join();
       case CaseStyle.camelCase:
         final buffer = StringBuffer(words.first.toLowerCase());
         for (var i = 1; i < words.length; i++) {
           final w = words[i];
           if (w.isNotEmpty) {
-            buffer.write('${w[0].toUpperCase()}${w.substring(1).toLowerCase()}');
+            buffer.write(
+              '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}',
+            );
           }
         }
         return buffer.toString();
@@ -64,8 +68,9 @@ enum CaseStyle {
 
   static List<String> _splitWords(String input) {
     final result = <String>[];
-    final regex =
-        RegExp(r'(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[\s_\-]+');
+    final regex = RegExp(
+      r'(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[\s_\-]+',
+    );
     final segments = input.split(regex);
     for (final seg in segments) {
       final trimmed = seg.trim();

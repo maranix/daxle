@@ -6,8 +6,10 @@ void main() {
   const parser = DaxleAstParser();
   final generator = FileGenerator();
 
-  test('generates preamble, fromJson and toMap for primary constructor model', () {
-    const code = '''
+  test(
+    'generates preamble, fromJson and toMap for primary constructor model',
+    () {
+      const code = '''
 import 'package:daxle/daxle.dart';
 
 part 'user.daxle.dart';
@@ -15,8 +17,7 @@ part 'user.daxle.dart';
 @serialize
 @deserialize
 class User(
-  @SerializeValue(name: 'user_id')
-  @DeserializeValue(name: 'user_id')
+  @SerializedValue('user_id')
   final String id,
   final String name,
   final DateTime createdAt,
@@ -25,19 +26,26 @@ class User(
 });
 ''';
 
-    final parsedFile = parser.parseContent(code, filePath: 'lib/user.dart');
-    final generated = generator.generate(parsedFile);
+      final parsedFile = parser.parseContent(code, filePath: 'lib/user.dart');
+      final generated = generator.generate(parsedFile);
 
-    expect(generated, isNotNull);
-    expect(generated, contains('// coverage:ignore-file'));
-    expect(generated, contains('// GENERATED CODE - DO NOT MODIFY BY HAND'));
-    expect(generated, contains("part of 'user.dart';"));
-    expect(generated, contains('User userFromJson(Map<String, dynamic> json)'));
-    expect(generated, contains('Map<String, dynamic> userToMap(User instance)'));
-    expect(generated, contains("'user_id': instance.id"));
-    expect(generated, contains("'user_id': final String idRaw"));
-    expect(generated, contains('createdAt.toIso8601String()'));
-  });
+      expect(generated, isNotNull);
+      expect(generated, contains('// coverage:ignore-file'));
+      expect(generated, contains('// GENERATED CODE - DO NOT MODIFY BY HAND'));
+      expect(generated, contains("part of 'user.dart';"));
+      expect(
+        generated,
+        contains('User userFromJson(Map<String, dynamic> json)'),
+      );
+      expect(
+        generated,
+        contains('Map<String, dynamic> userToMap(User instance)'),
+      );
+      expect(generated, contains("'user_id': instance.id"));
+      expect(generated, contains("'user_id': final String idRaw"));
+      expect(generated, contains('createdAt.toIso8601String()'));
+    },
+  );
 
   test('generates enum mappings and conversions', () {
     const code = '''
@@ -94,10 +102,16 @@ class Square extends Shape {
     final generated = generator.generate(parsedFile);
 
     expect(generated, isNotNull);
-    expect(generated, contains('Shape shapeFromJson(Map<String, dynamic> json)'));
+    expect(
+      generated,
+      contains('Shape shapeFromJson(Map<String, dynamic> json)'),
+    );
     expect(generated, contains("{'kind': 'Circle'} => circleFromJson(json)"));
     expect(generated, contains("{'kind': 'Square'} => squareFromJson(json)"));
-    expect(generated, contains('Map<String, dynamic> shapeToMap(Shape instance)'));
+    expect(
+      generated,
+      contains('Map<String, dynamic> shapeToMap(Shape instance)'),
+    );
     expect(generated, contains("circleToMap(circle)..['kind'] = 'Circle'"));
   });
 
@@ -135,11 +149,9 @@ part 'state.daxle.dart';
 @serializeEnum
 @deserializeEnum
 enum TaskState {
-  @SerializeValue(fallback: 'in_progress')
-  @DeserializeValue(fallback: 'in_progress')
+  @SerializedValue('in_progress')
   inProgress,
-  @SerializeValue(fallback: 101)
-  @DeserializeValue(fallback: 101)
+  @SerializedValue(101)
   codeEntry,
   unknown,
 }
@@ -156,14 +168,14 @@ enum TaskState {
     expect(generated, contains("101 => TaskState.codeEntry"));
     expect(generated, contains("'unknown' => TaskState.unknown"));
     expect(
-        generated,
-        contains(
-            "_ => throw ArgumentError('Unknown TaskState value: \$value')"));
+      generated,
+      contains("_ => throw ArgumentError('Unknown TaskState value: \$value')"),
+    );
     expect(generated, isNot(contains("_ => TaskState.unknown")));
     expect(generated, isNot(contains("_ => TaskState.inProgress")));
   });
 
-  test('generates instance.field ?? fallback for nullable primitive field in toMap', () {
+  test('generates fallback for missing or null value in fromJson', () {
     const code = '''
 import 'package:daxle/daxle.dart';
 
@@ -173,11 +185,9 @@ part 'user.daxle.dart';
 @Deserialize()
 class Profile(
   final String id,
-  @SerializeValue(fallback: 'guest')
-  @DeserializeValue(fallback: 'guest')
+  @Fallback('guest')
   final String? role,
-  @SerializeValue(fallback: 0)
-  @DeserializeValue(fallback: 0)
+  @Fallback(0)
   final int? loginCount,
 );
 ''';
@@ -186,31 +196,38 @@ class Profile(
     final generated = generator.generate(parsedFile);
 
     expect(generated, isNotNull);
-    expect(generated, contains("'role': instance.role ?? 'guest'"));
-    expect(generated, anyOf([
-      contains("'login_count': instance.loginCount ?? 0"),
-      contains("'loginCount': instance.loginCount ?? 0"),
-    ]));
-    expect(generated, contains("json['role'] == null ? 'guest' : (json['role'] as String?)"));
+    expect(
+      generated,
+      contains("json['role'] == null ? 'guest' : (json['role'] as String?)"),
+    );
+    expect(
+      generated,
+      contains(
+        "json['loginCount'] == null ? 0 : ((json['loginCount'] as num?)?.toInt())",
+      ),
+    );
   });
 
-  test('generates enum mappings with single-sided fallback and caseStyle overrides', () {
+  test('generates enum mappings with @Fallback on enum declaration and @ignore on enum cases', () {
     const code = '''
 import 'package:daxle/daxle.dart';
 
 part 'single.daxle.dart';
 
+@Fallback(SingleConfig.fallbackCase)
 @serializeEnum
 @deserializeEnum
 enum SingleConfig {
-  @SerializeValue(fallback: 'ser_val')
-  onlySerialize,
+  @SerializedValue('std')
+  standard,
 
-  @DeserializeValue(fallback: 202)
-  onlyDeserialize,
+  @SerializedValue(202)
+  numericCase,
 
-  @SerializeValue(caseStyle: CaseStyle.kebabCase)
-  kebabEntry,
+  @ignore
+  ignoredCase,
+
+  fallbackCase,
 }
 ''';
 
@@ -218,17 +235,11 @@ enum SingleConfig {
     final generated = generator.generate(parsedFile);
 
     expect(generated, isNotNull);
-    // onlySerialize should cross-fallback to deserialization
-    expect(generated, contains("SingleConfig.onlySerialize: 'ser_val'"));
-    expect(generated, contains("'ser_val' => SingleConfig.onlySerialize"));
-
-    // onlyDeserialize should cross-fallback to serialization
-    expect(generated, contains("SingleConfig.onlyDeserialize: 202"));
-    expect(generated, contains("202 => SingleConfig.onlyDeserialize"));
-
-    // kebabEntry should cross-fallback caseStyle to deserialization
-    expect(generated, contains("SingleConfig.kebabEntry: 'kebab-entry'"));
-    expect(generated, contains("'kebab-entry' => SingleConfig.kebabEntry"));
+    expect(generated, contains("SingleConfig.standard: 'std'"));
+    expect(generated, contains("'std' => SingleConfig.standard"));
+    expect(generated, contains("SingleConfig.numericCase: 202"));
+    expect(generated, contains("202 => SingleConfig.numericCase"));
+    expect(generated, isNot(contains("ignoredCase")));
+    expect(generated, contains("_ => SingleConfig.fallbackCase"));
   });
 }
-

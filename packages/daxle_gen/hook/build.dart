@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:daxle_gen/daxle_gen.dart';
 
 /// Dart build hook entrypoint (Trait #1: Compile-time Auto-heal mode).
@@ -16,8 +17,9 @@ void main(List<String> args) async {
       final configFile = File(configPath);
       if (configFile.existsSync()) {
         try {
-          final data =
-              json.decode(configFile.readAsStringSync()) as Map<String, dynamic>;
+          final data = json.decode(
+            configFile.readAsStringSync(),
+          ) as Map<String, dynamic>;
           outFilePath = data['out_file'] as String?;
           if (data['package_root'] case String pkgRoot) {
             rootDir = pkgRoot;
@@ -43,7 +45,9 @@ void main(List<String> args) async {
     );
 
     if (result.hasErrors) {
-      stderr.writeln('[daxle_gen:hook] Errors during auto-heal code generation:');
+      stderr.writeln(
+        '[daxle_gen:hook] Errors during auto-heal code generation:',
+      );
       for (final err in result.errorFiles) {
         stderr.writeln(' - $err');
       }

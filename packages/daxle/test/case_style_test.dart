@@ -18,9 +18,18 @@ void main() {
 
     test('handles snake_case and kebab-case inputs', () {
       expect(CaseStyle.camelCase.transform('created_at_time'), 'createdAtTime');
-      expect(CaseStyle.pascalCase.transform('created_at_time'), 'CreatedAtTime');
-      expect(CaseStyle.kebabCase.transform('created_at_time'), 'created-at-time');
-      expect(CaseStyle.screamingSnakeCase.transform('status-code'), 'STATUS_CODE');
+      expect(
+        CaseStyle.pascalCase.transform('created_at_time'),
+        'CreatedAtTime',
+      );
+      expect(
+        CaseStyle.kebabCase.transform('created_at_time'),
+        'created-at-time',
+      );
+      expect(
+        CaseStyle.screamingSnakeCase.transform('status-code'),
+        'STATUS_CODE',
+      );
     });
 
     test('handles empty input and none style', () {

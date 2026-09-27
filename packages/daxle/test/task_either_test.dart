@@ -96,13 +96,14 @@ void main() {
 
       test('preserves upstream Left without calling future callback', () async {
         var called = false;
-        final task = TaskEither<String, int>.left('original error').flatMapFuture(
-          (val) async {
-            called = true;
-            return val * 2;
-          },
-          onError: (e, st) => 'mapped error',
-        );
+        final task = TaskEither<String, int>.left('original error')
+            .flatMapFuture(
+              (val) async {
+                called = true;
+                return val * 2;
+              },
+              onError: (e, st) => 'mapped error',
+            );
 
         final result = await task.run();
         expect(result, equals(Left('original error')));
@@ -117,19 +118,28 @@ void main() {
 
         final result = await task.run();
         expect(result.isLeft, isTrue);
-        expect(result.fold((l) => l, (r) => ''), contains('caught: Exception: async crash'));
-      });
-
-      test('catches synchronous exceptions thrown inside future closure', () async {
-        final task = TaskEither<String, int>.right(10).flatMapFuture(
-          (val) => throw StateError('sync crash'),
-          onError: (e, st) => 'caught sync: $e',
+        expect(
+          result.fold((l) => l, (r) => ''),
+          contains('caught: Exception: async crash'),
         );
-
-        final result = await task.run();
-        expect(result.isLeft, isTrue);
-        expect(result.fold((l) => l, (r) => ''), contains('caught sync: Bad state: sync crash'));
       });
+
+      test(
+        'catches synchronous exceptions thrown inside future closure',
+        () async {
+          final task = TaskEither<String, int>.right(10).flatMapFuture(
+            (val) => throw StateError('sync crash'),
+            onError: (e, st) => 'caught sync: $e',
+          );
+
+          final result = await task.run();
+          expect(result.isLeft, isTrue);
+          expect(
+            result.fold((l) => l, (r) => ''),
+            contains('caught sync: Bad state: sync crash'),
+          );
+        },
+      );
 
       test('preserves laziness until run is called', () async {
         var executed = false;

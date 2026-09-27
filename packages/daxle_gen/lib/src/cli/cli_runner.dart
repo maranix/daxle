@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 import 'package:watcher/watcher.dart';
@@ -112,7 +113,8 @@ class DaxleCliRunner {
     if (check) {
       if (result.hasDrift) {
         stderr.writeln(
-            'Drift detected in ${result.driftFiles.length} file(s). Run `dart run daxle:generate` to resolve.');
+          'Drift detected in ${result.driftFiles.length} file(s). Run `dart run daxle:generate` to resolve.',
+        );
         for (final file in result.driftFiles) {
           stderr.writeln(' - $file');
         }
@@ -123,12 +125,15 @@ class DaxleCliRunner {
     }
 
     if (result.hasErrors) {
-      stderr.writeln('Errors encountered in ${result.errorFiles.length} file(s).');
+      stderr.writeln(
+        'Errors encountered in ${result.errorFiles.length} file(s).',
+      );
       return 1;
     }
 
     print(
-        'Daxle generation complete: ${result.filesGenerated} generated, ${result.filesCached} cached (${stopwatch.elapsedMilliseconds}ms)');
+      'Daxle generation complete: ${result.filesGenerated} generated, ${result.filesCached} cached (${stopwatch.elapsedMilliseconds}ms)',
+    );
     return 0;
   }
 
@@ -215,4 +220,3 @@ class DaxleCliRunner {
     return Directory.current.path;
   }
 }
-
