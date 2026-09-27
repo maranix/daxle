@@ -276,14 +276,14 @@ void main() {
     });
   });
 
-  group('Asymmetric JSON key mapping', () {
-    test('uses incoming_key for fromJson and outgoing_key for toMap', () {
-      final model = asymmetricModelFromJson({'incoming_key': 'secret-token'});
+  group('Custom JSON wire key mapping (@SerializedValue)', () {
+    test('uses wire_key bidirectionally for fromJson and toMap', () {
+      final model = customKeyModelFromJson({'wire_key': 'secret-token'});
       expect(model.key, 'secret-token');
 
-      final map = asymmetricModelToMap(model);
-      expect(map['outgoing_key'], 'secret-token');
-      expect(map.containsKey('incoming_key'), false);
+      final map = customKeyModelToMap(model);
+      expect(map['wire_key'], 'secret-token');
+      expect(map.containsKey('key'), false);
     });
   });
 
@@ -365,19 +365,110 @@ void main() {
       expect(() => themeModeFromValue('unknown-theme'), throwsArgumentError);
     });
 
-    test('supports @SerializeValue and @DeserializeValue on enum entries', () {
-      // 1. Serialization name override, ignore, and fallback custom value
+    test('supports @SerializedValue and @ignore on enum entries', () {
+      // 1. Serialization name override, ignore, and custom wire value
       expect(annotatedEnumToValue(AnnotatedEnum.inProgress), 'in_progress');
-      expect(() => annotatedEnumToValue(AnnotatedEnum.internalSecret), throwsA(isA<TypeError>()));
+      expect(
+        () => annotatedEnumToValue(AnnotatedEnum.internalSecret),
+        throwsA(isA<TypeError>()),
+      );
       expect(annotatedEnumToValue(AnnotatedEnum.archived), 'archived_val');
 
-      // 2. Deserialization name override, fallback custom value, and unknown value error
+      // 2. Deserialization name override, custom wire value, and unknown value error
       expect(annotatedEnumFromValue('in_progress'), AnnotatedEnum.inProgress);
-      expect(annotatedEnumFromValue('internalSecret'), AnnotatedEnum.internalSecret);
+      expect(
+        () => annotatedEnumFromValue('internalSecret'),
+        throwsArgumentError,
+      );
       expect(annotatedEnumFromValue('archived_val'), AnnotatedEnum.archived);
-      expect(() => annotatedEnumFromValue('unknown_status_val'), throwsArgumentError);
+      expect(
+        () => annotatedEnumFromValue('unknown_status_val'),
+        throwsArgumentError,
+      );
       expect(() => annotatedEnumFromValue(null), throwsArgumentError);
       expect(() => annotatedEnumFromValue(999), throwsArgumentError);
+    });
+  });
+
+  group('Reference Usage: @Fallback, @SerializedValue, @ignore (Account & AccountType)', () {
+    test('enum fail-fast by default vs enum @Fallback', () {
+      // Normal enum fails fast on unknown
+      expect(() => themeModeFromValue('non_existent'), throwsArgumentError);
+
+      // AccountType has @Fallback(AccountType.standard)
+      expect(accountTypeFromValue('std'), AccountType.standard);
+      expect(accountTypeFromValue('prem'), AccountType.premium);
+      expect(
+        accountTypeFromValue('unrecognized_payload_string'),
+        AccountType.standard,
+      );
+      expect(
+        accountTypeFromValue('internalTest'),
+        AccountType.standard,
+      ); // @ignore stripped from cases
+      expect(accountTypeFromValue(null), AccountType.standard);
+
+      // toValue ignores internalTest
+      expect(accountTypeToValue(AccountType.standard), 'std');
+      expect(accountTypeToValue(AccountType.premium), 'prem');
+      expect(
+        () => accountTypeToValue(AccountType.internalTest),
+        throwsA(isA<TypeError>()),
+      );
+    });
+
+    test('field default injection via @Fallback on class', () {
+      // missing loginCount and acc_type fallback
+      final json = <String, dynamic>{
+        'id': 'acc_001',
+        'acc_type': 'prem',
+      };
+      final account = accountFromJson(json);
+      expect(account.id, 'acc_001');
+      expect(account.type, AccountType.premium);
+      expect(account.loginCount, 0); // fallback injected
+    });
+
+    test('total exclusion of @ignore members across all generated logic', () {
+      final timer1 = Stopwatch()..start();
+      final timer2 = Stopwatch();
+      final acc1 = Account(
+        id: 'acc_001',
+        type: AccountType.standard,
+        loginCount: 5,
+        sessionTimer: timer1,
+      );
+      final acc2 = Account(
+        id: 'acc_001',
+        type: AccountType.standard,
+        loginCount: 5,
+        sessionTimer: timer2,
+      );
+
+      // 1. Omitted from serialization toMap
+      final map = accountToMap(acc1);
+      expect(map, {
+        'id': 'acc_001',
+        'acc_type': 'std',
+        'loginCount': 5,
+      });
+      expect(map.containsKey('sessionTimer'), false);
+
+      // 2. Excluded from == and hashCode
+      expect(acc1 == acc2, true);
+      expect(acc1.hashCode, acc2.hashCode);
+
+      // 3. Excluded from toString()
+      expect(
+        acc1.toString(),
+        'Account(id: acc_001, type: AccountType.standard, loginCount: 5)',
+      );
+      expect(acc1.toString().contains('sessionTimer'), false);
+
+      // 4. Excluded from copyWith parameters
+      final updated = acc1.copyWith(id: 'acc_002');
+      expect(updated.id, 'acc_002');
+      expect(updated.sessionTimer, timer1); // preserved from this.sessionTimer
     });
   });
 
@@ -419,7 +510,10 @@ void main() {
         eventFromJson(unknownTypeJson);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Unknown Event discriminator: 'UnknownEvent'"));
+        expect(
+          e.message,
+          contains("Unknown Event discriminator: 'UnknownEvent'"),
+        );
         expect(e.source, same(unknownTypeJson));
       }
     });
@@ -432,7 +526,10 @@ void main() {
         complexModelFromJson(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'count' for ComplexModel"));
+        expect(
+          e.message,
+          contains("Missing required field 'count' for ComplexModel"),
+        );
         expect(e.source, same(input1));
       }
 
@@ -441,7 +538,10 @@ void main() {
         nestedContainerFromJson(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'containerId' for NestedContainer"));
+        expect(
+          e.message,
+          contains("Missing required field 'containerId' for NestedContainer"),
+        );
         expect(e.source, same(input2));
       }
 
@@ -450,7 +550,10 @@ void main() {
         nestedContainerFromJson(input3);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'model' for NestedContainer"));
+        expect(
+          e.message,
+          contains("Missing required field 'model' for NestedContainer"),
+        );
         expect(e.source, same(input3));
       }
     });
@@ -461,7 +564,12 @@ void main() {
         circleFromJson(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'radius' on Circle: expected num, got String"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'radius' on Circle: expected num, got String",
+          ),
+        );
         expect(e.source, same(input1));
       }
 
@@ -470,7 +578,12 @@ void main() {
         carFromJson(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'seats' on Car: expected num, got String"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'seats' on Car: expected num, got String",
+          ),
+        );
         expect(e.source, same(input2));
       }
     });
@@ -481,7 +594,12 @@ void main() {
         circleFromJson(input1);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'radius' on Circle: expected num, got Null"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'radius' on Circle: expected num, got Null",
+          ),
+        );
         expect(e.source, same(input1));
       }
 
@@ -490,7 +608,12 @@ void main() {
         carFromJson(input2);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'seats' on Car: expected num, got Null"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'seats' on Car: expected num, got Null",
+          ),
+        );
         expect(e.source, same(input2));
       }
     });
@@ -516,7 +639,12 @@ void main() {
         complexModelFromJson(validMap);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Invalid type for field 'status' on ComplexModel: expected non-null value, got Null"));
+        expect(
+          e.message,
+          contains(
+            "Invalid type for field 'status' on ComplexModel: expected non-null value, got Null",
+          ),
+        );
         expect(e.source, same(validMap));
       }
     });
@@ -559,7 +687,10 @@ void main() {
         nestedContainerFromJson(outerWithInvalidInner);
         fail('should have thrown FormatException');
       } on FormatException catch (e) {
-        expect(e.message, contains("Missing required field 'count' for ComplexModel"));
+        expect(
+          e.message,
+          contains("Missing required field 'count' for ComplexModel"),
+        );
         expect(e.source, invalidInner);
       }
     });
@@ -576,5 +707,3 @@ void main() {
     });
   });
 }
-
-

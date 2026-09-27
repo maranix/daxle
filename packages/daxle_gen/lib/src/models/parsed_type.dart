@@ -39,8 +39,9 @@ class ParsedType {
     }
 
     final baseName = trimmed.substring(0, bracketIdx).trim();
-    final insideBrackets =
-        trimmed.substring(bracketIdx + 1, trimmed.lastIndexOf('>')).trim();
+    final insideBrackets = trimmed
+        .substring(bracketIdx + 1, trimmed.lastIndexOf('>'))
+        .trim();
     final args = _splitTypeArguments(insideBrackets)
         .map((s) => ParsedType.parse(s))
         .toList();

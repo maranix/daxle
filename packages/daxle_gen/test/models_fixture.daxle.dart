@@ -69,10 +69,30 @@ dynamic annotatedEnumToValue(AnnotatedEnum instance) =>
     _annotatedEnumEnumMap[instance]!;
 AnnotatedEnum annotatedEnumFromValue(Object? value) => switch (value) {
   'in_progress' => AnnotatedEnum.inProgress,
-  'internalSecret' => AnnotatedEnum.internalSecret,
   'archived_val' => AnnotatedEnum.archived,
   _ => throw ArgumentError('Unknown AnnotatedEnum value: $value'),
 };
+const _accountTypeEnumMap = {
+  AccountType.standard: 'std',
+  AccountType.premium: 'prem',
+};
+dynamic accountTypeToValue(AccountType instance) =>
+    _accountTypeEnumMap[instance]!;
+AccountType accountTypeFromValue(Object? value) => switch (value) {
+  'std' => AccountType.standard,
+  'prem' => AccountType.premium,
+  _ => AccountType.standard,
+};
+
+mixin _$AccountTypeStringify on Enum {
+  @override
+  String toString() => switch (this as AccountType) {
+    AccountType.standard => 'AccountType.standard',
+    AccountType.premium => 'AccountType.premium',
+    AccountType.internalTest => 'AccountType.internalTest',
+  };
+}
+
 ComplexModel complexModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {
@@ -333,7 +353,6 @@ mixin _$ComplexModelEqualsAndHashCode {
         self.status == other.status &&
         self.priority == other.priority &&
         self.role == other.role &&
-        self.secretToken == other.secretToken &&
         self.createdAt == other.createdAt &&
         self.website == other.website &&
         self.score == other.score &&
@@ -366,7 +385,6 @@ mixin _$ComplexModelEqualsAndHashCode {
       self.status,
       self.priority,
       self.role,
-      self.secretToken,
       self.customEpoch,
     );
   }
@@ -376,7 +394,7 @@ mixin _$ComplexModelStringify {
   @override
   String toString() {
     final self = this as ComplexModel;
-    return 'ComplexModel(id: ${self.id}, count: ${self.count}, rating: ${self.rating}, isActive: ${self.isActive}, createdAt: ${self.createdAt}, website: ${self.website}, score: ${self.score}, timeout: ${self.timeout}, optionalTag: ${self.optionalTag}, metadata: ${self.metadata}, tags: ${self.tags}, numbers: ${self.numbers}, scores: ${self.scores}, status: ${self.status}, priority: ${self.priority}, role: ${self.role}, secretToken: ${self.secretToken}, customEpoch: ${self.customEpoch})';
+    return 'ComplexModel(id: ${self.id}, count: ${self.count}, rating: ${self.rating}, isActive: ${self.isActive}, createdAt: ${self.createdAt}, website: ${self.website}, score: ${self.score}, timeout: ${self.timeout}, optionalTag: ${self.optionalTag}, metadata: ${self.metadata}, tags: ${self.tags}, numbers: ${self.numbers}, scores: ${self.scores}, status: ${self.status}, priority: ${self.priority}, role: ${self.role}, customEpoch: ${self.customEpoch})';
   }
 }
 
@@ -395,7 +413,6 @@ mixin _$ComplexModel
         self.status == other.status &&
         self.priority == other.priority &&
         self.role == other.role &&
-        self.secretToken == other.secretToken &&
         self.createdAt == other.createdAt &&
         self.website == other.website &&
         self.score == other.score &&
@@ -428,7 +445,6 @@ mixin _$ComplexModel
       self.status,
       self.priority,
       self.role,
-      self.secretToken,
       self.customEpoch,
     );
   }
@@ -436,7 +452,7 @@ mixin _$ComplexModel
   @override
   String toString() {
     final self = this as ComplexModel;
-    return 'ComplexModel(id: ${self.id}, count: ${self.count}, rating: ${self.rating}, isActive: ${self.isActive}, createdAt: ${self.createdAt}, website: ${self.website}, score: ${self.score}, timeout: ${self.timeout}, optionalTag: ${self.optionalTag}, metadata: ${self.metadata}, tags: ${self.tags}, numbers: ${self.numbers}, scores: ${self.scores}, status: ${self.status}, priority: ${self.priority}, role: ${self.role}, secretToken: ${self.secretToken}, customEpoch: ${self.customEpoch})';
+    return 'ComplexModel(id: ${self.id}, count: ${self.count}, rating: ${self.rating}, isActive: ${self.isActive}, createdAt: ${self.createdAt}, website: ${self.website}, score: ${self.score}, timeout: ${self.timeout}, optionalTag: ${self.optionalTag}, metadata: ${self.metadata}, tags: ${self.tags}, numbers: ${self.numbers}, scores: ${self.scores}, status: ${self.status}, priority: ${self.priority}, role: ${self.role}, customEpoch: ${self.customEpoch})';
   }
 }
 
@@ -458,7 +474,6 @@ extension ComplexModelCopyWithExtension on ComplexModel {
     Status? status,
     Priority? priority,
     String? role,
-    String? secretToken,
     DateTime? customEpoch,
   }) {
     if ((id == null || identical(id, this.id)) &&
@@ -477,7 +492,6 @@ extension ComplexModelCopyWithExtension on ComplexModel {
         (status == null || identical(status, this.status)) &&
         (priority == null || identical(priority, this.priority)) &&
         (role == null || identical(role, this.role)) &&
-        (secretToken == null || identical(secretToken, this.secretToken)) &&
         (customEpoch == null || identical(customEpoch, this.customEpoch))) {
       return this;
     }
@@ -499,7 +513,7 @@ extension ComplexModelCopyWithExtension on ComplexModel {
       status ?? this.status,
       priority ?? this.priority,
       role: role ?? this.role,
-      secretToken: secretToken ?? this.secretToken,
+      secretToken: this.secretToken,
       customEpoch: customEpoch ?? this.customEpoch,
     );
   }
@@ -773,32 +787,32 @@ Bike bikeFromJson(Map<String, dynamic> json) {
 Map<String, dynamic> bikeToMap(Bike instance) => <String, dynamic>{
   'hasPedals': instance.hasPedals,
 };
-AsymmetricModel asymmetricModelFromJson(Map<String, dynamic> json) {
+CustomKeyModel customKeyModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
-    {'incoming_key': final String keyRaw} => AsymmetricModel(keyRaw),
+    {'wire_key': final String keyRaw} => CustomKeyModel(keyRaw),
     _ => () {
-      if (!json.containsKey('incoming_key')) {
+      if (!json.containsKey('wire_key')) {
         throw FormatException(
-          "Missing required field 'incoming_key' for AsymmetricModel",
+          "Missing required field 'wire_key' for CustomKeyModel",
           json,
         );
       }
-      if (json['incoming_key'] is! String) {
+      if (json['wire_key'] is! String) {
         throw FormatException(
-          "Invalid type for field 'incoming_key' on AsymmetricModel: expected String, got ${json['incoming_key'].runtimeType}",
+          "Invalid type for field 'wire_key' on CustomKeyModel: expected String, got ${json['wire_key'].runtimeType}",
           json,
         );
       }
       throw FormatException(
-        'Invalid JSON shape for AsymmetricModel: missing or invalid required keys (expected: incoming_key)',
+        'Invalid JSON shape for CustomKeyModel: missing or invalid required keys (expected: wire_key)',
         json,
       );
     }(),
   };
 }
 
-Map<String, dynamic> asymmetricModelToMap(AsymmetricModel instance) =>
-    <String, dynamic>{'outgoing_key': instance.key};
+Map<String, dynamic> customKeyModelToMap(CustomKeyModel instance) =>
+    <String, dynamic>{'wire_key': instance.key};
 NullableConverterModel nullableConverterModelFromJson(
   Map<String, dynamic> json,
 ) {
@@ -1254,6 +1268,119 @@ extension LargeModelCopyWithExtension on LargeModel {
       f20 ?? this.f20,
       f21 ?? this.f21,
       f22 ?? this.f22,
+    );
+  }
+}
+
+Account accountFromJson(Map<String, dynamic> json) {
+  return switch (json) {
+    {'id': final String idRaw, 'acc_type': final Object typeRaw} => Account(
+      id: idRaw,
+      type: accountTypeFromValue(typeRaw),
+      loginCount: json['loginCount'] == null
+          ? 0
+          : ((json['loginCount'] as num).toInt()),
+      sessionTimer: Stopwatch(),
+    ),
+    _ => () {
+      if (!json.containsKey('id')) {
+        throw FormatException("Missing required field 'id' for Account", json);
+      }
+      if (json['id'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'id' on Account: expected String, got ${json['id'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('acc_type')) {
+        throw FormatException(
+          "Missing required field 'acc_type' for Account",
+          json,
+        );
+      }
+      if (json['acc_type'] == null) {
+        throw FormatException(
+          "Invalid type for field 'acc_type' on Account: expected non-null value, got Null",
+          json,
+        );
+      }
+      throw FormatException(
+        'Invalid JSON shape for Account: missing or invalid required keys (expected: id, acc_type)',
+        json,
+      );
+    }(),
+  };
+}
+
+Map<String, dynamic> accountToMap(Account instance) => <String, dynamic>{
+  'id': instance.id,
+  'acc_type': accountTypeToValue(instance.type),
+  'loginCount': instance.loginCount,
+};
+
+mixin _$AccountEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Account || runtimeType != other.runtimeType) return false;
+    final self = this as Account;
+    return self.id == other.id &&
+        self.type == other.type &&
+        self.loginCount == other.loginCount;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as Account;
+    return Object.hash(self.id, self.type, self.loginCount);
+  }
+}
+
+mixin _$AccountStringify {
+  @override
+  String toString() {
+    final self = this as Account;
+    return 'Account(id: ${self.id}, type: ${self.type}, loginCount: ${self.loginCount})';
+  }
+}
+
+mixin _$Account implements _$AccountEqualsAndHashCode, _$AccountStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! Account || runtimeType != other.runtimeType) return false;
+    final self = this as Account;
+    return self.id == other.id &&
+        self.type == other.type &&
+        self.loginCount == other.loginCount;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as Account;
+    return Object.hash(self.id, self.type, self.loginCount);
+  }
+
+  @override
+  String toString() {
+    final self = this as Account;
+    return 'Account(id: ${self.id}, type: ${self.type}, loginCount: ${self.loginCount})';
+  }
+}
+
+extension AccountCopyWithExtension on Account {
+  Account copyWith({String? id, AccountType? type, int? loginCount}) {
+    if ((id == null || identical(id, this.id)) &&
+        (type == null || identical(type, this.type)) &&
+        (loginCount == null || identical(loginCount, this.loginCount))) {
+      return this;
+    }
+
+    return Account(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      loginCount: loginCount ?? this.loginCount,
+      sessionTimer: this.sessionTimer,
     );
   }
 }

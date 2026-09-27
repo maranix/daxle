@@ -11,7 +11,7 @@ class ClassGenerator {
   final DartEmitter _emitter;
 
   ClassGenerator(this.typeHelper)
-      : _emitter = DartEmitter(useNullSafetySyntax: true);
+    : _emitter = DartEmitter(useNullSafetySyntax: true);
 
   String _patternTypeFor(ParsedType type, FieldConfig? config) {
     if (config?.effectiveDeserializeConverter != null) {
@@ -63,19 +63,29 @@ class ClassGenerator {
       final fn = '${TypeHelper.toCamelCase(type.baseName)}FromJson';
       return '$fn($varName.cast<String, dynamic>())';
     } else if (type.isList || type.isSet) {
-      return typeHelper.generateDeserialize(
-        type,
-        varName,
-        config: config,
-        explicitFromJson: true,
-      ).replaceFirst('($varName as List<dynamic>)', '$varName.cast<dynamic>()');
+      return typeHelper
+          .generateDeserialize(
+            type,
+            varName,
+            config: config,
+            explicitFromJson: true,
+          )
+          .replaceFirst(
+            '($varName as List<dynamic>)',
+            '$varName.cast<dynamic>()',
+          );
     } else if (type.isMap) {
-      return typeHelper.generateDeserialize(
-        type,
-        varName,
-        config: config,
-        explicitFromJson: true,
-      ).replaceFirst('($varName as Map<String, dynamic>)', '$varName.cast<String, dynamic>()');
+      return typeHelper
+          .generateDeserialize(
+            type,
+            varName,
+            config: config,
+            explicitFromJson: true,
+          )
+          .replaceFirst(
+            '($varName as Map<String, dynamic>)',
+            '$varName.cast<String, dynamic>()',
+          );
     } else {
       return typeHelper.generateDeserialize(
         type,
@@ -84,6 +94,24 @@ class ClassGenerator {
         explicitFromJson: true,
       );
     }
+  }
+
+  String _dummyValueFor(ParsedType type) {
+    if (type.isNullable) return 'null';
+    if (type.isString) return "''";
+    if (type.isInt) return '0';
+    if (type.isDouble) return '0.0';
+    if (type.isNum) return '0';
+    if (type.isBool) return 'false';
+    if (type.isList) return '[]';
+    if (type.isSet) return '{}';
+    if (type.isMap || type.isQueryMap) return '{}';
+    if (type.baseName == 'Stopwatch') return 'Stopwatch()';
+    if (type.baseName == 'Duration') return 'Duration.zero';
+    if (type.baseName == 'DateTime') {
+      return 'DateTime.fromMillisecondsSinceEpoch(0)';
+    }
+    return 'null as dynamic';
   }
 
   /// Builds the `fromJson` [Method] specification.
@@ -104,18 +132,21 @@ class ClassGenerator {
     for (final param in clazz.constructorParams) {
       handledFields.add(param.name);
       if (param.isIgnoredForDeserialize(clazz.deserialize)) {
-        if (!param.isNamed && param.hasDefault) {
-          positionalArgs.add(param.defaultValueCode!);
-        } else if (!param.isNamed) {
-          positionalArgs.add('null as dynamic');
+        final dummyVal = param.hasDefault
+            ? param.defaultValueCode!
+            : _dummyValueFor(param.type);
+        if (!param.isNamed) {
+          positionalArgs.add(dummyVal);
+        } else if (param.isRequired) {
+          namedArgs.add('${param.name}: $dummyVal');
         }
         continue;
       }
 
       final key = param.resolvedDeserializeKey(caseStyle);
-      final hasFallback = param.config.fallbackCode != null ||
-          param.config.serializeFallbackCode != null;
-      final isRequiredInJson = !param.type.isNullable &&
+      final hasFallback = param.config.fallbackCode != null;
+      final isRequiredInJson =
+          !param.type.isNullable &&
           !param.type.isOption &&
           !hasFallback &&
           !param.hasDefault;
@@ -177,7 +208,9 @@ class ClassGenerator {
             explicitFromJson: true,
           );
           bodyBuffer.writeln("    if (json.containsKey('$key')) {");
-          bodyBuffer.writeln('      instance.${field.name} = $deserializeExpr;');
+          bodyBuffer.writeln(
+            '      instance.${field.name} = $deserializeExpr;',
+          );
           bodyBuffer.writeln('    }');
         }
         bodyBuffer.writeln('    return instance;');
@@ -204,7 +237,9 @@ class ClassGenerator {
             explicitFromJson: true,
           );
           bodyBuffer.writeln("    if (json.containsKey('$key')) {");
-          bodyBuffer.writeln('      instance.${field.name} = $deserializeExpr;');
+          bodyBuffer.writeln(
+            '      instance.${field.name} = $deserializeExpr;',
+          );
           bodyBuffer.writeln('    }');
         }
         bodyBuffer.writeln('    return instance;');
@@ -213,32 +248,48 @@ class ClassGenerator {
       bodyBuffer.writeln('  _ => () {');
       for (final check in requiredChecks) {
         bodyBuffer.writeln("    if (!json.containsKey('${check.key}')) {");
-        bodyBuffer.writeln("      throw FormatException(\"Missing required field '${check.key}' for ${clazz.name}\", json);");
+        bodyBuffer.writeln(
+          "      throw FormatException(\"Missing required field '${check.key}' for ${clazz.name}\", json);",
+        );
         bodyBuffer.writeln('    }');
         if (check.patternType != 'Object') {
-          bodyBuffer.writeln("    if (json['${check.key}'] is! ${check.patternType}) {");
-          bodyBuffer.writeln("      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected ${check.patternType}, got \${json['${check.key}'].runtimeType}\", json);");
+          bodyBuffer.writeln(
+            "    if (json['${check.key}'] is! ${check.patternType}) {",
+          );
+          bodyBuffer.writeln(
+            "      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected ${check.patternType}, got \${json['${check.key}'].runtimeType}\", json);",
+          );
           bodyBuffer.writeln('    }');
         } else {
           bodyBuffer.writeln("    if (json['${check.key}'] == null) {");
-          bodyBuffer.writeln("      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected non-null value, got Null\", json);");
+          bodyBuffer.writeln(
+            "      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected non-null value, got Null\", json);",
+          );
           bodyBuffer.writeln('    }');
         }
       }
       final expectedKeys = requiredChecks.map((c) => c.key).join(', ');
-      bodyBuffer.writeln("    throw FormatException('Invalid JSON shape for ${clazz.name}: missing or invalid required keys (expected: $expectedKeys)', json);");
+      bodyBuffer.writeln(
+        "    throw FormatException('Invalid JSON shape for ${clazz.name}: missing or invalid required keys (expected: $expectedKeys)', json);",
+      );
       bodyBuffer.writeln('  }(),');
     }
 
     bodyBuffer.write('};');
 
-    return Method((b) => b
-      ..name = '${camelName}FromJson'
-      ..returns = refer(clazz.name)
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'json'
-        ..type = refer('Map<String, dynamic>')))
-      ..body = Code(bodyBuffer.toString()));
+    return Method(
+      (b) => b
+        ..name = '${camelName}FromJson'
+        ..returns = refer(clazz.name)
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'json'
+              ..type = refer('Map<String, dynamic>'),
+          ),
+        )
+        ..body = Code(bodyBuffer.toString()),
+    );
   }
 
   /// Builds the `toMap` [Method] specification.
@@ -254,9 +305,7 @@ class ClassGenerator {
 
       final key = field.resolvedSerializeKey(caseStyle);
       final fieldExpr = 'instance.${field.name}';
-      final hasSerializeFallback =
-          field.config.serializeFallbackCode != null ||
-          field.config.fallbackCode != null;
+      final hasSerializeFallback = field.config.fallbackCode != null;
 
       if (field.type.isNullable &&
           !field.type.isOption &&
@@ -268,7 +317,8 @@ class ClassGenerator {
           explicitToJson: true,
         );
         buffer.writeln(
-            "  if ($fieldExpr != null) '$key': $serializeNonNullExpr,");
+          "  if ($fieldExpr != null) '$key': $serializeNonNullExpr,",
+        );
       } else {
         final serializeExpr = typeHelper.generateSerialize(
           field.type,
@@ -282,14 +332,20 @@ class ClassGenerator {
 
     buffer.write('}');
 
-    return Method((b) => b
-      ..name = '${camelName}ToMap'
-      ..returns = refer('Map<String, dynamic>')
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'instance'
-        ..type = refer(clazz.name)))
-      ..lambda = true
-      ..body = Code(buffer.toString()));
+    return Method(
+      (b) => b
+        ..name = '${camelName}ToMap'
+        ..returns = refer('Map<String, dynamic>')
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'instance'
+              ..type = refer(clazz.name),
+          ),
+        )
+        ..lambda = true
+        ..body = Code(buffer.toString()),
+    );
   }
 
   /// Generates the `fromJson` function as code string.

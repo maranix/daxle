@@ -15,7 +15,8 @@ class SealedGenerator {
     List<ParsedClass> subclasses,
   ) {
     final camelName = TypeHelper.toCamelCase(sealedClass.name);
-    final discriminator = sealedClass.deserialize?.discriminator ??
+    final discriminator =
+        sealedClass.deserialize?.discriminator ??
         sealedClass.serialize?.discriminator ??
         'type';
     final caseStyle =
@@ -26,27 +27,40 @@ class SealedGenerator {
 
     for (final sub in subclasses) {
       final subCamel = TypeHelper.toCamelCase(sub.name);
-      final defaultTag =
-          caseStyle != null ? caseStyle.transform(sub.name) : sub.name;
+      final defaultTag = caseStyle != null
+          ? caseStyle.transform(sub.name)
+          : sub.name;
       final tag = sub.customDiscriminatorName ?? defaultTag;
-      buffer.writeln("  {'$discriminator': '$tag'} => ${subCamel}FromJson(json),");
+      buffer.writeln(
+        "  {'$discriminator': '$tag'} => ${subCamel}FromJson(json),",
+      );
     }
 
     buffer.writeln('  _ => () {');
     buffer.writeln("    if (!json.containsKey('$discriminator')) {");
-    buffer.writeln("      throw FormatException(\"Missing required discriminator '$discriminator' for ${sealedClass.name}\", json);");
+    buffer.writeln(
+      "      throw FormatException(\"Missing required discriminator '$discriminator' for ${sealedClass.name}\", json);",
+    );
     buffer.writeln('    }');
-    buffer.writeln("    throw FormatException(\"Unknown ${sealedClass.name} discriminator: '\${json['$discriminator']}'\", json);");
+    buffer.writeln(
+      "    throw FormatException(\"Unknown ${sealedClass.name} discriminator: '\${json['$discriminator']}'\", json);",
+    );
     buffer.writeln('  }(),');
     buffer.write('};');
 
-    return Method((b) => b
-      ..name = '${camelName}FromJson'
-      ..returns = refer(sealedClass.name)
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'json'
-        ..type = refer('Map<String, dynamic>')))
-      ..body = Code(buffer.toString()));
+    return Method(
+      (b) => b
+        ..name = '${camelName}FromJson'
+        ..returns = refer(sealedClass.name)
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'json'
+              ..type = refer('Map<String, dynamic>'),
+          ),
+        )
+        ..body = Code(buffer.toString()),
+    );
   }
 
   /// Builds the polymorphic `toMap` [Method] specification.
@@ -55,7 +69,8 @@ class SealedGenerator {
     List<ParsedClass> subclasses,
   ) {
     final camelName = TypeHelper.toCamelCase(sealedClass.name);
-    final discriminator = sealedClass.serialize?.discriminator ??
+    final discriminator =
+        sealedClass.serialize?.discriminator ??
         sealedClass.deserialize?.discriminator ??
         'type';
     final caseStyle =
@@ -66,22 +81,30 @@ class SealedGenerator {
 
     for (final sub in subclasses) {
       final subVar = TypeHelper.toCamelCase(sub.name);
-      final defaultTag =
-          caseStyle != null ? caseStyle.transform(sub.name) : sub.name;
+      final defaultTag = caseStyle != null
+          ? caseStyle.transform(sub.name)
+          : sub.name;
       final tag = sub.customDiscriminatorName ?? defaultTag;
       buffer.writeln(
-          "  final ${sub.name} $subVar => ${subVar}ToMap($subVar)..['$discriminator'] = '$tag',");
+        "  final ${sub.name} $subVar => ${subVar}ToMap($subVar)..['$discriminator'] = '$tag',",
+      );
     }
 
     buffer.write('};');
 
-    return Method((b) => b
-      ..name = '${camelName}ToMap'
-      ..returns = refer('Map<String, dynamic>')
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'instance'
-        ..type = refer(sealedClass.name)))
-      ..body = Code(buffer.toString()));
+    return Method(
+      (b) => b
+        ..name = '${camelName}ToMap'
+        ..returns = refer('Map<String, dynamic>')
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'instance'
+              ..type = refer(sealedClass.name),
+          ),
+        )
+        ..body = Code(buffer.toString()),
+    );
   }
 
   /// Generates the `fromJson` function as code string.

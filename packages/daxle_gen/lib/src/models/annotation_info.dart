@@ -1,5 +1,7 @@
 import 'package:daxle/daxle.dart';
 
+import '../parser/generation_error.dart';
+
 /// Parsed metadata for `@Serialize` / `@SerializeClass`.
 class SerializeInfo {
   final String? discriminator;
@@ -75,52 +77,46 @@ class DeserializeEnumInfo {
   });
 }
 
-/// Field-level or parameter-level configuration from `@SerializeValue` and `@DeserializeValue`.
+/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, and `@ignore`.
 class FieldConfig {
-  final String? serializeKey;
-  final String? deserializeKey;
-  final CaseStyle? serializeCaseStyle;
-  final CaseStyle? deserializeCaseStyle;
+  final String? serializedKey;
   final String? fallbackCode;
-  final String? serializeFallbackCode;
   final String? converterCode;
-  final String? serializeConverterCode;
-  final bool ignoreSerialize;
-  final bool ignoreDeserialize;
+  final bool isIgnored;
 
   const FieldConfig({
-    this.serializeKey,
-    this.deserializeKey,
-    this.serializeCaseStyle,
-    this.deserializeCaseStyle,
+    this.serializedKey,
     this.fallbackCode,
-    this.serializeFallbackCode,
     this.converterCode,
-    this.serializeConverterCode,
-    this.ignoreSerialize = false,
-    this.ignoreDeserialize = false,
+    this.isIgnored = false,
   });
 
-  String? get effectiveSerializeKey => serializeKey;
-  String? get effectiveDeserializeKey => deserializeKey;
-  String? get effectiveSerializeConverter =>
-      serializeConverterCode ?? converterCode;
+  String? get effectiveSerializeKey => serializedKey;
+  String? get effectiveDeserializeKey => serializedKey;
+  String? get effectiveSerializeConverter => converterCode;
   String? get effectiveDeserializeConverter => converterCode;
+  bool get ignoreSerialize => isIgnored;
+  bool get ignoreDeserialize => isIgnored;
 
-  FieldConfig merge(FieldConfig other) {
+  FieldConfig merge(FieldConfig other, [String memberName = 'member']) {
+    final mergedIgnored = isIgnored || other.isIgnored;
+    final mergedKey = other.serializedKey ?? serializedKey;
+    final mergedFallback = other.fallbackCode ?? fallbackCode;
+    final mergedConverter = other.converterCode ?? converterCode;
+
+    if (mergedIgnored && (mergedKey != null || mergedFallback != null)) {
+      throw InvalidGenerationSourceError(
+        '@ignore cannot coexist with @SerializedValue or @Fallback on "$memberName".',
+        todo:
+            'Remove either @ignore or @SerializedValue/@Fallback from "$memberName".',
+      );
+    }
+
     return FieldConfig(
-      serializeKey: other.serializeKey ?? serializeKey,
-      deserializeKey: other.deserializeKey ?? deserializeKey,
-      serializeCaseStyle: other.serializeCaseStyle ?? serializeCaseStyle,
-      deserializeCaseStyle: other.deserializeCaseStyle ?? deserializeCaseStyle,
-      fallbackCode: other.fallbackCode ?? fallbackCode,
-      serializeFallbackCode:
-          other.serializeFallbackCode ?? serializeFallbackCode,
-      converterCode: other.converterCode ?? converterCode,
-      serializeConverterCode:
-          other.serializeConverterCode ?? serializeConverterCode,
-      ignoreSerialize: ignoreSerialize || other.ignoreSerialize,
-      ignoreDeserialize: ignoreDeserialize || other.ignoreDeserialize,
+      serializedKey: mergedKey,
+      fallbackCode: mergedFallback,
+      converterCode: mergedConverter,
+      isIgnored: mergedIgnored,
     );
   }
 }

@@ -48,14 +48,9 @@ class ComplexModel(
   final Map<String, int> scores,
   final Status status,
   final Priority priority, {
-  @SerializeValue(fallback: 'guest')
-  @DeserializeValue(fallback: 'guest')
-  final String role = 'guest',
-  @SerializeValue(ignore: true)
-  @DeserializeValue(ignore: true)
-  final String secretToken = '',
-  @SerializeValue(converter: EpochDateTimeConverter())
-  @DeserializeValue(converter: EpochDateTimeConverter())
+  @Fallback('guest') final String role = 'guest',
+  @ignore final String secretToken = '',
+  @SerializedValue('customEpoch', converter: EpochDateTimeConverter())
   final DateTime? customEpoch,
 }) with _$ComplexModel;
 
@@ -97,7 +92,7 @@ class Square extends Shape {
 @Deserialize(discriminator: 'vehicle_type')
 sealed class Vehicle {}
 
-@SerializeValue(name: 'car_v1')
+@SerializedValue('car_v1')
 class Car implements Vehicle {
   final int seats;
   Car(this.seats);
@@ -116,13 +111,11 @@ enum const MultiParamEnum(final String label, final int code) {
   second('second_label', 202),
 }
 
-// 8. Asymmetric JSON key mapping
+// 8. Custom JSON key mapping via @SerializedValue
 @serialize
 @deserialize
-class AsymmetricModel(
-  @SerializeValue(name: 'outgoing_key')
-  @DeserializeValue(name: 'incoming_key')
-  final String key,
+class CustomKeyModel(
+  @SerializedValue('wire_key') final String key,
 );
 
 // 9. Nullable primitive with custom converter
@@ -136,8 +129,7 @@ class const StringIntConverter() implements DaxleJsonConverter<int, String> {
 @serialize
 @deserialize
 class NullableConverterModel(
-  @SerializeValue(converter: StringIntConverter())
-  @DeserializeValue(converter: StringIntConverter())
+  @SerializedValue('nullableConvertedInt', converter: StringIntConverter())
   final int? nullableConvertedInt,
 );
 
@@ -170,15 +162,13 @@ enum ThemeMode { lightTheme, darkTheme, systemDefault }
 @serializeEnum
 @deserializeEnum
 enum AnnotatedEnum {
-  @SerializeValue(name: 'in_progress')
-  @DeserializeValue(name: 'in_progress')
+  @SerializedValue('in_progress')
   inProgress,
 
-  @SerializeValue(ignore: true)
+  @ignore
   internalSecret,
 
-  @SerializeValue(fallback: 'archived_val')
-  @DeserializeValue(fallback: 'archived_val')
+  @SerializedValue('archived_val')
   archived,
 }
 
@@ -236,3 +226,46 @@ class LargeModel(
   final int f21,
   final int f22,
 ) with _$LargeModel;
+
+// 17. Reference usage: @Fallback on enum, @SerializedValue, @Fallback, @ignore on class
+@Fallback(AccountType.standard)
+@serializeEnum
+@deserializeEnum
+@stringify
+enum AccountType with _$AccountTypeStringify {
+  @SerializedValue('std')
+  standard,
+
+  @SerializedValue('prem')
+  premium,
+
+  // UI/client-only state; excluded from serialization and mapping
+  @ignore
+  internalTest,
+}
+
+@serialize
+@deserialize
+@equalsAndHashCode
+@stringify
+@copyWith
+class Account with _$Account {
+  final String id;
+
+  @SerializedValue('acc_type')
+  final AccountType type;
+
+  @Fallback(0)
+  final int loginCount;
+
+  // Transient state; omitted from all generated methods and JSON logic
+  @ignore
+  final Stopwatch sessionTimer;
+
+  Account({
+    required this.id,
+    required this.type,
+    this.loginCount = 0,
+    required this.sessionTimer,
+  });
+}

@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+
 import 'case_style.dart';
 
 /// Marks a class for serialization generation (`toMap`).
@@ -7,7 +8,7 @@ class const Serialize({
   /// Discriminator field name for sealed classes (defaults to `'type'`).
   final String? discriminator,
 
-  /// Case style for serializing field names unless overridden by [SerializeValue].
+  /// Case style for serializing field names unless overridden by [SerializedValue].
   final CaseStyle? caseStyle,
 
   /// Field names to ignore during serialization.
@@ -29,7 +30,7 @@ class const Deserialize({
   /// Discriminator field name for sealed classes (defaults to `'type'`).
   final String? discriminator,
 
-  /// Case style for deserializing field names unless overridden by [DeserializeValue].
+  /// Case style for deserializing field names unless overridden by [SerializedValue].
   final CaseStyle? caseStyle,
 
   /// Field names to ignore during deserialization.

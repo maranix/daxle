@@ -1,5 +1,6 @@
 import 'package:daxle/daxle.dart';
 import 'package:daxle_gen/src/parser/daxle_ast_parser.dart';
+import 'package:daxle_gen/src/parser/generation_error.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -12,8 +13,7 @@ import 'package:daxle/daxle.dart';
 @serialize
 @deserialize
 class User(
-  @SerializeValue(name: 'user_id')
-  @DeserializeValue(name: 'user_id')
+  @SerializedValue('user_id')
   final String id,
   final String name,
   final Option<String> nickname, {
@@ -53,10 +53,10 @@ import 'package:daxle/daxle.dart';
 @serialize
 @deserialize
 class LegacyItem {
-  @SerializeValue(name: 'item_id')
+  @SerializedValue('item_id')
   final String id;
 
-  @DeserializeValue(fallback: 'unnamed')
+  @Fallback('unnamed')
   final String name;
 
   final DateTime createdAt;
@@ -162,7 +162,7 @@ part 'vehicle.daxle.dart';
 @Serialize(discriminator: 'v_type')
 sealed class Vehicle {}
 
-@SerializeValue(name: 'custom_car')
+@SerializedValue('custom_car')
 class Car implements Vehicle {
   final int wheels;
   Car(this.wheels);
@@ -218,7 +218,10 @@ enum ItemCategory { bookItem, electronicDevice }
     expect(account.serialize?.ignoreFields, contains('secretToken'));
     expect(account.deserialize?.ignoreFields, contains('secretToken'));
 
-    expect(account.fields[0].resolvedSerializeKey(account.serialize?.caseStyle), 'account_id');
+    expect(
+      account.fields[0].resolvedSerializeKey(account.serialize?.caseStyle),
+      'account_id',
+    );
     expect(account.fields[1].isIgnoredForSerialize(account.serialize), true);
 
     final category = parsedFile.enums.first;
@@ -227,20 +230,22 @@ enum ItemCategory { bookItem, electronicDevice }
     expect(category.constants[1].explicitValueCode, "'electronic-device'");
   });
 
-  test('parses enum constant annotations with fallback custom values', () {
+  test('parses enum constant annotations with SerializedValue, Fallback and ignore', () {
     const code = '''
 import 'package:daxle/daxle.dart';
 
+@Fallback(Status.standard)
 @serializeEnum
 @deserializeEnum
 enum Status {
-  @SerializeValue(fallback: 'in_progress')
-  @DeserializeValue(fallback: 'in_progress')
+  @SerializedValue('in_progress')
   inProgress,
 
-  @SerializeValue(fallback: 101)
-  @DeserializeValue(fallback: 101)
+  @SerializedValue(101)
   codeEntry,
+
+  @ignore
+  internalTest,
 
   standard,
 }
@@ -248,22 +253,67 @@ enum Status {
 
     final parsedFile = parser.parseContent(code);
     final status = parsedFile.enums.first;
-    expect(status.constants.length, 3);
+    expect(status.fallbackCaseCode, 'Status.standard');
+    expect(status.constants.length, 4);
 
     final inProgress = status.constants[0];
-    expect(inProgress.config.serializeFallbackCode, "'in_progress'");
-    expect(inProgress.config.fallbackCode, "'in_progress'");
+    expect(inProgress.config.serializedKey, 'in_progress');
     expect(inProgress.resolvedSerializeValue(null), "'in_progress'");
     expect(inProgress.resolvedDeserializeValue(null), "'in_progress'");
 
     final codeEntry = status.constants[1];
-    expect(codeEntry.config.serializeFallbackCode, '101');
-    expect(codeEntry.config.fallbackCode, '101');
+    expect(codeEntry.config.serializedKey, '101');
     expect(codeEntry.resolvedSerializeValue(null), '101');
     expect(codeEntry.resolvedDeserializeValue(null), '101');
 
-    final standard = status.constants[2];
+    final internalTest = status.constants[2];
+    expect(internalTest.isIgnored, true);
+
+    final standard = status.constants[3];
     expect(standard.resolvedSerializeValue(null), "'standard'");
     expect(standard.resolvedDeserializeValue(null), "'standard'");
   });
+
+  test('throws InvalidGenerationSourceError when @ignore is paired with @SerializedValue', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadModel {
+  @ignore
+  @SerializedValue('bad')
+  final String badField;
+
+  BadModel(this.badField);
+}
+''';
+
+    expect(
+      () => parser.parseContent(code),
+      throwsA(isA<InvalidGenerationSourceError>()),
+    );
+  });
+
+  test(
+    'throws InvalidGenerationSourceError when @ignore is paired with @Fallback',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class BadModel {
+  @ignore
+  @Fallback('bad')
+  final String badField;
+
+  BadModel(this.badField);
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(isA<InvalidGenerationSourceError>()),
+      );
+    },
+  );
 }

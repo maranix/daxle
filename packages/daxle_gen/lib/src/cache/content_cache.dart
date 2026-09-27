@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
@@ -16,16 +17,16 @@ class ManifestEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        'sourceHash': sourceHash,
-        'generatedPath': generatedPath,
-        'generatedHash': generatedHash,
-      };
+    'sourceHash': sourceHash,
+    'generatedPath': generatedPath,
+    'generatedHash': generatedHash,
+  };
 
   factory ManifestEntry.fromJson(Map<String, dynamic> json) => ManifestEntry(
-        sourceHash: json['sourceHash'] as String? ?? '',
-        generatedPath: json['generatedPath'] as String? ?? '',
-        generatedHash: json['generatedHash'] as String? ?? '',
-      );
+    sourceHash: json['sourceHash'] as String? ?? '',
+    generatedPath: json['generatedPath'] as String? ?? '',
+    generatedHash: json['generatedHash'] as String? ?? '',
+  );
 }
 
 /// Cache manager for content hashes and drift detection.
@@ -35,8 +36,12 @@ class ContentCache {
   final Map<String, ManifestEntry> _entries = {};
 
   ContentCache({String? root}) : rootDir = root ?? Directory.current.path {
-    final manifestPath =
-        p.join(rootDir, '.dart_tool', 'daxle_gen', 'manifest.json');
+    final manifestPath = p.join(
+      rootDir,
+      '.dart_tool',
+      'daxle_gen',
+      'manifest.json',
+    );
     manifestFile = File(manifestPath);
     load();
   }
@@ -59,8 +64,9 @@ class ContentCache {
       final data = json.decode(jsonStr) as Map<String, dynamic>;
       for (final entry in data.entries) {
         if (entry.value is Map<String, dynamic>) {
-          _entries[entry.key] =
-              ManifestEntry.fromJson(entry.value as Map<String, dynamic>);
+          _entries[entry.key] = ManifestEntry.fromJson(
+            entry.value as Map<String, dynamic>,
+          );
         }
       }
     } catch (_) {
@@ -74,7 +80,9 @@ class ContentCache {
       manifestFile.parent.createSync(recursive: true);
     }
     final data = _entries.map((k, v) => MapEntry(k, v.toJson()));
-    manifestFile.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(data));
+    manifestFile.writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(data),
+    );
   }
 
   /// Checks if a source file is up-to-date with its generated counterpart.
@@ -94,7 +102,11 @@ class ContentCache {
   }
 
   /// Updates the cache entry for [sourcePath].
-  void record(String sourcePath, String generatedPath, String generatedContent) {
+  void record(
+    String sourcePath,
+    String generatedPath,
+    String generatedContent,
+  ) {
     final relSource = p.relative(sourcePath, from: rootDir);
     final relGen = p.relative(generatedPath, from: rootDir);
 

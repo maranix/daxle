@@ -21,48 +21,40 @@ class ParsedField {
     this.defaultValueCode,
   });
 
-  String resolvedSerializeKey(CaseStyle? classCaseStyle) {
-    if (config.serializeKey != null) return config.serializeKey!;
-    if (config.serializeCaseStyle != null) {
-      return config.serializeCaseStyle!.transform(name);
-    }
+  String resolvedWireKey(CaseStyle? classCaseStyle) {
+    if (config.serializedKey != null) return config.serializedKey!;
     if (classCaseStyle != null) {
       return classCaseStyle.transform(name);
     }
     return name;
   }
 
-  String resolvedDeserializeKey(CaseStyle? classCaseStyle) {
-    if (config.deserializeKey != null) return config.deserializeKey!;
-    if (config.deserializeCaseStyle != null) {
-      return config.deserializeCaseStyle!.transform(name);
-    }
-    if (classCaseStyle != null) {
-      return classCaseStyle.transform(name);
-    }
-    return name;
-  }
+  String resolvedSerializeKey(CaseStyle? classCaseStyle) =>
+      resolvedWireKey(classCaseStyle);
+
+  String resolvedDeserializeKey(CaseStyle? classCaseStyle) =>
+      resolvedWireKey(classCaseStyle);
 
   bool isIgnoredForSerialize(SerializeInfo? classSerialize) =>
-      config.ignoreSerialize ||
+      config.isIgnored ||
       (classSerialize?.ignoreFields.contains(name) ?? false);
 
   bool isIgnoredForDeserialize(DeserializeInfo? classDeserialize) =>
-      config.ignoreDeserialize ||
+      config.isIgnored ||
       (classDeserialize?.ignoreFields.contains(name) ?? false);
 
   bool isIgnoredForEquals(EqualsAndHashCodeInfo? info) =>
-      info?.ignoreFields.contains(name) ?? false;
+      config.isIgnored || (info?.ignoreFields.contains(name) ?? false);
 
   bool isIgnoredForStringify(StringifyInfo? info) =>
-      info?.ignoreFields.contains(name) ?? false;
+      config.isIgnored || (info?.ignoreFields.contains(name) ?? false);
 
   bool isIgnoredForCopyWith(CopyWithInfo? info) =>
-      info?.ignoreFields.contains(name) ?? false;
+      config.isIgnored || (info?.ignoreFields.contains(name) ?? false);
 
-  String get jsonKey => config.serializeKey ?? config.deserializeKey ?? name;
-  String get serializeKey => config.effectiveSerializeKey ?? name;
-  String get deserializeKey => config.effectiveDeserializeKey ?? name;
+  String get jsonKey => config.serializedKey ?? name;
+  String get serializeKey => config.serializedKey ?? name;
+  String get deserializeKey => config.serializedKey ?? name;
 }
 
 /// Represents a constructor parameter.
@@ -86,10 +78,7 @@ class ParsedConstructorParam {
   });
 
   String resolvedDeserializeKey(CaseStyle? classCaseStyle) {
-    if (config.deserializeKey != null) return config.deserializeKey!;
-    if (config.deserializeCaseStyle != null) {
-      return config.deserializeCaseStyle!.transform(name);
-    }
+    if (config.serializedKey != null) return config.serializedKey!;
     if (classCaseStyle != null) {
       return classCaseStyle.transform(name);
     }
@@ -97,14 +86,14 @@ class ParsedConstructorParam {
   }
 
   bool isIgnoredForDeserialize(DeserializeInfo? classDeserialize) =>
-      config.ignoreDeserialize ||
+      config.isIgnored ||
       (classDeserialize?.ignoreFields.contains(name) ?? false);
 
   bool isIgnoredForCopyWith(CopyWithInfo? info) =>
-      info?.ignoreFields.contains(name) ?? false;
+      config.isIgnored || (info?.ignoreFields.contains(name) ?? false);
 
-  String get jsonKey => config.deserializeKey ?? config.serializeKey ?? name;
-  String get deserializeKey => config.effectiveDeserializeKey ?? name;
+  String get jsonKey => config.serializedKey ?? name;
+  String get deserializeKey => config.serializedKey ?? name;
 }
 
 /// Represents a parsed class definition.
@@ -163,18 +152,21 @@ class ParsedEnumConstant {
     this.config = const FieldConfig(),
   });
 
+  bool get isIgnored => config.isIgnored;
+
   String resolvedValue(CaseStyle? enumCaseStyle) =>
-      resolvedSerializeValue(enumCaseStyle);
+      resolvedWireValue(enumCaseStyle);
 
-  String resolvedSerializeValue(CaseStyle? enumCaseStyle) {
-    if (config.serializeKey != null) return "'${config.serializeKey}'";
-    final customVal = config.serializeFallbackCode ?? config.fallbackCode;
-    if (customVal != null) return customVal;
-    final caseStyle = config.serializeCaseStyle ?? config.deserializeCaseStyle;
-    if (caseStyle != null) {
-      return "'${caseStyle.transform(name)}'";
+  String resolvedWireValue(CaseStyle? enumCaseStyle) {
+    if (config.serializedKey != null) {
+      final key = config.serializedKey!;
+      if (key.startsWith("'") ||
+          key.startsWith('"') ||
+          int.tryParse(key) != null) {
+        return key;
+      }
+      return "'$key'";
     }
-    if (config.deserializeKey != null) return "'${config.deserializeKey}'";
     if (explicitValueCode != null) return explicitValueCode!;
     if (enumCaseStyle != null) {
       return "'${enumCaseStyle.transform(name)}'";
@@ -182,21 +174,11 @@ class ParsedEnumConstant {
     return "'$name'";
   }
 
-  String resolvedDeserializeValue(CaseStyle? enumCaseStyle) {
-    if (config.deserializeKey != null) return "'${config.deserializeKey}'";
-    final customVal = config.fallbackCode ?? config.serializeFallbackCode;
-    if (customVal != null) return customVal;
-    final caseStyle = config.deserializeCaseStyle ?? config.serializeCaseStyle;
-    if (caseStyle != null) {
-      return "'${caseStyle.transform(name)}'";
-    }
-    if (config.serializeKey != null) return "'${config.serializeKey}'";
-    if (explicitValueCode != null) return explicitValueCode!;
-    if (enumCaseStyle != null) {
-      return "'${enumCaseStyle.transform(name)}'";
-    }
-    return "'$name'";
-  }
+  String resolvedSerializeValue(CaseStyle? enumCaseStyle) =>
+      resolvedWireValue(enumCaseStyle);
+
+  String resolvedDeserializeValue(CaseStyle? enumCaseStyle) =>
+      resolvedWireValue(enumCaseStyle);
 }
 
 /// Represents a parsed enum definition.
@@ -208,6 +190,7 @@ class ParsedEnum {
   final String? valueFieldName;
   final ParsedType? valueFieldType;
   final List<ParsedEnumConstant> constants;
+  final String? fallbackCaseCode;
 
   const ParsedEnum({
     required this.name,
@@ -217,6 +200,7 @@ class ParsedEnum {
     this.valueFieldName,
     this.valueFieldType,
     required this.constants,
+    this.fallbackCaseCode,
   });
 
   bool get shouldSerialize => serialize != null;

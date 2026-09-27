@@ -6,6 +6,7 @@ import 'package:daxle/daxle.dart';
 import '../models/annotation_info.dart';
 import '../models/parsed_element.dart';
 import '../models/parsed_type.dart';
+import 'generation_error.dart';
 
 /// Parses Dart source files into [ParsedFile] structures using analyzer AST.
 class DaxleAstParser {
@@ -111,10 +112,14 @@ class DaxleAstParser {
         stringifyInfo = _parseStringifyAnnotation(annotation);
       } else if (name == 'CopyWith' || name == 'copyWith') {
         copyWithInfo = _parseCopyWithAnnotation(annotation);
-      } else if (name == 'SerializeValue' || name == 'DeserializeValue') {
-        final cfg = _parseFieldConfig(declaration.metadata);
-        customDiscriminatorName ??=
-            cfg.effectiveSerializeKey ?? cfg.effectiveDeserializeKey;
+      } else if (name == 'SerializedValue' ||
+          name == 'SerializeValue' ||
+          name == 'DeserializeValue') {
+        final cfg = _parseFieldConfig(
+          declaration.metadata,
+          memberName: className,
+        );
+        customDiscriminatorName ??= cfg.serializedKey;
       }
     }
 
@@ -134,7 +139,10 @@ class DaxleAstParser {
         final paramName = param.name?.lexeme ?? '';
         final paramTypeStr = _getParameterTypeString(param);
         final paramType = ParsedType.parse(paramTypeStr);
-        final fieldConfig = _parseFieldConfig(param.metadata);
+        final fieldConfig = _parseFieldConfig(
+          param.metadata,
+          memberName: paramName,
+        );
         final defaultVal = _getParameterDefaultValue(param);
 
         final parsedParam = ParsedConstructorParam(
@@ -169,13 +177,22 @@ class DaxleAstParser {
         if (member is FieldDeclaration && !member.isStatic) {
           final typeStr = member.fields.type?.toSource() ?? 'dynamic';
           final parsedType = ParsedType.parse(typeStr);
-          final fieldAnnotations = _parseFieldConfig(member.metadata);
+          final fieldAnnotations = _parseFieldConfig(
+            member.metadata,
+            memberName: 'field',
+          );
 
           for (final variable in member.fields.variables) {
             final varName = variable.name.lexeme;
             final initCode = variable.initializer?.toSource();
-            final varAnnotations = _parseFieldConfig(variable.metadata);
-            final mergedConfig = fieldAnnotations.merge(varAnnotations);
+            final varAnnotations = _parseFieldConfig(
+              variable.metadata,
+              memberName: varName,
+            );
+            final mergedConfig = fieldAnnotations.merge(
+              varAnnotations,
+              varName,
+            );
 
             // Avoid duplicating if already populated by primary constructor
             if (!fields.any((f) => f.name == varName)) {
@@ -215,21 +232,27 @@ class DaxleAstParser {
             final paramName = param.name?.lexeme ?? '';
             var paramTypeStr = _getParameterTypeString(param);
 
-            // If initializing formal `this.fieldName` and type was omitted, look up field type
+            final matchedField = fields
+                .where((f) => f.name == paramName)
+                .firstOrNull;
             if (paramTypeStr == 'dynamic' &&
                 (param is FieldFormalParameter ||
                     param.toSource().startsWith('this.'))) {
-              final matchedField = fields
-                  .where((f) => f.name == paramName)
-                  .firstOrNull;
               if (matchedField != null) {
                 paramTypeStr = matchedField.type.rawType;
               }
             }
 
             final paramType = ParsedType.parse(paramTypeStr);
-            final paramConfig = _parseFieldConfig(param.metadata);
+            final paramConfig = _parseFieldConfig(
+              param.metadata,
+              memberName: paramName,
+            );
             final defaultVal = _getParameterDefaultValue(param);
+
+            final effectiveConfig = matchedField != null
+                ? matchedField.config.merge(paramConfig, paramName)
+                : paramConfig;
 
             constructorParams.add(
               ParsedConstructorParam(
@@ -239,7 +262,7 @@ class DaxleAstParser {
                 isRequired: param.isRequired,
                 hasDefault: defaultVal != null,
                 defaultValueCode: defaultVal,
-                config: paramConfig,
+                config: effectiveConfig,
               ),
             );
 
@@ -249,7 +272,7 @@ class DaxleAstParser {
               fields[fieldIndex] = ParsedField(
                 name: fields[fieldIndex].name,
                 type: fields[fieldIndex].type,
-                config: fields[fieldIndex].config.merge(paramConfig),
+                config: effectiveConfig,
                 isFinal: fields[fieldIndex].isFinal,
                 hasDefaultValue:
                     fields[fieldIndex].hasDefaultValue || defaultVal != null,
@@ -286,6 +309,7 @@ class DaxleAstParser {
     SerializeEnumInfo? serializeInfo;
     DeserializeEnumInfo? deserializeInfo;
     StringifyInfo? stringifyInfo;
+    String? fallbackCaseCode;
 
     for (final annotation in declaration.metadata) {
       final name = _getAnnotationName(annotation);
@@ -309,6 +333,16 @@ class DaxleAstParser {
           name == 'Deserialize' ||
           name == 'deserialize') {
         deserializeInfo = _parseDeserializeEnumAnnotation(annotation);
+      } else if (name == 'Fallback') {
+        if (annotation.arguments != null &&
+            annotation.arguments!.arguments.isNotEmpty) {
+          final arg = annotation.arguments!.arguments.first;
+          if (arg is NamedArgument) {
+            fallbackCaseCode = arg.argumentExpression.toSource();
+          } else {
+            fallbackCaseCode = arg.toSource();
+          }
+        }
       }
     }
 
@@ -377,13 +411,13 @@ class DaxleAstParser {
         final constName = constant.name.lexeme;
         String? explicitValCode;
 
-        // Check for @SerializeValue annotation on enum constant
-        final config = _parseFieldConfig(constant.metadata);
+        // Check for annotations on enum constant
+        final config = _parseFieldConfig(
+          constant.metadata,
+          memberName: constName,
+        );
         if (config.effectiveSerializeKey != null) {
           explicitValCode = "'${config.effectiveSerializeKey}'";
-        } else if (config.serializeCaseStyle != null) {
-          explicitValCode =
-              "'${config.serializeCaseStyle!.transform(constName)}'";
         } else if (valueFieldName != null &&
             constant.arguments != null &&
             constant.arguments!.argumentList.arguments.isNotEmpty) {
@@ -426,6 +460,7 @@ class DaxleAstParser {
       valueFieldName: valueFieldName,
       valueFieldType: valueFieldType,
       constants: constants,
+      fallbackCaseCode: fallbackCaseCode,
     );
   }
 
@@ -571,66 +606,73 @@ class DaxleAstParser {
     return CopyWithInfo(ignoreFields: ignoreFields);
   }
 
-  FieldConfig _parseFieldConfig(NodeList<Annotation> metadata) {
-    String? serializeKey;
-    String? deserializeKey;
-    CaseStyle? serializeCaseStyle;
-    CaseStyle? deserializeCaseStyle;
+  FieldConfig _parseFieldConfig(
+    NodeList<Annotation> metadata, {
+    String memberName = 'member',
+  }) {
+    String? serializedKey;
     String? fallbackCode;
-    String? serializeFallbackCode;
     String? converterCode;
-    String? serializeConverterCode;
-    var ignoreSerialize = false;
-    var ignoreDeserialize = false;
+    var isIgnored = false;
+    var hasSerializedValue = false;
+    var hasFallback = false;
 
     for (final annotation in metadata) {
       final annotName = _getAnnotationName(annotation);
-      final isSerializeVal = annotName == 'SerializeValue';
-      final isDeserializeVal = annotName == 'DeserializeValue';
-
-      if (isSerializeVal || isDeserializeVal) {
+      if (annotName == 'ignore' || annotName == 'Ignore') {
+        isIgnored = true;
+      } else if (annotName == 'SerializedValue' ||
+          annotName == 'SerializeValue' ||
+          annotName == 'DeserializeValue') {
+        hasSerializedValue = true;
         if (annotation.arguments != null) {
           for (final arg in annotation.arguments!.arguments) {
             if (arg is NamedArgument) {
               final argName = arg.name.lexeme;
-              if (argName == 'name') {
+              if (argName == 'value' || argName == 'name') {
                 final strVal = _extractStringValue(arg.argumentExpression);
-                if (isSerializeVal) serializeKey = strVal;
-                if (isDeserializeVal) deserializeKey = strVal;
-              } else if (argName == 'caseStyle') {
-                final style = _extractCaseStyle(arg.argumentExpression);
-                if (isSerializeVal) serializeCaseStyle = style;
-                if (isDeserializeVal) deserializeCaseStyle = style;
-              } else if (argName == 'fallback') {
-                final code = arg.argumentExpression.toSource();
-                if (isDeserializeVal) fallbackCode = code;
-                if (isSerializeVal) serializeFallbackCode = code;
+                serializedKey = strVal ?? arg.argumentExpression.toSource();
               } else if (argName == 'converter') {
-                final code = arg.argumentExpression.toSource();
-                if (isDeserializeVal) converterCode = code;
-                if (isSerializeVal) serializeConverterCode = code;
-              } else if (argName == 'ignore') {
-                final isTrue = arg.argumentExpression.toSource() == 'true';
-                if (isSerializeVal && isTrue) ignoreSerialize = true;
-                if (isDeserializeVal && isTrue) ignoreDeserialize = true;
+                converterCode = arg.argumentExpression.toSource();
               }
+            } else if (arg is Expression) {
+              final strVal = _extractStringValue(arg);
+              serializedKey = strVal ?? arg.toSource();
+            } else {
+              serializedKey = arg.toSource();
+            }
+          }
+        }
+      } else if (annotName == 'Fallback') {
+        hasFallback = true;
+        if (annotation.arguments != null) {
+          for (final arg in annotation.arguments!.arguments) {
+            if (arg is NamedArgument) {
+              final argName = arg.name.lexeme;
+              if (argName == 'value' || argName == 'fallback') {
+                fallbackCode = arg.argumentExpression.toSource();
+              }
+            } else {
+              fallbackCode = arg.toSource();
             }
           }
         }
       }
     }
 
+    if (isIgnored && (hasSerializedValue || hasFallback)) {
+      throw InvalidGenerationSourceError(
+        '@ignore cannot coexist with @SerializedValue or @Fallback on "$memberName".',
+        todo:
+            'Remove either @ignore or @SerializedValue/@Fallback from "$memberName".',
+      );
+    }
+
     return FieldConfig(
-      serializeKey: serializeKey,
-      deserializeKey: deserializeKey,
-      serializeCaseStyle: serializeCaseStyle,
-      deserializeCaseStyle: deserializeCaseStyle,
+      serializedKey: serializedKey,
       fallbackCode: fallbackCode,
-      serializeFallbackCode: serializeFallbackCode,
       converterCode: converterCode,
-      serializeConverterCode: serializeConverterCode,
-      ignoreSerialize: ignoreSerialize,
-      ignoreDeserialize: ignoreDeserialize,
+      isIgnored: isIgnored,
     );
   }
 
