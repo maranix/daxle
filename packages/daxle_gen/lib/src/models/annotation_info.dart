@@ -1,4 +1,4 @@
-import 'package:daxle/daxle.dart';
+import 'case_style.dart';
 
 import '../parser/generation_error.dart';
 

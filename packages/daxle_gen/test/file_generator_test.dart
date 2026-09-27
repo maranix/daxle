@@ -253,4 +253,56 @@ enum SingleConfig {
     expect(generated, isNot(contains("ignoredCase")));
     expect(generated, contains("_ => SingleConfig.fallbackCase"));
   });
+
+  test('generates map with enum key serialization and deserialization', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'guild.daxle.dart';
+
+@serializeEnum
+@deserializeEnum
+enum HeroRole { warrior, mage, rogue }
+
+@serialize
+@deserialize
+extension type ArtifactId(String id) {}
+
+@serialize
+@deserialize
+class GuildConfig({
+  final Map<HeroRole, ArtifactId> loadouts = const {},
+  final int vaultCoins = 0,
+});
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/guild.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(
+      generated,
+      contains(
+        'heroRoleFromValue(k)',
+      ),
+    );
+    expect(
+      generated,
+      contains(
+        'artifactIdFromMap(v',
+      ),
+    );
+    expect(
+      generated,
+      contains(
+        'heroRoleToValue(k).toString()',
+      ),
+    );
+    expect(
+      generated,
+      contains(
+        'artifactIdToMap(v)',
+      ),
+    );
+  });
 }

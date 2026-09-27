@@ -1,7 +1,7 @@
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:daxle/daxle.dart';
+import '../models/case_style.dart';
 
 import '../models/annotation_info.dart';
 import '../models/parsed_element.dart';
