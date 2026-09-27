@@ -61,6 +61,74 @@ class DaxleAstParser {
       }
     }
 
+    // Validate that elements with member annotations have a root annotation
+    final sealedClasses = classes.where((c) => c.isSealed).toList();
+    for (final clazz in classes) {
+      final isSubclassOfAnnotatedSealed =
+          !clazz.isSealed &&
+          sealedClasses.any(
+            (sc) =>
+                clazz.isSubclassOf(sc.name) &&
+                (sc.shouldSerialize ||
+                    sc.shouldDeserialize ||
+                    sc.shouldEqualsAndHashCode ||
+                    sc.shouldStringify ||
+                    sc.shouldCopyWith),
+          );
+
+      final hasRootAnnotation =
+          clazz.shouldSerialize ||
+          clazz.shouldDeserialize ||
+          clazz.shouldEqualsAndHashCode ||
+          clazz.shouldStringify ||
+          clazz.shouldCopyWith ||
+          isSubclassOfAnnotatedSealed;
+
+      if (!hasRootAnnotation) {
+        for (final field in clazz.fields) {
+          if (field.config.hasAnyAnnotation) {
+            throw InvalidGenerationSourceError(
+              'Field "${field.name}" in class "${clazz.name}" is annotated with a Daxle member annotation, '
+              'but "${clazz.name}" is not marked with any root annotation (@serialize, @deserialize, @equalsAndHashCode, @stringify, @copyWith).',
+              todo:
+                  'Add a root annotation to "${clazz.name}" or remove the annotation from "${field.name}".',
+            );
+          }
+        }
+        for (final param in clazz.constructorParams) {
+          if (param.config.hasAnyAnnotation) {
+            throw InvalidGenerationSourceError(
+              'Parameter "${param.name}" in class "${clazz.name}" constructor is annotated with a Daxle member annotation, '
+              'but "${clazz.name}" is not marked with any root annotation (@serialize, @deserialize, @equalsAndHashCode, @stringify, @copyWith).',
+              todo:
+                  'Add a root annotation to "${clazz.name}" or remove the annotation from "${param.name}".',
+            );
+          }
+        }
+      }
+    }
+
+    for (final enumEl in enums) {
+      final hasRootAnnotation =
+          enumEl.shouldSerialize ||
+          enumEl.shouldDeserialize ||
+          enumEl.shouldStringify ||
+          enumEl.fallbackCaseCode != null;
+
+      if (!hasRootAnnotation) {
+        for (final constant in enumEl.constants) {
+          if (constant.config.hasAnyAnnotation) {
+            throw InvalidGenerationSourceError(
+              'Enum case "${constant.name}" in enum "${enumEl.name}" is annotated with a Daxle member annotation, '
+              'but "${enumEl.name}" is not marked with any root annotation (@serializeEnum, @deserializeEnum, @stringify, @Fallback).',
+              todo:
+                  'Add a root annotation to "${enumEl.name}" or remove the annotation from "${constant.name}".',
+            );
+          }
+        }
+      }
+    }
+
     return ParsedFile(
       filePath: filePath,
       fileName: fileName,

@@ -43,6 +43,7 @@ class User(
           'Map<String, dynamic> userToMap(User instance, {bool excludeNull = false})',
         ),
       );
+      expect(generated, contains('extension UserToMapExtension on User'));
       expect(generated, contains("'user_id': instance.id"));
       expect(generated, contains("'user_id': final String idRaw"));
       expect(generated, contains('createdAt.toIso8601String()'));
@@ -116,6 +117,7 @@ class Square extends Shape {
         'Map<String, dynamic> shapeToMap(Shape instance, {bool excludeNull = false})',
       ),
     );
+    expect(generated, contains('extension ShapeToMapExtension on Shape'));
     expect(
       generated,
       contains(

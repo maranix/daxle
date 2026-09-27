@@ -104,6 +104,15 @@ class FieldConfig {
   bool get ignoreSerialize => isIgnored;
   bool get ignoreDeserialize => isIgnored;
 
+  /// Returns true if this configuration has any explicit member annotation or configuration.
+  bool get hasAnyAnnotation =>
+      isIgnored ||
+      isFlattened ||
+      serializedKey != null ||
+      fallbackCode != null ||
+      converterCode != null ||
+      aliases.isNotEmpty;
+
   FieldConfig merge(FieldConfig other, [String memberName = 'member']) {
     final mergedIgnored = isIgnored || other.isIgnored;
     final mergedKey = other.serializedKey ?? serializedKey;

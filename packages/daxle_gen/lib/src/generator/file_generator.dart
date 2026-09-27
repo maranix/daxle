@@ -83,6 +83,34 @@ class FileGenerator {
       }
       if (shouldSer) {
         specs.add(classGen.buildToMap(clazz));
+        final camelName = TypeHelper.toCamelCase(clazz.name);
+        specs.add(
+          Extension(
+            (b) => b
+              ..name = '${clazz.name}ToMapExtension'
+              ..on = refer(clazz.name)
+              ..methods.add(
+                Method(
+                  (m) => m
+                    ..name = 'toMap'
+                    ..returns = refer('Map<String, dynamic>')
+                    ..optionalParameters.add(
+                      Parameter(
+                        (p) => p
+                          ..name = 'excludeNull'
+                          ..type = refer('bool')
+                          ..named = true
+                          ..defaultTo = const Code('false'),
+                      ),
+                    )
+                    ..lambda = true
+                    ..body = Code(
+                      '${camelName}ToMap(this, excludeNull: excludeNull)',
+                    ),
+                ),
+              ),
+          ),
+        );
       }
 
       // Equality and Stringify mixins
@@ -126,6 +154,34 @@ class FileGenerator {
       }
       if (sc.shouldSerialize) {
         specs.add(sealedGen.buildToMap(sc, subs));
+        final camelName = TypeHelper.toCamelCase(sc.name);
+        specs.add(
+          Extension(
+            (b) => b
+              ..name = '${sc.name}ToMapExtension'
+              ..on = refer(sc.name)
+              ..methods.add(
+                Method(
+                  (m) => m
+                    ..name = 'toMap'
+                    ..returns = refer('Map<String, dynamic>')
+                    ..optionalParameters.add(
+                      Parameter(
+                        (p) => p
+                          ..name = 'excludeNull'
+                          ..type = refer('bool')
+                          ..named = true
+                          ..defaultTo = const Code('false'),
+                      ),
+                    )
+                    ..lambda = true
+                    ..body = Code(
+                      '${camelName}ToMap(this, excludeNull: excludeNull)',
+                    ),
+                ),
+              ),
+          ),
+        );
       }
     }
 

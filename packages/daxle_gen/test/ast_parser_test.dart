@@ -529,4 +529,57 @@ class BadModel {
       throwsA(isA<InvalidGenerationSourceError>()),
     );
   });
+
+  test(
+    'throws InvalidGenerationSourceError when class has member annotations but no root annotation',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+class UnannotatedClass {
+  @SerializedValue('my_field')
+  final String myField;
+
+  UnannotatedClass(this.myField);
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(
+          isA<InvalidGenerationSourceError>().having(
+            (e) => e.message,
+            'message',
+            contains('is not marked with any root annotation'),
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'throws InvalidGenerationSourceError when enum has case annotations but no root annotation',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+enum UnannotatedEnum {
+  @SerializedValue('first_case')
+  first,
+  second,
+}
+''';
+
+      expect(
+        () => parser.parseContent(code),
+        throwsA(
+          isA<InvalidGenerationSourceError>().having(
+            (e) => e.message,
+            'message',
+            contains('is not marked with any root annotation'),
+          ),
+        ),
+      );
+    },
+  );
 }
