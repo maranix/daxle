@@ -56,7 +56,7 @@ class LegacyItem {
   @SerializeValue(name: 'item_id')
   final String id;
 
-  @DeserializeValue(defaultValue: 'unnamed')
+  @DeserializeValue(fallback: 'unnamed')
   final String name;
 
   final DateTime createdAt;
@@ -78,6 +78,7 @@ class LegacyItem {
     expect(item.fields[0].name, 'id');
     expect(item.fields[0].jsonKey, 'item_id');
     expect(item.fields[1].name, 'name');
+    expect(item.fields[1].config.fallbackCode, "'unnamed'");
     expect(item.fields[1].config.defaultValueCode, "'unnamed'");
     expect(item.fields[2].name, 'createdAt');
     expect(item.fields[2].type.isDateTime, true);

@@ -22,18 +22,18 @@ class SealedGenerator {
         sealedClass.deserialize?.caseStyle ?? sealedClass.serialize?.caseStyle;
 
     final buffer = StringBuffer();
-    buffer.writeln("return switch (json['$discriminator'] as String?) {");
+    buffer.writeln('return switch (json) {');
 
     for (final sub in subclasses) {
       final subCamel = TypeHelper.toCamelCase(sub.name);
       final defaultTag =
           caseStyle != null ? caseStyle.transform(sub.name) : sub.name;
       final tag = sub.customDiscriminatorName ?? defaultTag;
-      buffer.writeln("  '$tag' => ${subCamel}FromJson(json),");
+      buffer.writeln("  {'$discriminator': '$tag'} => ${subCamel}FromJson(json),");
     }
 
     buffer.writeln(
-        "  final unknown => throw FormatException('Unknown ${sealedClass.name} discriminator: \$unknown'),");
+        "  _ => throw FormatException('Unknown ${sealedClass.name} discriminator: \${json['$discriminator']}'),");
     buffer.write('};');
 
     return Method((b) => b

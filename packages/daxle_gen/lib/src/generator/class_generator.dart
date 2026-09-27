@@ -1,6 +1,8 @@
 import 'package:code_builder/code_builder.dart';
 
+import '../models/annotation_info.dart';
 import '../models/parsed_element.dart';
+import '../models/parsed_type.dart';
 import 'type_helper.dart';
 
 /// Generates top-level functional serialization and deserialization for classes using [code_builder].
@@ -10,6 +12,79 @@ class ClassGenerator {
 
   ClassGenerator(this.typeHelper)
       : _emitter = DartEmitter(useNullSafetySyntax: true);
+
+  String _patternTypeFor(ParsedType type, FieldConfig? config) {
+    if (config?.effectiveDeserializeConverter != null) {
+      return 'Object';
+    }
+    if (type.isString) return 'String';
+    if (type.isInt || type.isDouble || type.isNum) return 'num';
+    if (type.isBool) return 'bool';
+    if (type.isDateTime) return 'String';
+    if (type.isUri || type.isBigInt) return 'String';
+    if (type.isDuration) return 'num';
+    if (type.isList || type.isSet) return 'List';
+    if (type.isMap || type.isQueryMap) return 'Map';
+    if (typeHelper.knownClasses.contains(type.baseName)) return 'Map';
+    return 'Object';
+  }
+
+  String _patternArgExpr(ParsedType type, String varName, FieldConfig? config) {
+    final converter = config?.effectiveDeserializeConverter;
+    if (converter != null) {
+      final prefix = converter.startsWith('const ') ? '' : 'const ';
+      return '$prefix$converter.fromJson($varName)';
+    }
+
+    if (type.isString) {
+      return varName;
+    } else if (type.isInt) {
+      return '$varName.toInt()';
+    } else if (type.isDouble) {
+      return '$varName.toDouble()';
+    } else if (type.isNum) {
+      return varName;
+    } else if (type.isBool) {
+      return varName;
+    } else if (type.isDateTime) {
+      return 'DateTime.parse($varName)';
+    } else if (type.isUri) {
+      return 'Uri.parse($varName)';
+    } else if (type.isBigInt) {
+      return 'BigInt.parse($varName)';
+    } else if (type.isDuration) {
+      return 'Duration(microseconds: $varName.toInt())';
+    } else if (type.isQueryMap) {
+      return 'QueryMap($varName.cast<Object?, Object?>())';
+    } else if (typeHelper.knownEnums.contains(type.baseName)) {
+      final fn = '${TypeHelper.toCamelCase(type.baseName)}FromValue';
+      return '$fn($varName)';
+    } else if (typeHelper.knownClasses.contains(type.baseName)) {
+      final fn = '${TypeHelper.toCamelCase(type.baseName)}FromJson';
+      return '$fn($varName as Map<String, dynamic>)';
+    } else if (type.isList || type.isSet) {
+      return typeHelper.generateDeserialize(
+        type,
+        varName,
+        config: config,
+        explicitFromJson: true,
+      ).replaceFirst('($varName as List<dynamic>)', '$varName.cast<dynamic>()');
+    } else if (type.isMap) {
+      return typeHelper.generateDeserialize(
+        type,
+        varName,
+        config: config,
+        explicitFromJson: true,
+      ).replaceFirst('($varName as Map<String, dynamic>)', '$varName.cast<String, dynamic>()');
+    } else {
+      return typeHelper.generateDeserialize(
+        type,
+        varName,
+        config: config,
+        explicitFromJson: true,
+      );
+    }
+  }
 
   /// Builds the `fromJson` [Method] specification.
   Method buildFromJson(ParsedClass clazz) {
@@ -23,6 +98,7 @@ class ClassGenerator {
     final positionalArgs = <String>[];
     final namedArgs = <String>[];
     final handledFields = <String>{};
+    final mapPatternEntries = <String>[];
 
     for (final param in clazz.constructorParams) {
       handledFields.add(param.name);
@@ -36,14 +112,27 @@ class ClassGenerator {
       }
 
       final key = param.resolvedDeserializeKey(caseStyle);
-      final jsonExpr = "json['$key']";
-      final deserializeExpr = typeHelper.generateDeserialize(
-        param.type,
-        jsonExpr,
-        config: param.config,
-        parameterDefaultCode: param.defaultValueCode,
-        explicitFromJson: true,
-      );
+      final isRequiredInJson = !param.type.isNullable &&
+          !param.type.isOption &&
+          param.config.fallbackCode == null &&
+          !param.hasDefault;
+
+      final String deserializeExpr;
+      if (isRequiredInJson) {
+        final varName = '${param.name}Raw';
+        final patternType = _patternTypeFor(param.type, param.config);
+        mapPatternEntries.add("'$key': final $patternType $varName");
+        deserializeExpr = _patternArgExpr(param.type, varName, param.config);
+      } else {
+        final jsonExpr = "json['$key']";
+        deserializeExpr = typeHelper.generateDeserialize(
+          param.type,
+          jsonExpr,
+          config: param.config,
+          parameterDefaultCode: param.defaultValueCode,
+          explicitFromJson: true,
+        );
+      }
 
       if (param.isNamed) {
         namedArgs.add('${param.name}: $deserializeExpr');
@@ -65,26 +154,63 @@ class ClassGenerator {
     );
 
     final bodyBuffer = StringBuffer();
-    if (unhandledFields.isEmpty) {
-      bodyBuffer.writeln('return $constructorName($allArgs);');
-    } else {
-      bodyBuffer.writeln('final instance = $constructorName($allArgs);');
-      for (final field in unhandledFields) {
-        final key = field.resolvedDeserializeKey(caseStyle);
-        final jsonExpr = "json['$key']";
-        final deserializeExpr = typeHelper.generateDeserialize(
-          field.type,
-          jsonExpr,
-          config: field.config,
-          parameterDefaultCode: field.defaultValueCode,
-          explicitFromJson: true,
-        );
-        bodyBuffer.writeln("if (json.containsKey('$key')) {");
-        bodyBuffer.writeln('  instance.${field.name} = $deserializeExpr;');
-        bodyBuffer.writeln('}');
+    bodyBuffer.writeln('return switch (json) {');
+
+    if (mapPatternEntries.isEmpty) {
+      if (unhandledFields.isEmpty) {
+        bodyBuffer.writeln('  _ => $constructorName($allArgs),');
+      } else {
+        bodyBuffer.writeln('  _ => () {');
+        bodyBuffer.writeln('    final instance = $constructorName($allArgs);');
+        for (final field in unhandledFields) {
+          final key = field.resolvedDeserializeKey(caseStyle);
+          final jsonExpr = "json['$key']";
+          final deserializeExpr = typeHelper.generateDeserialize(
+            field.type,
+            jsonExpr,
+            config: field.config,
+            parameterDefaultCode: field.defaultValueCode,
+            explicitFromJson: true,
+          );
+          bodyBuffer.writeln("    if (json.containsKey('$key')) {");
+          bodyBuffer.writeln('      instance.${field.name} = $deserializeExpr;');
+          bodyBuffer.writeln('    }');
+        }
+        bodyBuffer.writeln('    return instance;');
+        bodyBuffer.writeln('  }(),');
       }
-      bodyBuffer.writeln('return instance;');
+    } else {
+      bodyBuffer.writeln('  {');
+      for (final entry in mapPatternEntries) {
+        bodyBuffer.writeln('    $entry,');
+      }
+      if (unhandledFields.isEmpty) {
+        bodyBuffer.writeln('  } => $constructorName($allArgs),');
+      } else {
+        bodyBuffer.writeln('  } => () {');
+        bodyBuffer.writeln('    final instance = $constructorName($allArgs);');
+        for (final field in unhandledFields) {
+          final key = field.resolvedDeserializeKey(caseStyle);
+          final jsonExpr = "json['$key']";
+          final deserializeExpr = typeHelper.generateDeserialize(
+            field.type,
+            jsonExpr,
+            config: field.config,
+            parameterDefaultCode: field.defaultValueCode,
+            explicitFromJson: true,
+          );
+          bodyBuffer.writeln("    if (json.containsKey('$key')) {");
+          bodyBuffer.writeln('      instance.${field.name} = $deserializeExpr;');
+          bodyBuffer.writeln('    }');
+        }
+        bodyBuffer.writeln('    return instance;');
+        bodyBuffer.writeln('  }(),');
+      }
+      bodyBuffer.writeln(
+          "  _ => throw FormatException('Invalid JSON shape for ${clazz.name}: \$json'),");
     }
+
+    bodyBuffer.write('};');
 
     return Method((b) => b
       ..name = '${camelName}FromJson'

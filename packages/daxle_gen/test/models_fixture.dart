@@ -43,8 +43,8 @@ class ComplexModel(
   final Map<String, int> scores,
   final Status status,
   final Priority priority, {
-  @SerializeValue(defaultValue: 'guest')
-  @DeserializeValue(defaultValue: 'guest')
+  @SerializeValue(fallback: 'guest')
+  @DeserializeValue(fallback: 'guest')
   final String role = 'guest',
   @SerializeValue(ignore: true)
   @DeserializeValue(ignore: true)
@@ -154,3 +154,18 @@ class CaseStyledModel(
 @SerializeEnum(caseStyle: CaseStyle.kebabCase)
 @DeserializeEnum(caseStyle: CaseStyle.kebabCase)
 enum ThemeMode { lightTheme, darkTheme, systemDefault }
+
+// 13. Enum entries annotated with @SerializeValue and @DeserializeValue
+@serializeEnum
+@deserializeEnum
+enum AnnotatedEnum {
+  @SerializeValue(name: 'in_progress')
+  @DeserializeValue(name: 'in_progress')
+  inProgress,
+
+  @SerializeValue(ignore: true)
+  internalSecret,
+
+  @DeserializeValue(fallback: true)
+  fallbackStatus,
+}

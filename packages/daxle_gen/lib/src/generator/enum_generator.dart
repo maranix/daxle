@@ -13,15 +13,18 @@ class EnumGenerator {
   List<Spec> build(ParsedEnum parsedEnum) {
     final enumName = parsedEnum.name;
     final camelName = TypeHelper.toCamelCase(enumName);
-    final caseStyle =
+    final serializeCaseStyle =
         parsedEnum.serialize?.caseStyle ?? parsedEnum.deserialize?.caseStyle;
+    final deserializeCaseStyle =
+        parsedEnum.deserialize?.caseStyle ?? parsedEnum.serialize?.caseStyle;
     final specs = <Spec>[];
 
     // 1. Enum map constant field
     final mapEntries = StringBuffer();
     mapEntries.writeln('{');
     for (final constant in parsedEnum.constants) {
-      final valueCode = constant.resolvedValue(caseStyle);
+      if (constant.config.ignoreSerialize) continue;
+      final valueCode = constant.resolvedSerializeValue(serializeCaseStyle);
       mapEntries.writeln('  $enumName.${constant.name}: $valueCode,');
     }
     mapEntries.write('}');
@@ -41,12 +44,28 @@ class EnumGenerator {
       ..lambda = true
       ..body = Code('${camelName}EnumMap[instance]!')));
 
-    // 3. fromValue function
-    final fromValueBody = StringBuffer()
-      ..writeln('for (final entry in ${camelName}EnumMap.entries) {')
-      ..writeln('  if (entry.value == value) return entry.key;')
-      ..writeln('}')
-      ..writeln("throw ArgumentError('Unknown $enumName value: \$value');");
+    // 3. fromValue function (switch pattern matching)
+    final fromValueBody = StringBuffer();
+    fromValueBody.writeln('switch (value) {');
+    ParsedEnumConstant? fallbackConstant;
+
+    for (final constant in parsedEnum.constants) {
+      if (constant.config.ignoreDeserialize) continue;
+      if (constant.config.fallbackCode != null) {
+        fallbackConstant = constant;
+      }
+      final matchValue =
+          constant.resolvedDeserializeValue(deserializeCaseStyle);
+      fromValueBody.writeln('  $matchValue => $enumName.${constant.name},');
+    }
+
+    if (fallbackConstant != null) {
+      fromValueBody.writeln('  _ => $enumName.${fallbackConstant.name},');
+    } else {
+      fromValueBody.writeln(
+          "  _ => throw ArgumentError('Unknown $enumName value: \$value'),");
+    }
+    fromValueBody.write('}');
 
     specs.add(Method((b) => b
       ..name = '${camelName}FromValue'
@@ -54,27 +73,8 @@ class EnumGenerator {
       ..requiredParameters.add(Parameter((p) => p
         ..name = 'value'
         ..type = refer('Object?')))
+      ..lambda = true
       ..body = Code(fromValueBody.toString())));
-
-    // 4. fromJson alias
-    specs.add(Method((b) => b
-      ..name = '${camelName}FromJson'
-      ..returns = refer(enumName)
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'value'
-        ..type = refer('Object?')))
-      ..lambda = true
-      ..body = Code('${camelName}FromValue(value)')));
-
-    // 5. toJson alias
-    specs.add(Method((b) => b
-      ..name = '${camelName}ToJson'
-      ..returns = refer('dynamic')
-      ..requiredParameters.add(Parameter((p) => p
-        ..name = 'instance'
-        ..type = refer(enumName)))
-      ..lambda = true
-      ..body = Code('${camelName}ToValue(instance)')));
 
     return specs;
   }

@@ -16,9 +16,6 @@ void main() {
 
       expect(() => statusFromValue('invalid'), throwsArgumentError);
 
-      expect(statusToJson(Status.active), 'active');
-      expect(statusFromJson('active'), Status.active);
-
       expect(statusEnumMap, {
         Status.pending: 'pending',
         Status.active: 'active',
@@ -380,6 +377,41 @@ void main() {
 
       expect(themeModeToValue(ThemeMode.lightTheme), 'light-theme');
       expect(themeModeFromValue('dark-theme'), ThemeMode.darkTheme);
+    });
+
+    test('supports @SerializeValue and @DeserializeValue on enum entries', () {
+      // 1. Serialization name override and ignore
+      expect(annotatedEnumToValue(AnnotatedEnum.inProgress), 'in_progress');
+      expect(annotatedEnumEnumMap[AnnotatedEnum.inProgress], 'in_progress');
+      expect(annotatedEnumEnumMap.containsKey(AnnotatedEnum.internalSecret), false);
+
+      // 2. Deserialization name override and fallback
+      expect(annotatedEnumFromValue('in_progress'), AnnotatedEnum.inProgress);
+      expect(annotatedEnumFromValue('unknown_status_val'), AnnotatedEnum.fallbackStatus);
+    });
+  });
+
+  group('Switch-based pattern matching JSON shape and type validation', () {
+    test('throws FormatException when required JSON keys are missing', () {
+      expect(
+        () => complexModelFromJson({'id': 'only_id'}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => nestedContainerFromJson({}),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('throws FormatException when JSON key types do not match expected shape', () {
+      expect(
+        () => circleFromJson({'radius': 'not_a_number'}),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => carFromJson({'seats': 'four'}),
+        throwsA(isA<FormatException>()),
+      );
     });
   });
 }

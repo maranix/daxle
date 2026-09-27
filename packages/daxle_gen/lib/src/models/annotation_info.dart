@@ -54,8 +54,8 @@ class FieldConfig {
   final String? deserializeKey;
   final CaseStyle? serializeCaseStyle;
   final CaseStyle? deserializeCaseStyle;
-  final String? defaultValueCode;
-  final String? serializeDefaultValueCode;
+  final String? fallbackCode;
+  final String? serializeFallbackCode;
   final String? converterCode;
   final String? serializeConverterCode;
   final bool ignoreSerialize;
@@ -66,17 +66,24 @@ class FieldConfig {
     this.deserializeKey,
     this.serializeCaseStyle,
     this.deserializeCaseStyle,
-    this.defaultValueCode,
-    this.serializeDefaultValueCode,
+    String? fallbackCode,
+    String? defaultValueCode,
+    String? serializeFallbackCode,
+    String? serializeDefaultValueCode,
     this.converterCode,
     this.serializeConverterCode,
     this.ignoreSerialize = false,
     this.ignoreDeserialize = false,
-  });
+  })  : fallbackCode = fallbackCode ?? defaultValueCode,
+        serializeFallbackCode =
+            serializeFallbackCode ?? serializeDefaultValueCode;
 
+  String? get defaultValueCode => fallbackCode;
+  String? get serializeDefaultValueCode => serializeFallbackCode;
   String? get effectiveSerializeKey => serializeKey;
   String? get effectiveDeserializeKey => deserializeKey;
-  String? get effectiveSerializeConverter => serializeConverterCode ?? converterCode;
+  String? get effectiveSerializeConverter =>
+      serializeConverterCode ?? converterCode;
   String? get effectiveDeserializeConverter => converterCode;
 
   FieldConfig merge(FieldConfig other) {
@@ -85,10 +92,12 @@ class FieldConfig {
       deserializeKey: other.deserializeKey ?? deserializeKey,
       serializeCaseStyle: other.serializeCaseStyle ?? serializeCaseStyle,
       deserializeCaseStyle: other.deserializeCaseStyle ?? deserializeCaseStyle,
-      defaultValueCode: other.defaultValueCode ?? defaultValueCode,
-      serializeDefaultValueCode: other.serializeDefaultValueCode ?? serializeDefaultValueCode,
+      fallbackCode: other.fallbackCode ?? fallbackCode,
+      serializeFallbackCode:
+          other.serializeFallbackCode ?? serializeFallbackCode,
       converterCode: other.converterCode ?? converterCode,
-      serializeConverterCode: other.serializeConverterCode ?? serializeConverterCode,
+      serializeConverterCode:
+          other.serializeConverterCode ?? serializeConverterCode,
       ignoreSerialize: ignoreSerialize || other.ignoreSerialize,
       ignoreDeserialize: ignoreDeserialize || other.ignoreDeserialize,
     );

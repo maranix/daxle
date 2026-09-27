@@ -35,7 +35,7 @@ class User(
     expect(generated, contains('User userFromJson(Map<String, dynamic> json)'));
     expect(generated, contains('Map<String, dynamic> userToMap(User instance)'));
     expect(generated, contains("'user_id': instance.id"));
-    expect(generated, contains("json['user_id'] as String"));
+    expect(generated, contains("'user_id': final String idRaw"));
     expect(generated, contains('createdAt.toIso8601String()'));
   });
 
@@ -95,9 +95,8 @@ class Square extends Shape {
 
     expect(generated, isNotNull);
     expect(generated, contains('Shape shapeFromJson(Map<String, dynamic> json)'));
-    expect(generated, contains("json['kind'] as String?"));
-    expect(generated, contains("'Circle' => circleFromJson(json)"));
-    expect(generated, contains("'Square' => squareFromJson(json)"));
+    expect(generated, contains("{'kind': 'Circle'} => circleFromJson(json)"));
+    expect(generated, contains("{'kind': 'Square'} => squareFromJson(json)"));
     expect(generated, contains('Map<String, dynamic> shapeToMap(Shape instance)'));
     expect(generated, contains("circleToMap(circle)..['kind'] = 'Circle'"));
   });

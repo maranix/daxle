@@ -133,13 +133,35 @@ class ParsedClass {
 class ParsedEnumConstant {
   final String name;
   final String? explicitValueCode;
+  final FieldConfig config;
 
   const ParsedEnumConstant({
     required this.name,
     this.explicitValueCode,
+    this.config = const FieldConfig(),
   });
 
-  String resolvedValue(CaseStyle? enumCaseStyle) {
+  String resolvedValue(CaseStyle? enumCaseStyle) =>
+      resolvedSerializeValue(enumCaseStyle);
+
+  String resolvedSerializeValue(CaseStyle? enumCaseStyle) {
+    if (config.serializeKey != null) return "'${config.serializeKey}'";
+    if (config.serializeCaseStyle != null) {
+      return "'${config.serializeCaseStyle!.transform(name)}'";
+    }
+    if (explicitValueCode != null) return explicitValueCode!;
+    if (enumCaseStyle != null) {
+      return "'${enumCaseStyle.transform(name)}'";
+    }
+    return "'$name'";
+  }
+
+  String resolvedDeserializeValue(CaseStyle? enumCaseStyle) {
+    if (config.deserializeKey != null) return "'${config.deserializeKey}'";
+    if (config.deserializeCaseStyle != null) {
+      return "'${config.deserializeCaseStyle!.transform(name)}'";
+    }
+    if (config.serializeKey != null) return "'${config.serializeKey}'";
     if (explicitValueCode != null) return explicitValueCode!;
     if (enumCaseStyle != null) {
       return "'${enumCaseStyle.transform(name)}'";

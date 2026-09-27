@@ -376,6 +376,7 @@ class DaxleAstParser {
         constants.add(ParsedEnumConstant(
           name: constName,
           explicitValueCode: explicitValCode,
+          config: config,
         ));
       }
     }
@@ -499,8 +500,8 @@ class DaxleAstParser {
     String? deserializeKey;
     CaseStyle? serializeCaseStyle;
     CaseStyle? deserializeCaseStyle;
-    String? defaultValueCode;
-    String? serializeDefaultValueCode;
+    String? fallbackCode;
+    String? serializeFallbackCode;
     String? converterCode;
     String? serializeConverterCode;
     var ignoreSerialize = false;
@@ -524,10 +525,10 @@ class DaxleAstParser {
                 final style = _extractCaseStyle(arg.argumentExpression);
                 if (isSerializeVal) serializeCaseStyle = style;
                 if (isDeserializeVal) deserializeCaseStyle = style;
-              } else if (argName == 'defaultValue') {
+              } else if (argName == 'fallback' || argName == 'defaultValue') {
                 final code = arg.argumentExpression.toSource();
-                if (isDeserializeVal) defaultValueCode = code;
-                if (isSerializeVal) serializeDefaultValueCode = code;
+                if (isDeserializeVal) fallbackCode = code;
+                if (isSerializeVal) serializeFallbackCode = code;
               } else if (argName == 'converter') {
                 final code = arg.argumentExpression.toSource();
                 if (isDeserializeVal) converterCode = code;
@@ -548,8 +549,8 @@ class DaxleAstParser {
       deserializeKey: deserializeKey,
       serializeCaseStyle: serializeCaseStyle,
       deserializeCaseStyle: deserializeCaseStyle,
-      defaultValueCode: defaultValueCode,
-      serializeDefaultValueCode: serializeDefaultValueCode,
+      fallbackCode: fallbackCode,
+      serializeFallbackCode: serializeFallbackCode,
       converterCode: converterCode,
       serializeConverterCode: serializeConverterCode,
       ignoreSerialize: ignoreSerialize,

@@ -10,88 +10,104 @@ const statusEnumMap = {
   Status.completed: 'completed',
 };
 dynamic statusToValue(Status instance) => statusEnumMap[instance]!;
-Status statusFromValue(Object? value) {
-  for (final entry in statusEnumMap.entries) {
-    if (entry.value == value) return entry.key;
-  }
-  throw ArgumentError('Unknown Status value: $value');
-}
-
-Status statusFromJson(Object? value) => statusFromValue(value);
-dynamic statusToJson(Status instance) => statusToValue(instance);
+Status statusFromValue(Object? value) => switch (value) {
+  'pending' => Status.pending,
+  'active' => Status.active,
+  'completed' => Status.completed,
+  _ => throw ArgumentError('Unknown Status value: $value'),
+};
 const priorityEnumMap = {
   Priority.low: 10,
   Priority.medium: 20,
   Priority.high: 30,
 };
 dynamic priorityToValue(Priority instance) => priorityEnumMap[instance]!;
-Priority priorityFromValue(Object? value) {
-  for (final entry in priorityEnumMap.entries) {
-    if (entry.value == value) return entry.key;
-  }
-  throw ArgumentError('Unknown Priority value: $value');
-}
-
-Priority priorityFromJson(Object? value) => priorityFromValue(value);
-dynamic priorityToJson(Priority instance) => priorityToValue(instance);
+Priority priorityFromValue(Object? value) => switch (value) {
+  10 => Priority.low,
+  20 => Priority.medium,
+  30 => Priority.high,
+  _ => throw ArgumentError('Unknown Priority value: $value'),
+};
 const multiParamEnumEnumMap = {
   MultiParamEnum.first: 101,
   MultiParamEnum.second: 202,
 };
 dynamic multiParamEnumToValue(MultiParamEnum instance) =>
     multiParamEnumEnumMap[instance]!;
-MultiParamEnum multiParamEnumFromValue(Object? value) {
-  for (final entry in multiParamEnumEnumMap.entries) {
-    if (entry.value == value) return entry.key;
-  }
-  throw ArgumentError('Unknown MultiParamEnum value: $value');
-}
-
-MultiParamEnum multiParamEnumFromJson(Object? value) =>
-    multiParamEnumFromValue(value);
-dynamic multiParamEnumToJson(MultiParamEnum instance) =>
-    multiParamEnumToValue(instance);
+MultiParamEnum multiParamEnumFromValue(Object? value) => switch (value) {
+  101 => MultiParamEnum.first,
+  202 => MultiParamEnum.second,
+  _ => throw ArgumentError('Unknown MultiParamEnum value: $value'),
+};
 const themeModeEnumMap = {
   ThemeMode.lightTheme: 'light-theme',
   ThemeMode.darkTheme: 'dark-theme',
   ThemeMode.systemDefault: 'system-default',
 };
 dynamic themeModeToValue(ThemeMode instance) => themeModeEnumMap[instance]!;
-ThemeMode themeModeFromValue(Object? value) {
-  for (final entry in themeModeEnumMap.entries) {
-    if (entry.value == value) return entry.key;
-  }
-  throw ArgumentError('Unknown ThemeMode value: $value');
-}
-
-ThemeMode themeModeFromJson(Object? value) => themeModeFromValue(value);
-dynamic themeModeToJson(ThemeMode instance) => themeModeToValue(instance);
+ThemeMode themeModeFromValue(Object? value) => switch (value) {
+  'light-theme' => ThemeMode.lightTheme,
+  'dark-theme' => ThemeMode.darkTheme,
+  'system-default' => ThemeMode.systemDefault,
+  _ => throw ArgumentError('Unknown ThemeMode value: $value'),
+};
+const annotatedEnumEnumMap = {
+  AnnotatedEnum.inProgress: 'in_progress',
+  AnnotatedEnum.fallbackStatus: 'fallbackStatus',
+};
+dynamic annotatedEnumToValue(AnnotatedEnum instance) =>
+    annotatedEnumEnumMap[instance]!;
+AnnotatedEnum annotatedEnumFromValue(Object? value) => switch (value) {
+  'in_progress' => AnnotatedEnum.inProgress,
+  'internalSecret' => AnnotatedEnum.internalSecret,
+  'fallbackStatus' => AnnotatedEnum.fallbackStatus,
+  _ => AnnotatedEnum.fallbackStatus,
+};
 ComplexModel complexModelFromJson(Map<String, dynamic> json) {
-  return ComplexModel(
-    (json['id'] as String),
-    ((json['count'] as num).toInt()),
-    ((json['rating'] as num).toDouble()),
-    (json['isActive'] as bool),
-    DateTime.parse(json['createdAt'] as String),
-    Uri.parse(json['website'] as String),
-    BigInt.parse(json['score'] as String),
-    Duration(microseconds: (json['timeout'] as num).toInt()),
-    (json['optionalTag'] == null
-        ? const None()
-        : Some((json['optionalTag'] as String))),
-    QueryMap((json['metadata'] as Map).cast<Object?, Object?>()),
-    (json['tags'] as List<dynamic>).map((e) => (e as String)).toList(),
-    (json['numbers'] as List<dynamic>).map((e) => ((e as num).toInt())).toSet(),
-    (json['scores'] as Map<String, dynamic>).map(
-      (k, v) => MapEntry(k, ((v as num).toInt())),
-    ),
-    statusFromValue(json['status']),
-    priorityFromValue(json['priority']),
-    role: json['role'] == null ? 'guest' : (json['role'] as String),
-    customEpoch: json['customEpoch'] == null
-        ? null
-        : const EpochDateTimeConverter().fromJson(json['customEpoch']),
-  );
+  return switch (json) {
+    {
+      'id': final String idRaw,
+      'count': final num countRaw,
+      'rating': final num ratingRaw,
+      'isActive': final bool isActiveRaw,
+      'createdAt': final String createdAtRaw,
+      'website': final String websiteRaw,
+      'score': final String scoreRaw,
+      'timeout': final num timeoutRaw,
+      'metadata': final Map metadataRaw,
+      'tags': final List tagsRaw,
+      'numbers': final List numbersRaw,
+      'scores': final Map scoresRaw,
+      'status': final Object statusRaw,
+      'priority': final Object priorityRaw,
+    } =>
+      ComplexModel(
+        idRaw,
+        countRaw.toInt(),
+        ratingRaw.toDouble(),
+        isActiveRaw,
+        DateTime.parse(createdAtRaw),
+        Uri.parse(websiteRaw),
+        BigInt.parse(scoreRaw),
+        Duration(microseconds: timeoutRaw.toInt()),
+        (json['optionalTag'] == null
+            ? const None()
+            : Some((json['optionalTag'] as String))),
+        QueryMap(metadataRaw.cast<Object?, Object?>()),
+        tagsRaw.cast<dynamic>().map((e) => (e as String)).toList(),
+        numbersRaw.cast<dynamic>().map((e) => ((e as num).toInt())).toSet(),
+        scoresRaw.cast<String, dynamic>().map(
+          (k, v) => MapEntry(k, ((v as num).toInt())),
+        ),
+        statusFromValue(statusRaw),
+        priorityFromValue(priorityRaw),
+        role: json['role'] == null ? 'guest' : (json['role'] as String),
+        customEpoch: json['customEpoch'] == null
+            ? null
+            : const EpochDateTimeConverter().fromJson(json['customEpoch']),
+      ),
+    _ => throw FormatException('Invalid JSON shape for ComplexModel: $json'),
+  };
 }
 
 Map<String, dynamic> complexModelToMap(
@@ -120,13 +136,19 @@ Map<String, dynamic> complexModelToMap(
     'customEpoch': const EpochDateTimeConverter().toJson(instance.customEpoch!),
 };
 NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
-  return NestedContainer(
-    containerId: (json['containerId'] as String),
-    model: complexModelFromJson(json['model'] as Map<String, dynamic>),
-    optionalModel: (json['optionalModel'] == null
-        ? null
-        : complexModelFromJson(json['optionalModel'] as Map<String, dynamic>)),
-  );
+  return switch (json) {
+    {'containerId': final String containerIdRaw, 'model': final Map modelRaw} =>
+      NestedContainer(
+        containerId: containerIdRaw,
+        model: complexModelFromJson(modelRaw as Map<String, dynamic>),
+        optionalModel: (json['optionalModel'] == null
+            ? null
+            : complexModelFromJson(
+                json['optionalModel'] as Map<String, dynamic>,
+              )),
+      ),
+    _ => throw FormatException('Invalid JSON shape for NestedContainer: $json'),
+  };
 }
 
 Map<String, dynamic> nestedContainerToMap(NestedContainer instance) =>
@@ -137,35 +159,50 @@ Map<String, dynamic> nestedContainerToMap(NestedContainer instance) =>
         'optionalModel': complexModelToMap(instance.optionalModel!),
     };
 Circle circleFromJson(Map<String, dynamic> json) {
-  return Circle(((json['radius'] as num).toDouble()));
+  return switch (json) {
+    {'radius': final num radiusRaw} => Circle(radiusRaw.toDouble()),
+    _ => throw FormatException('Invalid JSON shape for Circle: $json'),
+  };
 }
 
 Map<String, dynamic> circleToMap(Circle instance) => <String, dynamic>{
   'radius': instance.radius,
 };
 Square squareFromJson(Map<String, dynamic> json) {
-  return Square(((json['side'] as num).toDouble()));
+  return switch (json) {
+    {'side': final num sideRaw} => Square(sideRaw.toDouble()),
+    _ => throw FormatException('Invalid JSON shape for Square: $json'),
+  };
 }
 
 Map<String, dynamic> squareToMap(Square instance) => <String, dynamic>{
   'side': instance.side,
 };
 Car carFromJson(Map<String, dynamic> json) {
-  return Car(((json['seats'] as num).toInt()));
+  return switch (json) {
+    {'seats': final num seatsRaw} => Car(seatsRaw.toInt()),
+    _ => throw FormatException('Invalid JSON shape for Car: $json'),
+  };
 }
 
 Map<String, dynamic> carToMap(Car instance) => <String, dynamic>{
   'seats': instance.seats,
 };
 Bike bikeFromJson(Map<String, dynamic> json) {
-  return Bike((json['hasPedals'] as bool));
+  return switch (json) {
+    {'hasPedals': final bool hasPedalsRaw} => Bike(hasPedalsRaw),
+    _ => throw FormatException('Invalid JSON shape for Bike: $json'),
+  };
 }
 
 Map<String, dynamic> bikeToMap(Bike instance) => <String, dynamic>{
   'hasPedals': instance.hasPedals,
 };
 AsymmetricModel asymmetricModelFromJson(Map<String, dynamic> json) {
-  return AsymmetricModel((json['incoming_key'] as String));
+  return switch (json) {
+    {'incoming_key': final String keyRaw} => AsymmetricModel(keyRaw),
+    _ => throw FormatException('Invalid JSON shape for AsymmetricModel: $json'),
+  };
 }
 
 Map<String, dynamic> asymmetricModelToMap(AsymmetricModel instance) =>
@@ -173,11 +210,13 @@ Map<String, dynamic> asymmetricModelToMap(AsymmetricModel instance) =>
 NullableConverterModel nullableConverterModelFromJson(
   Map<String, dynamic> json,
 ) {
-  return NullableConverterModel(
-    json['nullableConvertedInt'] == null
-        ? null
-        : const StringIntConverter().fromJson(json['nullableConvertedInt']),
-  );
+  return switch (json) {
+    _ => NullableConverterModel(
+      json['nullableConvertedInt'] == null
+          ? null
+          : const StringIntConverter().fromJson(json['nullableConvertedInt']),
+    ),
+  };
 }
 
 Map<String, dynamic> nullableConverterModelToMap(
@@ -189,20 +228,28 @@ Map<String, dynamic> nullableConverterModelToMap(
     ),
 };
 DeepCollectionsModel deepCollectionsModelFromJson(Map<String, dynamic> json) {
-  return DeepCollectionsModel(
-    (json['matrix'] as List<dynamic>)
-        .map(
-          (e) =>
-              (e as List<dynamic>).map((e1) => ((e1 as num).toInt())).toList(),
-        )
-        .toList(),
-    (json['mappedLists'] as Map<String, dynamic>).map(
-      (k, v) => MapEntry(
-        k,
-        (v as List<dynamic>).map((e1) => (e1 as String)).toList(),
+  return switch (json) {
+    {'matrix': final List matrixRaw, 'mappedLists': final Map mappedListsRaw} =>
+      DeepCollectionsModel(
+        matrixRaw
+            .cast<dynamic>()
+            .map(
+              (e) => (e as List<dynamic>)
+                  .map((e1) => ((e1 as num).toInt()))
+                  .toList(),
+            )
+            .toList(),
+        mappedListsRaw.cast<String, dynamic>().map(
+          (k, v) => MapEntry(
+            k,
+            (v as List<dynamic>).map((e1) => (e1 as String)).toList(),
+          ),
+        ),
       ),
+    _ => throw FormatException(
+      'Invalid JSON shape for DeepCollectionsModel: $json',
     ),
-  );
+  };
 }
 
 Map<String, dynamic> deepCollectionsModelToMap(DeepCollectionsModel instance) =>
@@ -211,10 +258,14 @@ Map<String, dynamic> deepCollectionsModelToMap(DeepCollectionsModel instance) =>
       'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
     };
 CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
-  return CaseStyledModel(
-    (json['user_full_name'] as String),
-    ((json['login_attempt_count'] as num).toInt()),
-  );
+  return switch (json) {
+    {
+      'user_full_name': final String userFullNameRaw,
+      'login_attempt_count': final num loginAttemptCountRaw,
+    } =>
+      CaseStyledModel(userFullNameRaw, loginAttemptCountRaw.toInt()),
+    _ => throw FormatException('Invalid JSON shape for CaseStyledModel: $json'),
+  };
 }
 
 Map<String, dynamic> caseStyledModelToMap(CaseStyledModel instance) =>
@@ -223,11 +274,11 @@ Map<String, dynamic> caseStyledModelToMap(CaseStyledModel instance) =>
       'login_attempt_count': instance.loginAttemptCount,
     };
 Shape shapeFromJson(Map<String, dynamic> json) {
-  return switch (json['shape_type'] as String?) {
-    'Circle' => circleFromJson(json),
-    'Square' => squareFromJson(json),
-    final unknown => throw FormatException(
-      'Unknown Shape discriminator: $unknown',
+  return switch (json) {
+    {'shape_type': 'Circle'} => circleFromJson(json),
+    {'shape_type': 'Square'} => squareFromJson(json),
+    _ => throw FormatException(
+      'Unknown Shape discriminator: ${json['shape_type']}',
     ),
   };
 }
@@ -240,11 +291,11 @@ Map<String, dynamic> shapeToMap(Shape instance) {
 }
 
 Vehicle vehicleFromJson(Map<String, dynamic> json) {
-  return switch (json['vehicle_type'] as String?) {
-    'car_v1' => carFromJson(json),
-    'Bike' => bikeFromJson(json),
-    final unknown => throw FormatException(
-      'Unknown Vehicle discriminator: $unknown',
+  return switch (json) {
+    {'vehicle_type': 'car_v1'} => carFromJson(json),
+    {'vehicle_type': 'Bike'} => bikeFromJson(json),
+    _ => throw FormatException(
+      'Unknown Vehicle discriminator: ${json['vehicle_type']}',
     ),
   };
 }
