@@ -61,7 +61,7 @@ class ClassGenerator {
       return '$fn($varName)';
     } else if (typeHelper.knownClasses.contains(type.baseName)) {
       final fn = '${TypeHelper.toCamelCase(type.baseName)}FromJson';
-      return '$fn($varName as Map<String, dynamic>)';
+      return '$fn($varName.cast<String, dynamic>())';
     } else if (type.isList || type.isSet) {
       return typeHelper.generateDeserialize(
         type,
@@ -210,12 +210,16 @@ class ClassGenerator {
       }
       bodyBuffer.writeln('  _ => () {');
       for (final check in requiredChecks) {
-        bodyBuffer.writeln("    if (!json.containsKey('${check.key}') || json['${check.key}'] == null) {");
+        bodyBuffer.writeln("    if (!json.containsKey('${check.key}')) {");
         bodyBuffer.writeln("      throw FormatException(\"Missing required field '${check.key}' for ${clazz.name}\", json);");
         bodyBuffer.writeln('    }');
         if (check.patternType != 'Object') {
           bodyBuffer.writeln("    if (json['${check.key}'] is! ${check.patternType}) {");
           bodyBuffer.writeln("      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected ${check.patternType}, got \${json['${check.key}'].runtimeType}\", json);");
+          bodyBuffer.writeln('    }');
+        } else {
+          bodyBuffer.writeln("    if (json['${check.key}'] == null) {");
+          bodyBuffer.writeln("      throw FormatException(\"Invalid type for field '${check.key}' on ${clazz.name}: expected non-null value, got Null\", json);");
           bodyBuffer.writeln('    }');
         }
       }

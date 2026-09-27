@@ -107,7 +107,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
             : const EpochDateTimeConverter().fromJson(json['customEpoch']),
       ),
     _ => () {
-      if (!json.containsKey('id') || json['id'] == null) {
+      if (!json.containsKey('id')) {
         throw FormatException(
           "Missing required field 'id' for ComplexModel",
           json,
@@ -119,7 +119,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('count') || json['count'] == null) {
+      if (!json.containsKey('count')) {
         throw FormatException(
           "Missing required field 'count' for ComplexModel",
           json,
@@ -131,7 +131,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('rating') || json['rating'] == null) {
+      if (!json.containsKey('rating')) {
         throw FormatException(
           "Missing required field 'rating' for ComplexModel",
           json,
@@ -143,7 +143,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('isActive') || json['isActive'] == null) {
+      if (!json.containsKey('isActive')) {
         throw FormatException(
           "Missing required field 'isActive' for ComplexModel",
           json,
@@ -155,7 +155,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('createdAt') || json['createdAt'] == null) {
+      if (!json.containsKey('createdAt')) {
         throw FormatException(
           "Missing required field 'createdAt' for ComplexModel",
           json,
@@ -167,7 +167,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('website') || json['website'] == null) {
+      if (!json.containsKey('website')) {
         throw FormatException(
           "Missing required field 'website' for ComplexModel",
           json,
@@ -179,7 +179,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('score') || json['score'] == null) {
+      if (!json.containsKey('score')) {
         throw FormatException(
           "Missing required field 'score' for ComplexModel",
           json,
@@ -191,7 +191,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('timeout') || json['timeout'] == null) {
+      if (!json.containsKey('timeout')) {
         throw FormatException(
           "Missing required field 'timeout' for ComplexModel",
           json,
@@ -203,7 +203,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('metadata') || json['metadata'] == null) {
+      if (!json.containsKey('metadata')) {
         throw FormatException(
           "Missing required field 'metadata' for ComplexModel",
           json,
@@ -215,7 +215,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('tags') || json['tags'] == null) {
+      if (!json.containsKey('tags')) {
         throw FormatException(
           "Missing required field 'tags' for ComplexModel",
           json,
@@ -227,7 +227,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('numbers') || json['numbers'] == null) {
+      if (!json.containsKey('numbers')) {
         throw FormatException(
           "Missing required field 'numbers' for ComplexModel",
           json,
@@ -239,7 +239,7 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('scores') || json['scores'] == null) {
+      if (!json.containsKey('scores')) {
         throw FormatException(
           "Missing required field 'scores' for ComplexModel",
           json,
@@ -251,15 +251,27 @@ ComplexModel complexModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('status') || json['status'] == null) {
+      if (!json.containsKey('status')) {
         throw FormatException(
           "Missing required field 'status' for ComplexModel",
           json,
         );
       }
-      if (!json.containsKey('priority') || json['priority'] == null) {
+      if (json['status'] == null) {
+        throw FormatException(
+          "Invalid type for field 'status' on ComplexModel: expected non-null value, got Null",
+          json,
+        );
+      }
+      if (!json.containsKey('priority')) {
         throw FormatException(
           "Missing required field 'priority' for ComplexModel",
+          json,
+        );
+      }
+      if (json['priority'] == null) {
+        throw FormatException(
+          "Invalid type for field 'priority' on ComplexModel: expected non-null value, got Null",
           json,
         );
       }
@@ -301,7 +313,7 @@ NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
     {'containerId': final String containerIdRaw, 'model': final Map modelRaw} =>
       NestedContainer(
         containerId: containerIdRaw,
-        model: complexModelFromJson(modelRaw as Map<String, dynamic>),
+        model: complexModelFromJson(modelRaw.cast<String, dynamic>()),
         optionalModel: (json['optionalModel'] == null
             ? null
             : complexModelFromJson(
@@ -309,7 +321,7 @@ NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
               )),
       ),
     _ => () {
-      if (!json.containsKey('containerId') || json['containerId'] == null) {
+      if (!json.containsKey('containerId')) {
         throw FormatException(
           "Missing required field 'containerId' for NestedContainer",
           json,
@@ -321,7 +333,7 @@ NestedContainer nestedContainerFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('model') || json['model'] == null) {
+      if (!json.containsKey('model')) {
         throw FormatException(
           "Missing required field 'model' for NestedContainer",
           json,
@@ -352,7 +364,7 @@ Circle circleFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'radius': final num radiusRaw} => Circle(radiusRaw.toDouble()),
     _ => () {
-      if (!json.containsKey('radius') || json['radius'] == null) {
+      if (!json.containsKey('radius')) {
         throw FormatException(
           "Missing required field 'radius' for Circle",
           json,
@@ -379,7 +391,7 @@ Square squareFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'side': final num sideRaw} => Square(sideRaw.toDouble()),
     _ => () {
-      if (!json.containsKey('side') || json['side'] == null) {
+      if (!json.containsKey('side')) {
         throw FormatException("Missing required field 'side' for Square", json);
       }
       if (json['side'] is! num) {
@@ -403,7 +415,7 @@ Car carFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'seats': final num seatsRaw} => Car(seatsRaw.toInt()),
     _ => () {
-      if (!json.containsKey('seats') || json['seats'] == null) {
+      if (!json.containsKey('seats')) {
         throw FormatException("Missing required field 'seats' for Car", json);
       }
       if (json['seats'] is! num) {
@@ -427,7 +439,7 @@ Bike bikeFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'hasPedals': final bool hasPedalsRaw} => Bike(hasPedalsRaw),
     _ => () {
-      if (!json.containsKey('hasPedals') || json['hasPedals'] == null) {
+      if (!json.containsKey('hasPedals')) {
         throw FormatException(
           "Missing required field 'hasPedals' for Bike",
           json,
@@ -454,7 +466,7 @@ AsymmetricModel asymmetricModelFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'incoming_key': final String keyRaw} => AsymmetricModel(keyRaw),
     _ => () {
-      if (!json.containsKey('incoming_key') || json['incoming_key'] == null) {
+      if (!json.containsKey('incoming_key')) {
         throw FormatException(
           "Missing required field 'incoming_key' for AsymmetricModel",
           json,
@@ -516,7 +528,7 @@ DeepCollectionsModel deepCollectionsModelFromJson(Map<String, dynamic> json) {
         ),
       ),
     _ => () {
-      if (!json.containsKey('matrix') || json['matrix'] == null) {
+      if (!json.containsKey('matrix')) {
         throw FormatException(
           "Missing required field 'matrix' for DeepCollectionsModel",
           json,
@@ -528,7 +540,7 @@ DeepCollectionsModel deepCollectionsModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('mappedLists') || json['mappedLists'] == null) {
+      if (!json.containsKey('mappedLists')) {
         throw FormatException(
           "Missing required field 'mappedLists' for DeepCollectionsModel",
           json,
@@ -561,8 +573,7 @@ CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
     } =>
       CaseStyledModel(userFullNameRaw, loginAttemptCountRaw.toInt()),
     _ => () {
-      if (!json.containsKey('user_full_name') ||
-          json['user_full_name'] == null) {
+      if (!json.containsKey('user_full_name')) {
         throw FormatException(
           "Missing required field 'user_full_name' for CaseStyledModel",
           json,
@@ -574,8 +585,7 @@ CaseStyledModel caseStyledModelFromJson(Map<String, dynamic> json) {
           json,
         );
       }
-      if (!json.containsKey('login_attempt_count') ||
-          json['login_attempt_count'] == null) {
+      if (!json.containsKey('login_attempt_count')) {
         throw FormatException(
           "Missing required field 'login_attempt_count' for CaseStyledModel",
           json,
@@ -604,7 +614,7 @@ LoginEvent loginEventFromJson(Map<String, dynamic> json) {
   return switch (json) {
     {'userId': final String userIdRaw} => LoginEvent(userIdRaw),
     _ => () {
-      if (!json.containsKey('userId') || json['userId'] == null) {
+      if (!json.containsKey('userId')) {
         throw FormatException(
           "Missing required field 'userId' for LoginEvent",
           json,
@@ -640,7 +650,7 @@ Shape shapeFromJson(Map<String, dynamic> json) {
     {'shape_type': 'Circle'} => circleFromJson(json),
     {'shape_type': 'Square'} => squareFromJson(json),
     _ => () {
-      if (!json.containsKey('shape_type') || json['shape_type'] == null) {
+      if (!json.containsKey('shape_type')) {
         throw FormatException(
           "Missing required discriminator 'shape_type' for Shape",
           json,
@@ -666,7 +676,7 @@ Vehicle vehicleFromJson(Map<String, dynamic> json) {
     {'vehicle_type': 'car_v1'} => carFromJson(json),
     {'vehicle_type': 'Bike'} => bikeFromJson(json),
     _ => () {
-      if (!json.containsKey('vehicle_type') || json['vehicle_type'] == null) {
+      if (!json.containsKey('vehicle_type')) {
         throw FormatException(
           "Missing required discriminator 'vehicle_type' for Vehicle",
           json,
@@ -692,7 +702,7 @@ Event eventFromJson(Map<String, dynamic> json) {
     {'type': 'LoginEvent'} => loginEventFromJson(json),
     {'type': 'LogoutEvent'} => logoutEventFromJson(json),
     _ => () {
-      if (!json.containsKey('type') || json['type'] == null) {
+      if (!json.containsKey('type')) {
         throw FormatException(
           "Missing required discriminator 'type' for Event",
           json,

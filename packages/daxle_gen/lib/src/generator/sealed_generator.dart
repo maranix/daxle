@@ -33,7 +33,7 @@ class SealedGenerator {
     }
 
     buffer.writeln('  _ => () {');
-    buffer.writeln("    if (!json.containsKey('$discriminator') || json['$discriminator'] == null) {");
+    buffer.writeln("    if (!json.containsKey('$discriminator')) {");
     buffer.writeln("      throw FormatException(\"Missing required discriminator '$discriminator' for ${sealedClass.name}\", json);");
     buffer.writeln('    }');
     buffer.writeln("    throw FormatException(\"Unknown ${sealedClass.name} discriminator: '\${json['$discriminator']}'\", json);");

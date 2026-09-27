@@ -468,6 +468,106 @@ void main() {
         expect(e.source, same(input2));
       }
     });
+
+    test('throws FormatException when a required field is explicitly null with type failure message and source', () {
+      final input1 = {'radius': null};
+      try {
+        circleFromJson(input1);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Invalid type for field 'radius' on Circle: expected num, got Null"));
+        expect(e.source, same(input1));
+      }
+
+      final input2 = {'seats': null};
+      try {
+        carFromJson(input2);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Invalid type for field 'seats' on Car: expected num, got Null"));
+        expect(e.source, same(input2));
+      }
+    });
+
+    test('throws FormatException when a required enum/object field is explicitly null and passes source', () {
+      final validMap = {
+        'id': 'mod-123',
+        'count': 42,
+        'rating': 9.85,
+        'isActive': true,
+        'createdAt': DateTime.now().toIso8601String(),
+        'website': 'https://daxle.dev',
+        'score': '987654321',
+        'timeout': 500000,
+        'metadata': {'env': 'prod'},
+        'tags': ['dart'],
+        'numbers': [1],
+        'scores': {'math': 100},
+        'status': null,
+        'priority': 30,
+      };
+      try {
+        complexModelFromJson(validMap);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Invalid type for field 'status' on ComplexModel: expected non-null value, got Null"));
+        expect(e.source, same(validMap));
+      }
+    });
+
+    test('deserializes nested model with Map<dynamic, dynamic> and propagates inner FormatException with source', () {
+      final innerJson = <dynamic, dynamic>{
+        'id': 'nested-1',
+        'count': 10,
+        'rating': 4.5,
+        'isActive': true,
+        'createdAt': DateTime.now().toIso8601String(),
+        'website': 'https://daxle.dev',
+        'score': '123',
+        'timeout': 100,
+        'metadata': {'k': 'v'},
+        'tags': ['a'],
+        'numbers': [1],
+        'scores': {'s': 1},
+        'status': 'active',
+        'priority': 10,
+      };
+      final outer = <String, dynamic>{
+        'containerId': 'c1',
+        'model': innerJson,
+      };
+      final container = nestedContainerFromJson(outer);
+      expect(container.containerId, 'c1');
+      expect(container.model.id, 'nested-1');
+
+      // Failure in nested model propagates inner FormatException and inner source:
+      final invalidInner = <String, dynamic>{
+        'id': 'nested-2',
+        // missing count
+      };
+      final outerWithInvalidInner = <String, dynamic>{
+        'containerId': 'c2',
+        'model': invalidInner,
+      };
+      try {
+        nestedContainerFromJson(outerWithInvalidInner);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Missing required field 'count' for ComplexModel"));
+        expect(e.source, invalidInner);
+      }
+    });
+
+    test('throws FormatException on null discriminator as unknown discriminator and passes source', () {
+      final nullTypeJson = {'type': null, 'userId': 'u1'};
+      try {
+        eventFromJson(nullTypeJson);
+        fail('should have thrown FormatException');
+      } on FormatException catch (e) {
+        expect(e.message, contains("Unknown Event discriminator: 'null'"));
+        expect(e.source, same(nullTypeJson));
+      }
+    });
   });
 }
 

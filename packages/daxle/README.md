@@ -195,7 +195,7 @@ Automate type-safe serialization (`toMap`) and deserialization (`fromJson`) usin
     {'type': 'LoginEvent'} => loginEventFromJson(json),
     {'type': 'LogoutEvent'} => logoutEventFromJson(json),
     _ => () {
-      if (!json.containsKey('type') || json['type'] == null) {
+      if (!json.containsKey('type')) {
         throw FormatException("Missing required discriminator 'type' for Event", json);
       }
       throw FormatException("Unknown Event discriminator: '${json['type']}'", json);
@@ -220,7 +220,7 @@ Automate type-safe serialization (`toMap`) and deserialization (`fromJson`) usin
     {'vehicle_type': 'car_v1'} => carFromJson(json),
     {'vehicle_type': 'Bike'} => bikeFromJson(json),
     _ => () {
-      if (!json.containsKey('vehicle_type') || json['vehicle_type'] == null) {
+      if (!json.containsKey('vehicle_type')) {
         throw FormatException("Missing required discriminator 'vehicle_type' for Vehicle", json);
       }
       throw FormatException("Unknown Vehicle discriminator: '${json['vehicle_type']}'", json);
