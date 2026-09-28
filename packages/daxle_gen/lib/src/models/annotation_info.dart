@@ -1,3 +1,5 @@
+import 'package:analyzer/dart/ast/ast.dart';
+
 import 'case_style.dart';
 
 import '../parser/generation_error.dart';
@@ -150,4 +152,12 @@ class FieldConfig {
       isIgnored: mergedIgnored,
     );
   }
+}
+
+/// Parsed metadata for `@AnnotationBundle`.
+class BundledAnnotation {
+  final String name;
+  final ArgumentList? argumentList;
+
+  const BundledAnnotation(this.name, [this.argumentList]);
 }

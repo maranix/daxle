@@ -27,7 +27,7 @@ class DaxleAstParser {
   ParsedFile parseContent(
     String content, {
     String filePath = 'source.dart',
-    Map<String, List<String>> externalBundleMap = const {},
+    Map<String, List<BundledAnnotation>> externalBundleMap = const {},
   }) {
     final result = parseString(
       content: content,
@@ -48,13 +48,15 @@ class DaxleAstParser {
     CompilationUnit unit, {
     required String filePath,
     required String fileName,
-    Map<String, List<String>> externalBundleMap = const {},
+    Map<String, List<BundledAnnotation>> externalBundleMap = const {},
   }) {
     final classes = <ParsedClass>[];
     final enums = <ParsedEnum>[];
     final extensionTypes = <ParsedExtensionType>[];
     final partDirectives = <String>[];
-    final bundleMap = Map<String, List<String>>.from(externalBundleMap);
+    final bundleMap = Map<String, List<BundledAnnotation>>.from(
+      externalBundleMap,
+    );
     String? partOfPath;
 
     for (final directive in unit.directives) {
@@ -92,13 +94,26 @@ class DaxleAstParser {
           if (args.isEmpty || args.first is! ListLiteral) continue;
 
           final elems = (args.first as ListLiteral).elements;
-          final constituents = elems
-              .map((e) {
-                if (e is MethodInvocation) return e.methodName.name;
-                if (e is SimpleIdentifier) return e.name;
-              })
-              .whereType<String>()
-              .toList();
+          final constituents = <BundledAnnotation>[];
+
+          for (final e in elems) {
+            if (e is MethodInvocation) {
+              constituents.add(
+                BundledAnnotation(e.methodName.name, e.argumentList),
+              );
+            } else if (e is InstanceCreationExpression) {
+              constituents.add(
+                BundledAnnotation(
+                  e.constructorName.type.name.lexeme,
+                  e.argumentList,
+                ),
+              );
+            } else if (e is SimpleIdentifier) {
+              constituents.add(
+                BundledAnnotation(e.name, null),
+              );
+            }
+          }
 
           bundleMap[variable.name.lexeme] = constituents;
         }
@@ -187,7 +202,7 @@ class DaxleAstParser {
 
   ParsedExtensionType? _parseExtensionType(
     ExtensionTypeDeclaration declaration,
-    Map<String, List<String>> bundleMap,
+    Map<String, List<BundledAnnotation>> bundleMap,
   ) {
     final name = declaration.namePart.typeName.lexeme;
 
@@ -234,7 +249,7 @@ class DaxleAstParser {
 
   ParsedClass _parseClass(
     ClassDeclaration declaration,
-    Map<String, List<String>> bundleMap,
+    Map<String, List<BundledAnnotation>> bundleMap,
   ) {
     final className = declaration.namePart.typeName.lexeme;
     final isSealed = declaration.sealedKeyword != null;
@@ -517,7 +532,7 @@ class DaxleAstParser {
 
   ParsedEnum _parseEnum(
     EnumDeclaration declaration,
-    Map<String, List<String>> bundleMap,
+    Map<String, List<BundledAnnotation>> bundleMap,
   ) {
     final enumName = declaration.namePart.typeName.lexeme;
 
@@ -526,7 +541,7 @@ class DaxleAstParser {
     StringifyInfo? stringifyInfo;
     String? fallbackCaseCode;
 
-    for (final (name, annotation) in _resolveAnnotations(
+    for (final (name, arguments) in _resolveAnnotations(
       declaration.metadata,
       bundleMap,
     )) {
@@ -539,21 +554,20 @@ class DaxleAstParser {
           'Enums do not support @CopyWith (found on enum $enumName)',
         );
       } else if (name == 'Stringify' || name == 'stringify') {
-        stringifyInfo = _parseStringifyAnnotation(annotation);
+        stringifyInfo = _parseStringifyAnnotation(arguments);
       } else if (name == 'SerializeEnum' ||
           name == 'serializeEnum' ||
           name == 'Serialize' ||
           name == 'serialize') {
-        serializeInfo = _parseSerializeEnumAnnotation(annotation);
+        serializeInfo = _parseSerializeEnumAnnotation(arguments);
       } else if (name == 'DeserializeEnum' ||
           name == 'deserializeEnum' ||
           name == 'Deserialize' ||
           name == 'deserialize') {
-        deserializeInfo = _parseDeserializeEnumAnnotation(annotation);
+        deserializeInfo = _parseDeserializeEnumAnnotation(arguments);
       } else if (name == 'Fallback') {
-        if (annotation.arguments != null &&
-            annotation.arguments!.arguments.isNotEmpty) {
-          final arg = annotation.arguments!.arguments.first;
+        if (arguments != null && arguments.arguments.isNotEmpty) {
+          final arg = arguments.arguments.first;
           if (arg is NamedArgument) {
             fallbackCaseCode = arg.argumentExpression.toSource();
           } else {
@@ -713,13 +727,13 @@ class DaxleAstParser {
     return annotation.name.name.split('.').last;
   }
 
-  SerializeInfo _parseSerializeAnnotation(Annotation annotation) {
+  SerializeInfo _parseSerializeAnnotation(ArgumentList? arguments) {
     String? discriminator;
     CaseStyle? caseStyle;
     var ignoreFields = <String>{};
 
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument) {
           final argName = arg.name.lexeme;
           if (argName == 'discriminator') {
@@ -740,13 +754,13 @@ class DaxleAstParser {
     );
   }
 
-  DeserializeInfo _parseDeserializeAnnotation(Annotation annotation) {
+  DeserializeInfo _parseDeserializeAnnotation(ArgumentList? arguments) {
     String? discriminator;
     CaseStyle? caseStyle;
     var ignoreFields = <String>{};
 
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument) {
           final argName = arg.name.lexeme;
           if (argName == 'discriminator') {
@@ -767,12 +781,12 @@ class DaxleAstParser {
     );
   }
 
-  SerializeEnumInfo _parseSerializeEnumAnnotation(Annotation annotation) {
+  SerializeEnumInfo _parseSerializeEnumAnnotation(ArgumentList? arguments) {
     String? valueField;
     CaseStyle? caseStyle;
 
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument) {
           final argName = arg.name.lexeme;
           if (argName == 'valueField') {
@@ -790,12 +804,12 @@ class DaxleAstParser {
     );
   }
 
-  DeserializeEnumInfo _parseDeserializeEnumAnnotation(Annotation annotation) {
+  DeserializeEnumInfo _parseDeserializeEnumAnnotation(ArgumentList? arguments) {
     String? valueField;
     CaseStyle? caseStyle;
 
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument) {
           final argName = arg.name.lexeme;
           if (argName == 'valueField') {
@@ -814,11 +828,11 @@ class DaxleAstParser {
   }
 
   EqualsAndHashCodeInfo _parseEqualsAndHashCodeAnnotation(
-    Annotation annotation,
+    ArgumentList? arguments,
   ) {
     var ignoreFields = <String>{};
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument && arg.name.lexeme == 'ignoreFields') {
           ignoreFields = _extractStringSet(arg.argumentExpression);
         }
@@ -827,10 +841,10 @@ class DaxleAstParser {
     return EqualsAndHashCodeInfo(ignoreFields: ignoreFields);
   }
 
-  StringifyInfo _parseStringifyAnnotation(Annotation annotation) {
+  StringifyInfo _parseStringifyAnnotation(ArgumentList? arguments) {
     var ignoreFields = <String>{};
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument && arg.name.lexeme == 'ignoreFields') {
           ignoreFields = _extractStringSet(arg.argumentExpression);
         }
@@ -839,10 +853,10 @@ class DaxleAstParser {
     return StringifyInfo(ignoreFields: ignoreFields);
   }
 
-  CopyWithInfo _parseCopyWithAnnotation(Annotation annotation) {
+  CopyWithInfo _parseCopyWithAnnotation(ArgumentList? arguments) {
     var ignoreFields = <String>{};
-    if (annotation.arguments != null) {
-      for (final arg in annotation.arguments!.arguments) {
+    if (arguments != null) {
+      for (final arg in arguments.arguments) {
         if (arg is NamedArgument && arg.name.lexeme == 'ignoreFields') {
           ignoreFields = _extractStringSet(arg.argumentExpression);
         }
@@ -853,7 +867,7 @@ class DaxleAstParser {
 
   FieldConfig _parseFieldConfig(
     NodeList<Annotation> metadata,
-    Map<String, List<String>> bundleMap, {
+    Map<String, List<BundledAnnotation>> bundleMap, {
     String memberName = 'member',
   }) {
     String? serializedKey;
@@ -866,13 +880,13 @@ class DaxleAstParser {
     var hasSerializedValue = false;
     var hasFallback = false;
 
-    for (final (name, annotation) in _resolveAnnotations(metadata, bundleMap)) {
+    for (final (name, arguments) in _resolveAnnotations(metadata, bundleMap)) {
       if (name == 'ignore' || name == 'Ignore') {
         isIgnored = true;
       } else if (name == 'Flatten' || name == 'flatten') {
         isFlattened = true;
-        if (annotation.arguments != null) {
-          for (final arg in annotation.arguments!.arguments) {
+        if (arguments != null) {
+          for (final arg in arguments.arguments) {
             if (arg is NamedArgument && arg.name.lexeme == 'prefix') {
               flattenPrefix = _extractStringValue(arg.argumentExpression) ?? '';
             } else if (arg is Expression) {
@@ -882,8 +896,8 @@ class DaxleAstParser {
         }
       } else if (name == 'SerializedValue') {
         hasSerializedValue = true;
-        if (annotation.arguments != null) {
-          for (final arg in annotation.arguments!.arguments) {
+        if (arguments != null) {
+          for (final arg in arguments.arguments) {
             if (arg is NamedArgument) {
               final argName = arg.name.lexeme;
               if (argName == 'value' || argName == 'name') {
@@ -904,8 +918,8 @@ class DaxleAstParser {
         }
       } else if (name == 'Fallback') {
         hasFallback = true;
-        if (annotation.arguments != null) {
-          for (final arg in annotation.arguments!.arguments) {
+        if (arguments != null) {
+          for (final arg in arguments.arguments) {
             if (arg is NamedArgument) {
               final argName = arg.name.lexeme;
               if (argName == 'value' || argName == 'fallback') {
@@ -1004,19 +1018,19 @@ class DaxleAstParser {
     return param.defaultClause?.value.toSource();
   }
 
-  Iterable<(String name, Annotation annotation)> _resolveAnnotations(
+  Iterable<(String name, ArgumentList? arguments)> _resolveAnnotations(
     NodeList<Annotation> metadata,
-    Map<String, List<String>> bundleMap,
+    Map<String, List<BundledAnnotation>> bundleMap,
   ) sync* {
     for (final annotation in metadata) {
       final name = _getAnnotationName(annotation);
       final constituents = bundleMap[name];
       if (constituents != null) {
-        for (final cName in constituents) {
-          yield (cName, annotation);
+        for (final c in constituents) {
+          yield (c.name, c.argumentList ?? annotation.arguments);
         }
       } else {
-        yield (name, annotation);
+        yield (name, annotation.arguments);
       }
     }
   }

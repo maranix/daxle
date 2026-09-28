@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:daxle_gen/src/models/annotation_info.dart';
 import 'package:path/path.dart' as p;
 
 import '../cache/content_cache.dart';
@@ -83,7 +84,7 @@ class DaxleGenerator {
     final projectClasses = <String>{};
     final projectCopyWithClasses = <String>{};
     final projectExtensionTypes = <String>{};
-    final projectBundlesMap = <String, List<String>>{};
+    final projectBundlesMap = <String, List<BundledAnnotation>>{};
 
     final discoveryFiles = <File>[...filesToProcess];
     if (targetFile.existsSync()) {
@@ -275,7 +276,7 @@ class DaxleGenerator {
 
   ParsedFile _parseLibraryWithParts(
     String rootPath, {
-    Map<String, List<String>> externalBundleMap = const {},
+    Map<String, List<BundledAnnotation>> externalBundleMap = const {},
   }) {
     final rootContent = File(rootPath).readAsStringSync();
     final rootParsed = parser.parseContent(

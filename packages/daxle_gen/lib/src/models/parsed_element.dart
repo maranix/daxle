@@ -245,7 +245,7 @@ class ParsedFile {
   final List<ParsedEnum> enums;
   final List<ParsedExtensionType> extensionTypes;
   final List<String> partDirectives;
-  final Map<String, List<String>> bundleDeclarations;
+  final Map<String, List<BundledAnnotation>> bundleDeclarations;
   String? partOfPath;
 
   ParsedFile({
