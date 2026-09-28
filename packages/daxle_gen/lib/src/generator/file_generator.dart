@@ -28,6 +28,7 @@ class FileGenerator {
     ParsedFile parsedFile, {
     Set<String> projectEnums = const {},
     Set<String> projectClasses = const {},
+    Set<String> projectCopyWithClasses = const {},
     Set<String> projectExtensionTypes = const {},
   }) {
     if (!parsedFile.hasDaxleAnnotations) {
@@ -51,6 +52,11 @@ class FileGenerator {
       knownClasses: knownClasses,
       knownExtensionTypes: knownExtensionTypes,
     );
+
+    final knownCopyWithClasses = {
+      ...parsedFile.classes.where((c) => c.shouldCopyWith).map((c) => c.name),
+      ...projectCopyWithClasses,
+    };
 
     final classGen = ClassGenerator(typeHelper);
     final enumGen = EnumGenerator();
@@ -167,7 +173,7 @@ class FileGenerator {
 
       // CopyWith extension
       if (clazz.shouldCopyWith) {
-        specs.add(copyWithGen.buildExtension(clazz));
+        specs.addAll(copyWithGen.build(clazz, knownCopyWithClasses));
       }
     }
 

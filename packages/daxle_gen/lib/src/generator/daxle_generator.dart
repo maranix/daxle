@@ -81,6 +81,7 @@ class DaxleGenerator {
 
     final projectEnums = <String>{};
     final projectClasses = <String>{};
+    final projectCopyWithClasses = <String>{};
     final projectExtensionTypes = <String>{};
     final projectBundlesMap = <String, List<String>>{};
 
@@ -127,6 +128,12 @@ class DaxleGenerator {
             parsed.extensionTypes.map((e) => e.name),
           );
           projectBundlesMap.addAll(parsed.bundleDeclarations);
+
+          for (final clazz in parsed.classes) {
+            if (clazz.shouldCopyWith) {
+              projectCopyWithClasses.add(clazz.name);
+            }
+          }
         }
       } catch (_) {}
     }
@@ -215,6 +222,7 @@ class DaxleGenerator {
           parsedFile,
           projectEnums: projectEnums,
           projectClasses: projectClasses,
+          projectCopyWithClasses: projectCopyWithClasses,
           projectExtensionTypes: projectExtensionTypes,
         );
         if (generatedCode == null) continue;
