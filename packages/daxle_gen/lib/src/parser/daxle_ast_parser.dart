@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+
 import '../models/case_style.dart';
 
 import '../models/annotation_info.dart';
@@ -23,14 +24,23 @@ class DaxleAstParser {
   }
 
   /// Parses Dart code string.
-  ParsedFile parseContent(String content, {String filePath = 'source.dart'}) {
+  ParsedFile parseContent(
+    String content, {
+    String filePath = 'source.dart',
+    Map<String, List<String>> externalBundleMap = const {},
+  }) {
     final result = parseString(
       content: content,
       featureSet: FeatureSet.latestLanguageVersion(),
       throwIfDiagnostics: false,
     );
     final fileName = filePath.split(RegExp(r'[/\\]')).last;
-    return parseUnit(result.unit, filePath: filePath, fileName: fileName);
+    return parseUnit(
+      result.unit,
+      filePath: filePath,
+      fileName: fileName,
+      externalBundleMap: externalBundleMap,
+    );
   }
 
   /// Parses a [CompilationUnit] directly.
@@ -38,11 +48,13 @@ class DaxleAstParser {
     CompilationUnit unit, {
     required String filePath,
     required String fileName,
+    Map<String, List<String>> externalBundleMap = const {},
   }) {
     final classes = <ParsedClass>[];
     final enums = <ParsedEnum>[];
     final extensionTypes = <ParsedExtensionType>[];
     final partDirectives = <String>[];
+    final bundleMap = Map<String, List<String>>.from(externalBundleMap);
 
     for (final directive in unit.directives) {
       if (directive is PartDirective) {
@@ -54,15 +66,41 @@ class DaxleAstParser {
 
     for (final declaration in unit.declarations) {
       if (declaration is ClassDeclaration) {
-        final parsedClass = _parseClass(declaration);
+        final parsedClass = _parseClass(declaration, bundleMap);
         classes.add(parsedClass);
       } else if (declaration is EnumDeclaration) {
-        final parsedEnum = _parseEnum(declaration);
+        final parsedEnum = _parseEnum(declaration, bundleMap);
         enums.add(parsedEnum);
       } else if (declaration is ExtensionTypeDeclaration) {
-        final parsedExtType = _parseExtensionType(declaration);
+        final parsedExtType = _parseExtensionType(declaration, bundleMap);
         if (parsedExtType != null) {
           extensionTypes.add(parsedExtType);
+        }
+      } else if (declaration is TopLevelVariableDeclaration) {
+        for (final variable in declaration.variables.variables) {
+          final initExpression = variable.initializer;
+
+          if (initExpression is! MethodInvocation) continue;
+          print(
+            '[DEBUG] ${variable.name.lexeme} initializer runtimeType: ${initExpression.runtimeType}',
+          );
+
+          final typeName = initExpression.methodName.name;
+          if (typeName != 'AnnotationBundle') continue;
+
+          final args = initExpression.argumentList.arguments;
+          if (args.isEmpty || args.first is! ListLiteral) continue;
+
+          final elems = (args.first as ListLiteral).elements;
+          final constituents = elems
+              .map((e) {
+                if (e is MethodInvocation) return e.methodName.name;
+                if (e is SimpleIdentifier) return e.name;
+              })
+              .whereType<String>()
+              .toList();
+
+          bundleMap[variable.name.lexeme] = constituents;
         }
       }
     }
@@ -142,17 +180,23 @@ class DaxleAstParser {
       enums: enums,
       extensionTypes: extensionTypes,
       partDirectives: partDirectives,
+      bundleDeclarations: bundleMap,
     );
   }
 
-  ParsedExtensionType? _parseExtensionType(ExtensionTypeDeclaration declaration) {
+  ParsedExtensionType? _parseExtensionType(
+    ExtensionTypeDeclaration declaration,
+    Map<String, List<String>> bundleMap,
+  ) {
     final name = declaration.namePart.typeName.lexeme;
 
     SerializeInfo? serializeInfo;
     DeserializeInfo? deserializeInfo;
 
-    for (final annotation in declaration.metadata) {
-      final annotName = _getAnnotationName(annotation);
+    for (final (annotName, annotation) in _resolveAnnotations(
+      declaration.metadata,
+      bundleMap,
+    )) {
       if (annotName == 'Serialize' || annotName == 'serialize') {
         serializeInfo = _parseSerializeAnnotation(annotation);
       } else if (annotName == 'Deserialize' || annotName == 'deserialize') {
@@ -187,7 +231,10 @@ class DaxleAstParser {
     );
   }
 
-  ParsedClass _parseClass(ClassDeclaration declaration) {
+  ParsedClass _parseClass(
+    ClassDeclaration declaration,
+    Map<String, List<String>> bundleMap,
+  ) {
     final className = declaration.namePart.typeName.lexeme;
     final isSealed = declaration.sealedKeyword != null;
     final superclass = declaration.extendsClause?.superclass.name.lexeme;
@@ -211,13 +258,13 @@ class DaxleAstParser {
     CopyWithInfo? copyWithInfo;
     String? customDiscriminatorName;
 
-    for (final annotation in declaration.metadata) {
-      final name = _getAnnotationName(annotation);
-      if (name == 'Serialize' ||
-          name == 'serialize') {
+    for (final (name, annotation) in _resolveAnnotations(
+      declaration.metadata,
+      bundleMap,
+    )) {
+      if (name == 'Serialize' || name == 'serialize') {
         serializeInfo = _parseSerializeAnnotation(annotation);
-      } else if (name == 'Deserialize' ||
-          name == 'deserialize') {
+      } else if (name == 'Deserialize' || name == 'deserialize') {
         deserializeInfo = _parseDeserializeAnnotation(annotation);
       } else if (name == 'EqualsAndHashCode' || name == 'equalsAndHashCode') {
         equalsAndHashCodeInfo = _parseEqualsAndHashCodeAnnotation(annotation);
@@ -225,11 +272,10 @@ class DaxleAstParser {
         stringifyInfo = _parseStringifyAnnotation(annotation);
       } else if (name == 'CopyWith' || name == 'copyWith') {
         copyWithInfo = _parseCopyWithAnnotation(annotation);
-      } else if (name == 'SerializedValue' ||
-          name == 'SerializeValue' ||
-          name == 'DeserializeValue') {
+      } else if (name == 'SerializedValue') {
         final cfg = _parseFieldConfig(
           declaration.metadata,
+          bundleMap,
           memberName: className,
         );
         customDiscriminatorName ??= cfg.serializedKey;
@@ -254,6 +300,7 @@ class DaxleAstParser {
         final paramType = ParsedType.parse(paramTypeStr);
         final fieldConfig = _parseFieldConfig(
           param.metadata,
+          bundleMap,
           memberName: paramName,
         );
         final defaultVal = _getParameterDefaultValue(param);
@@ -292,6 +339,7 @@ class DaxleAstParser {
           final parsedType = ParsedType.parse(typeStr);
           final fieldAnnotations = _parseFieldConfig(
             member.metadata,
+            bundleMap,
             memberName: 'field',
           );
 
@@ -300,6 +348,7 @@ class DaxleAstParser {
             final initCode = variable.initializer?.toSource();
             final varAnnotations = _parseFieldConfig(
               variable.metadata,
+              bundleMap,
               memberName: varName,
             );
             final mergedConfig = fieldAnnotations.merge(
@@ -359,6 +408,7 @@ class DaxleAstParser {
             final paramType = ParsedType.parse(paramTypeStr);
             final paramConfig = _parseFieldConfig(
               param.metadata,
+              bundleMap,
               memberName: paramName,
             );
             final defaultVal = _getParameterDefaultValue(param);
@@ -464,7 +514,10 @@ class DaxleAstParser {
     );
   }
 
-  ParsedEnum _parseEnum(EnumDeclaration declaration) {
+  ParsedEnum _parseEnum(
+    EnumDeclaration declaration,
+    Map<String, List<String>> bundleMap,
+  ) {
     final enumName = declaration.namePart.typeName.lexeme;
 
     SerializeEnumInfo? serializeInfo;
@@ -472,8 +525,10 @@ class DaxleAstParser {
     StringifyInfo? stringifyInfo;
     String? fallbackCaseCode;
 
-    for (final annotation in declaration.metadata) {
-      final name = _getAnnotationName(annotation);
+    for (final (name, annotation) in _resolveAnnotations(
+      declaration.metadata,
+      bundleMap,
+    )) {
       if (name == 'EqualsAndHashCode' || name == 'equalsAndHashCode') {
         throw UnsupportedError(
           'Enums do not support @EqualsAndHashCode (found on enum $enumName)',
@@ -575,6 +630,7 @@ class DaxleAstParser {
         // Check for annotations on enum constant
         final config = _parseFieldConfig(
           constant.metadata,
+          bundleMap,
           memberName: constName,
         );
         if (config.effectiveSerializeKey != null) {
@@ -795,7 +851,8 @@ class DaxleAstParser {
   }
 
   FieldConfig _parseFieldConfig(
-    NodeList<Annotation> metadata, {
+    NodeList<Annotation> metadata,
+    Map<String, List<String>> bundleMap, {
     String memberName = 'member',
   }) {
     String? serializedKey;
@@ -808,11 +865,10 @@ class DaxleAstParser {
     var hasSerializedValue = false;
     var hasFallback = false;
 
-    for (final annotation in metadata) {
-      final annotName = _getAnnotationName(annotation);
-      if (annotName == 'ignore' || annotName == 'Ignore') {
+    for (final (name, annotation) in _resolveAnnotations(metadata, bundleMap)) {
+      if (name == 'ignore' || name == 'Ignore') {
         isIgnored = true;
-      } else if (annotName == 'Flatten' || annotName == 'flatten') {
+      } else if (name == 'Flatten' || name == 'flatten') {
         isFlattened = true;
         if (annotation.arguments != null) {
           for (final arg in annotation.arguments!.arguments) {
@@ -823,9 +879,7 @@ class DaxleAstParser {
             }
           }
         }
-      } else if (annotName == 'SerializedValue' ||
-          annotName == 'SerializeValue' ||
-          annotName == 'DeserializeValue') {
+      } else if (name == 'SerializedValue') {
         hasSerializedValue = true;
         if (annotation.arguments != null) {
           for (final arg in annotation.arguments!.arguments) {
@@ -847,7 +901,7 @@ class DaxleAstParser {
             }
           }
         }
-      } else if (annotName == 'Fallback') {
+      } else if (name == 'Fallback') {
         hasFallback = true;
         if (annotation.arguments != null) {
           for (final arg in annotation.arguments!.arguments) {
@@ -947,5 +1001,22 @@ class DaxleAstParser {
 
   String? _getParameterDefaultValue(FormalParameter param) {
     return param.defaultClause?.value.toSource();
+  }
+
+  Iterable<(String name, Annotation annotation)> _resolveAnnotations(
+    NodeList<Annotation> metadata,
+    Map<String, List<String>> bundleMap,
+  ) sync* {
+    for (final annotation in metadata) {
+      final name = _getAnnotationName(annotation);
+      final constituents = bundleMap[name];
+      if (constituents != null) {
+        for (final cName in constituents) {
+          yield (cName, annotation);
+        }
+      } else {
+        yield (name, annotation);
+      }
+    }
   }
 }

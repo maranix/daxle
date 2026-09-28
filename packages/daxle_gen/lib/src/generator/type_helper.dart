@@ -508,7 +508,7 @@ class TypeHelper {
       if (!explicitFromJson) {
         return '($kVar as ${keyType.rawType})';
       } else {
-        return '$kVar';
+        return kVar;
       }
     }
   }

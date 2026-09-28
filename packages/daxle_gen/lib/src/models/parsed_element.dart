@@ -243,6 +243,7 @@ class ParsedFile {
   final List<ParsedEnum> enums;
   final List<ParsedExtensionType> extensionTypes;
   final List<String> partDirectives;
+  final Map<String, List<String>> bundleDeclarations;
 
   const ParsedFile({
     required this.filePath,
@@ -251,6 +252,7 @@ class ParsedFile {
     required this.enums,
     this.extensionTypes = const [],
     this.partDirectives = const [],
+    this.bundleDeclarations = const {},
   });
 
   bool get hasDaxleAnnotations =>

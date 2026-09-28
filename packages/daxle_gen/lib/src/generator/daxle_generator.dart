@@ -81,6 +81,7 @@ class DaxleGenerator {
     final projectEnums = <String>{};
     final projectClasses = <String>{};
     final projectExtensionTypes = <String>{};
+    final projectBundlesMap = <String, List<String>>{};
 
     final discoveryFiles = <File>[...filesToProcess];
     if (targetFile.existsSync()) {
@@ -93,7 +94,10 @@ class DaxleGenerator {
       }
       if (dir.existsSync()) {
         try {
-          for (final entity in dir.listSync(recursive: true, followLinks: false)) {
+          for (final entity in dir.listSync(
+            recursive: true,
+            followLinks: false,
+          )) {
             if (entity is File &&
                 entity.path.endsWith('.dart') &&
                 !entity.path.endsWith('.daxle.dart')) {
@@ -113,11 +117,15 @@ class DaxleGenerator {
         final fileContent = file.readAsStringSync();
         if (fileContent.contains('enum') ||
             fileContent.contains('class') ||
-            fileContent.contains('extension type')) {
+            fileContent.contains('extension type') ||
+            fileContent.contains('AnnotationBundle')) {
           final parsed = parser.parseContent(fileContent, filePath: normPath);
           projectEnums.addAll(parsed.enums.map((e) => e.name));
           projectClasses.addAll(parsed.classes.map((c) => c.name));
-          projectExtensionTypes.addAll(parsed.extensionTypes.map((e) => e.name));
+          projectExtensionTypes.addAll(
+            parsed.extensionTypes.map((e) => e.name),
+          );
+          projectBundlesMap.addAll(parsed.bundleDeclarations);
         }
       } catch (_) {}
     }
@@ -149,7 +157,11 @@ class DaxleGenerator {
           !content.contains('Fallback') &&
           !content.contains('ignore') &&
           !content.contains('Ignore')) {
-        continue;
+        // Check if content references any known bundle alias
+        final hasBundleRef = projectBundlesMap.keys.any(
+          (name) => content.contains(name),
+        );
+        if (!hasBundleRef) continue;
       }
 
       // Check cache for instant hit
@@ -160,7 +172,11 @@ class DaxleGenerator {
       }
 
       try {
-        final parsedFile = parser.parseContent(content, filePath: srcPath);
+        final parsedFile = parser.parseContent(
+          content,
+          filePath: srcPath,
+          externalBundleMap: projectBundlesMap,
+        );
         if (!parsedFile.hasDaxleAnnotations) {
           continue;
         }

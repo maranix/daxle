@@ -6,3 +6,4 @@ export 'enum_annotations.dart';
 export 'equals_and_hash_code_annotation.dart';
 export 'field_annotations.dart';
 export 'stringify_annotation.dart';
+export 'annotation_bundle.dart';
