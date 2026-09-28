@@ -5,7 +5,8 @@ import 'package:path/path.dart' as p;
 import '../cache/content_cache.dart';
 import '../cli/glob_filter.dart';
 import '../parser/daxle_ast_parser.dart';
-import 'file_generator.dart';
+import '../models/parsed_element.dart';
+import './file_generator.dart';
 
 /// Result summary of a generation run.
 class GenerationResult {
@@ -135,6 +136,7 @@ class DaxleGenerator {
     var cached = 0;
     final driftList = <String>[];
     final errorList = <String>[];
+    final processedRoots = <String>{};
 
     for (final file in filesToProcess) {
       scanned++;
@@ -164,24 +166,45 @@ class DaxleGenerator {
         if (!hasBundleRef) continue;
       }
 
-      // Check cache for instant hit
-      if (!check && cache.isUpToDate(srcPath, genPath)) {
-        cached++;
-        logger('[CACHE HIT] $srcPath');
-        continue;
-      }
-
       try {
-        final parsedFile = parser.parseContent(
+        var parsedFile = parser.parseContent(
           content,
           filePath: srcPath,
           externalBundleMap: projectBundlesMap,
         );
+
+        var effectiveSrcPath = srcPath;
+        var effectiveGenPath = genPath;
+
+        if (parsedFile.partOfPath != null) {
+          final rootPath = p.normalize(
+            p.join(p.dirname(srcPath), parsedFile.partOfPath!),
+          );
+
+          if (!File(rootPath).existsSync()) continue;
+          effectiveSrcPath = rootPath;
+          effectiveGenPath = _computeGeneratedPath(rootPath);
+        }
+
+        if (!processedRoots.add(effectiveSrcPath)) continue;
+
+        // Check cache for instant hit
+        if (!check && cache.isUpToDate(effectiveSrcPath, effectiveGenPath)) {
+          cached++;
+          logger('[CACHE HIT] $effectiveSrcPath');
+          continue;
+        }
+
+        parsedFile = _parseLibraryWithParts(
+          effectiveSrcPath,
+          externalBundleMap: projectBundlesMap,
+        );
+
         if (!parsedFile.hasDaxleAnnotations) {
           continue;
         }
 
-        final expectedGenFileName = p.basename(genPath);
+        final expectedGenFileName = p.basename(effectiveGenPath);
         if (!parsedFile.hasDaxlePartDirective) {
           logger(
             '[DIAGNOSTIC] $srcPath is missing directive: part \'$expectedGenFileName\';',
@@ -197,20 +220,22 @@ class DaxleGenerator {
         if (generatedCode == null) continue;
 
         if (check) {
-          final genFile = File(genPath);
+          final genFile = File(effectiveGenPath);
           if (!genFile.existsSync() ||
               genFile.readAsStringSync() != generatedCode) {
-            driftList.add(srcPath);
-            logger('[DRIFT DETECTED] $genPath is missing or out-of-date');
+            driftList.add(effectiveSrcPath);
+            logger(
+              '[DRIFT DETECTED] $effectiveGenPath is missing or out-of-date',
+            );
           } else {
             cached++;
           }
         } else {
-          final genFile = File(genPath);
+          final genFile = File(effectiveGenPath);
           await genFile.writeAsString(generatedCode);
-          cache.record(srcPath, genPath, generatedCode);
+          cache.record(effectiveSrcPath, effectiveGenPath, generatedCode);
           generated++;
-          logger('[GENERATED] $genPath');
+          logger('[GENERATED] $effectiveGenPath');
         }
       } catch (e, st) {
         errorList.add(srcPath);
@@ -238,5 +263,46 @@ class DaxleGenerator {
       return '$withoutExt.daxle.dart';
     }
     return '$sourcePath.daxle.dart';
+  }
+
+  ParsedFile _parseLibraryWithParts(
+    String rootPath, {
+    Map<String, List<String>> externalBundleMap = const {},
+  }) {
+    final rootContent = File(rootPath).readAsStringSync();
+    final rootParsed = parser.parseContent(
+      rootContent,
+      filePath: rootPath,
+      externalBundleMap: externalBundleMap,
+    );
+
+    final allClasses = [...rootParsed.classes];
+    final allEnums = [...rootParsed.enums];
+    final allExtTypes = [...rootParsed.extensionTypes];
+
+    for (final partUri in rootParsed.partDirectives) {
+      if (partUri.endsWith('.daxle.dart')) continue; // skip our own output
+      final partPath = p.normalize(p.join(p.dirname(rootPath), partUri));
+      if (!File(partPath).existsSync()) continue;
+
+      final partContent = File(partPath).readAsStringSync();
+      final partParsed = parser.parseContent(
+        partContent,
+        filePath: partPath,
+        externalBundleMap: externalBundleMap,
+      );
+      allClasses.addAll(partParsed.classes);
+      allEnums.addAll(partParsed.enums);
+      allExtTypes.addAll(partParsed.extensionTypes);
+    }
+
+    return ParsedFile(
+      filePath: rootPath,
+      fileName: p.basename(rootPath),
+      classes: allClasses,
+      enums: allEnums,
+      extensionTypes: allExtTypes,
+      partDirectives: rootParsed.partDirectives,
+    );
   }
 }

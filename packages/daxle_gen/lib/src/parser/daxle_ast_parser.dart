@@ -55,12 +55,15 @@ class DaxleAstParser {
     final extensionTypes = <ParsedExtensionType>[];
     final partDirectives = <String>[];
     final bundleMap = Map<String, List<String>>.from(externalBundleMap);
+    String? partOfPath;
 
     for (final directive in unit.directives) {
       if (directive is PartDirective) {
         partDirectives.add(
           directive.uri.stringValue ?? directive.uri.toSource(),
         );
+      } else if (directive is PartOfDirective) {
+        partOfPath = directive.uri?.stringValue;
       }
     }
 
@@ -178,6 +181,7 @@ class DaxleAstParser {
       extensionTypes: extensionTypes,
       partDirectives: partDirectives,
       bundleDeclarations: bundleMap,
+      partOfPath: partOfPath,
     );
   }
 

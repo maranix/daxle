@@ -11,6 +11,7 @@ class ParsedField {
   final bool isFinal;
   final bool hasDefaultValue;
   final String? defaultValueCode;
+  final String? partOfPath;
 
   const ParsedField({
     required this.name,
@@ -19,6 +20,7 @@ class ParsedField {
     this.isFinal = true,
     this.hasDefaultValue = false,
     this.defaultValueCode,
+    this.partOfPath,
   });
 
   String resolvedWireKey(CaseStyle? classCaseStyle) {
@@ -244,8 +246,9 @@ class ParsedFile {
   final List<ParsedExtensionType> extensionTypes;
   final List<String> partDirectives;
   final Map<String, List<String>> bundleDeclarations;
+  String? partOfPath;
 
-  const ParsedFile({
+  ParsedFile({
     required this.filePath,
     required this.fileName,
     required this.classes,
@@ -253,6 +256,7 @@ class ParsedFile {
     this.extensionTypes = const [],
     this.partDirectives = const [],
     this.bundleDeclarations = const {},
+    this.partOfPath,
   });
 
   bool get hasDaxleAnnotations =>
