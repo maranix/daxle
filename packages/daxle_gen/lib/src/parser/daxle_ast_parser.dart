@@ -81,9 +81,6 @@ class DaxleAstParser {
           final initExpression = variable.initializer;
 
           if (initExpression is! MethodInvocation) continue;
-          print(
-            '[DEBUG] ${variable.name.lexeme} initializer runtimeType: ${initExpression.runtimeType}',
-          );
 
           final typeName = initExpression.methodName.name;
           if (typeName != 'AnnotationBundle') continue;
