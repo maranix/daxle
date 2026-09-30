@@ -48,6 +48,8 @@ void main() {
 
     setUp(() {
       tempDir = Directory.systemTemp.createTempSync('daxle_cli_test_');
+      File('${tempDir.path}/pubspec.yaml')
+          .writeAsStringSync('name: test_pkg\n');
     });
 
     tearDown(() {
@@ -174,7 +176,9 @@ class Item(final String id);
       expect(genFile.existsSync(), true);
 
       // Overwrite generated file with comment
-      genFile.writeAsStringSync('// modified comment\n${genFile.readAsStringSync()}');
+      genFile.writeAsStringSync(
+        '// modified comment\n${genFile.readAsStringSync()}',
+      );
 
       // Normal run skips because source didn't change (if cached) or updates cache
       // Running with --force will overwrite and restore pure generated content

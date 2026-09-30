@@ -1,5 +1,4 @@
 import 'package:daxle_gen/daxle_gen.dart';
-import 'package:daxle_gen/src/parser/generation_error.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -643,8 +642,14 @@ enum Status { ok, error }
     final enumGen = EnumGenerator();
     final generatedCode = enumGen.generate(parsedFile.enums.first);
 
-    expect(generatedCode, contains('extension StatusDaxleEnumExtension on Status'));
-    expect(generatedCode, contains('dynamic toValue() => statusToValue(this);'));
+    expect(
+      generatedCode,
+      contains('extension StatusDaxleEnumExtension on Status'),
+    );
+    expect(
+      generatedCode,
+      contains('dynamic toValue() => statusToValue(this);'),
+    );
     expect(generatedCode, contains('statusToValue(Status instance)'));
     expect(generatedCode, contains('_statusEnumMap'));
   });
@@ -745,7 +750,6 @@ extension type Point2D((double x, double y) it) {}
   });
 }
 
-
 final class _TestCustomHandler implements AnnotationHandler<void> {
   final void Function() onParsed;
   const _TestCustomHandler(this.onParsed);
@@ -758,4 +762,3 @@ final class _TestCustomHandler implements AnnotationHandler<void> {
     onParsed();
   }
 }
-
