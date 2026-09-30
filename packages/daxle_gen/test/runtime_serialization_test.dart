@@ -911,5 +911,80 @@ void main() {
       expect(restoredNull.backupId, isNull);
     });
   });
+
+  group('Records Serialization and Deserialization', () {
+    test('named record typedef round-trip with methods and extensions', () {
+      final UserInfoRecord user = (name: 'Alice', age: 30);
+
+      // toMap & toMapExtension
+      final map = user.toMap();
+      expect(map, {'name': 'Alice', 'age': 30});
+      expect(userInfoRecordToMap(user), {'name': 'Alice', 'age': 30});
+
+      // fromMap & map extension
+      final restoredFromMap = userInfoRecordFromMap(map);
+      expect(restoredFromMap.name, 'Alice');
+      expect(restoredFromMap.age, 30);
+      expect(map.toUserInfoRecord(), (name: 'Alice', age: 30));
+    });
+
+    test('positional record typedef round-trip with methods and extensions', () {
+      final GeoCoordsRecord coords = (12.34, 56.78);
+
+      // toList & toListExtension
+      final list = coords.toList();
+      expect(list, [12.34, 56.78]);
+      expect(geoCoordsRecordToList(coords), [12.34, 56.78]);
+
+      // fromList & list extension
+      final restoredFromList = geoCoordsRecordFromList(list);
+      expect(restoredFromList.$1, 12.34);
+      expect(restoredFromList.$2, 56.78);
+      expect(list.toGeoCoordsRecord(), (12.34, 56.78));
+    });
+
+
+    test('class containing record typedefs and inline records round-trip', () {
+      final container = RecordContainer(
+        (name: 'Bob', age: 25),
+        (37.7749, -122.4194),
+        (city: 'San Francisco', zip: '94103'),
+        (10, 20),
+      );
+
+      final map = container.toMap();
+      expect(map, {
+        'user': {'name': 'Bob', 'age': 25},
+        'coords': [37.7749, -122.4194],
+        'inlineAddress': {'city': 'San Francisco', 'zip': '94103'},
+        'grid': [10, 20],
+      });
+
+      final restored = recordContainerFromMap(map);
+      expect(restored.user, (name: 'Bob', age: 25));
+      expect(restored.coords, (37.7749, -122.4194));
+      expect(restored.inlineAddress, (city: 'San Francisco', zip: '94103'));
+      expect(restored.grid, (10, 20));
+
+      // Test with nullable grid = null
+      final containerNullGrid = RecordContainer(
+        (name: 'Charlie', age: 40),
+        (0.0, 0.0),
+        (city: 'London', zip: 'EC1A'),
+        null,
+      );
+
+      final nullGridMap = containerNullGrid.toMap();
+      expect(nullGridMap['grid'], isNull);
+
+      final sparseMap = containerNullGrid.toMap(excludeNull: true);
+      expect(sparseMap.containsKey('grid'), false);
+
+      final restoredNullGrid = recordContainerFromMap(nullGridMap);
+      expect(restoredNullGrid.grid, isNull);
+      expect(restoredNullGrid.user, (name: 'Charlie', age: 40));
+    });
+  });
 }
+
 

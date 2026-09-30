@@ -13,4 +13,8 @@ export 'src/models/annotation_info.dart';
 export 'src/models/case_style.dart';
 export 'src/models/parsed_element.dart';
 export 'src/models/parsed_type.dart';
+export 'src/parser/annotations/annotation_context.dart';
+export 'src/parser/annotations/annotation_handler.dart';
+export 'src/parser/annotations/annotation_registry.dart';
 export 'src/parser/daxle_ast_parser.dart';
+export 'src/parser/daxle_file_visitor.dart';

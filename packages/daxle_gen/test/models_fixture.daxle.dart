@@ -17,6 +17,10 @@ Status statusFromValue(Object? value) => switch (value) {
   _ => throw ArgumentError('Unknown Status value: $value'),
 };
 
+extension StatusDaxleEnumExtension on Status {
+  dynamic toValue() => statusToValue(this);
+}
+
 mixin _$StatusStringify on Enum {
   @override
   String toString() => switch (this as Status) {
@@ -38,6 +42,11 @@ Priority priorityFromValue(Object? value) => switch (value) {
   30 => Priority.high,
   _ => throw ArgumentError('Unknown Priority value: $value'),
 };
+
+extension PriorityDaxleEnumExtension on Priority {
+  dynamic toValue() => priorityToValue(this);
+}
+
 const _multiParamEnumEnumMap = {
   MultiParamEnum.first: 101,
   MultiParamEnum.second: 202,
@@ -49,6 +58,11 @@ MultiParamEnum multiParamEnumFromValue(Object? value) => switch (value) {
   202 => MultiParamEnum.second,
   _ => throw ArgumentError('Unknown MultiParamEnum value: $value'),
 };
+
+extension MultiParamEnumDaxleEnumExtension on MultiParamEnum {
+  dynamic toValue() => multiParamEnumToValue(this);
+}
+
 const _themeModeEnumMap = {
   ThemeMode.lightTheme: 'light-theme',
   ThemeMode.darkTheme: 'dark-theme',
@@ -61,6 +75,11 @@ ThemeMode themeModeFromValue(Object? value) => switch (value) {
   'system-default' => ThemeMode.systemDefault,
   _ => throw ArgumentError('Unknown ThemeMode value: $value'),
 };
+
+extension ThemeModeDaxleEnumExtension on ThemeMode {
+  dynamic toValue() => themeModeToValue(this);
+}
+
 const _annotatedEnumEnumMap = {
   AnnotatedEnum.inProgress: 'in_progress',
   AnnotatedEnum.archived: 'archived_val',
@@ -72,6 +91,11 @@ AnnotatedEnum annotatedEnumFromValue(Object? value) => switch (value) {
   'archived_val' => AnnotatedEnum.archived,
   _ => throw ArgumentError('Unknown AnnotatedEnum value: $value'),
 };
+
+extension AnnotatedEnumDaxleEnumExtension on AnnotatedEnum {
+  dynamic toValue() => annotatedEnumToValue(this);
+}
+
 const _accountTypeEnumMap = {
   AccountType.standard: 'std',
   AccountType.premium: 'prem',
@@ -83,6 +107,10 @@ AccountType accountTypeFromValue(Object? value) => switch (value) {
   'prem' => AccountType.premium,
   _ => AccountType.standard,
 };
+
+extension AccountTypeDaxleEnumExtension on AccountType {
+  dynamic toValue() => accountTypeToValue(this);
+}
 
 mixin _$AccountTypeStringify on Enum {
   @override
@@ -110,6 +138,10 @@ PaymentStatus paymentStatusFromValue(Object? value) => switch (value) {
   _ => throw ArgumentError('Unknown PaymentStatus value: $value'),
 };
 
+extension PaymentStatusDaxleEnumExtension on PaymentStatus {
+  dynamic toValue() => paymentStatusToValue(this);
+}
+
 mixin _$PaymentStatusStringify on Enum {
   @override
   String toString() => switch (this as PaymentStatus) {
@@ -133,6 +165,38 @@ extension ScoreToMapExtension on Score {
 }
 
 Score scoreFromMap(Object? json) => Score(((json as num).toInt()));
+Map<String, dynamic> userInfoRecordToMap(UserInfoRecord instance) => {
+  'name': instance.name,
+  'age': instance.age,
+};
+
+extension UserInfoRecordToMapExtension on UserInfoRecord {
+  Map<String, dynamic> toMap() => userInfoRecordToMap(this);
+}
+
+UserInfoRecord userInfoRecordFromMap(Map<String, dynamic> map) =>
+    (name: (map['name'] as String), age: ((map['age'] as num).toInt()));
+
+extension UserInfoRecordMapExtension on Map<String, dynamic> {
+  UserInfoRecord toUserInfoRecord() => userInfoRecordFromMap(this);
+}
+
+List<dynamic> geoCoordsRecordToList(GeoCoordsRecord instance) => [
+  instance.$1,
+  instance.$2,
+];
+
+extension GeoCoordsRecordToListExtension on GeoCoordsRecord {
+  List<dynamic> toList() => geoCoordsRecordToList(this);
+}
+
+GeoCoordsRecord geoCoordsRecordFromList(List<dynamic> list) =>
+    (((list[0] as num).toDouble()), ((list[1] as num).toDouble()));
+
+extension GeoCoordsRecordListExtension on List<dynamic> {
+  GeoCoordsRecord toGeoCoordsRecord() => geoCoordsRecordFromList(this);
+}
+
 ComplexModel complexModelFromMap(Map<String, dynamic> json) {
   return switch (json) {
     {
@@ -408,10 +472,10 @@ mixin _$ComplexModelEqualsAndHashCode {
         self.timeout == other.timeout &&
         self.optionalTag == other.optionalTag &&
         self.customEpoch == other.customEpoch &&
-        _daxleDeepEquals(self.metadata, other.metadata) &&
-        _daxleDeepEquals(self.tags, other.tags) &&
-        _daxleDeepEquals(self.numbers, other.numbers) &&
-        _daxleDeepEquals(self.scores, other.scores);
+        $mapEquals(self.metadata.map, other.metadata.map) &&
+        $listEquals(self.tags, other.tags) &&
+        $setEquals(self.numbers, other.numbers) &&
+        $mapEquals(self.scores, other.scores);
   }
 
   @override
@@ -427,10 +491,10 @@ mixin _$ComplexModelEqualsAndHashCode {
       self.score,
       self.timeout,
       self.optionalTag,
-      _daxleDeepHashCode(self.metadata),
-      _daxleDeepHashCode(self.tags),
-      _daxleDeepHashCode(self.numbers),
-      _daxleDeepHashCode(self.scores),
+      $mapHashCode(self.metadata.map),
+      $listHashCode(self.tags),
+      $setHashCode(self.numbers),
+      $mapHashCode(self.scores),
       self.status,
       self.priority,
       self.role,
@@ -468,10 +532,10 @@ mixin _$ComplexModel
         self.timeout == other.timeout &&
         self.optionalTag == other.optionalTag &&
         self.customEpoch == other.customEpoch &&
-        _daxleDeepEquals(self.metadata, other.metadata) &&
-        _daxleDeepEquals(self.tags, other.tags) &&
-        _daxleDeepEquals(self.numbers, other.numbers) &&
-        _daxleDeepEquals(self.scores, other.scores);
+        $mapEquals(self.metadata.map, other.metadata.map) &&
+        $listEquals(self.tags, other.tags) &&
+        $setEquals(self.numbers, other.numbers) &&
+        $mapEquals(self.scores, other.scores);
   }
 
   @override
@@ -487,10 +551,10 @@ mixin _$ComplexModel
       self.score,
       self.timeout,
       self.optionalTag,
-      _daxleDeepHashCode(self.metadata),
-      _daxleDeepHashCode(self.tags),
-      _daxleDeepHashCode(self.numbers),
-      _daxleDeepHashCode(self.scores),
+      $mapHashCode(self.metadata.map),
+      $listHashCode(self.tags),
+      $setHashCode(self.numbers),
+      $mapHashCode(self.scores),
       self.status,
       self.priority,
       self.role,
@@ -505,8 +569,14 @@ mixin _$ComplexModel
   }
 }
 
-extension ComplexModelCopyWithExtension on ComplexModel {
-  ComplexModel copyWith({
+class $ComplexModelCopyWithProxy<$Res> {
+  $ComplexModelCopyWithProxy(this._value, this._then);
+
+  final ComplexModel _value;
+
+  final $Res Function(ComplexModel) _then;
+
+  $Res call({
     String? id,
     int? count,
     double? rating,
@@ -525,47 +595,54 @@ extension ComplexModelCopyWithExtension on ComplexModel {
     String? role,
     DateTime? customEpoch,
   }) {
-    if ((id == null || identical(id, this.id)) &&
-        (count == null || identical(count, this.count)) &&
-        (rating == null || identical(rating, this.rating)) &&
-        (isActive == null || identical(isActive, this.isActive)) &&
-        (createdAt == null || identical(createdAt, this.createdAt)) &&
-        (website == null || identical(website, this.website)) &&
-        (score == null || identical(score, this.score)) &&
-        (timeout == null || identical(timeout, this.timeout)) &&
-        (optionalTag == null || identical(optionalTag, this.optionalTag)) &&
-        (metadata == null || identical(metadata, this.metadata)) &&
-        (tags == null || identical(tags, this.tags)) &&
-        (numbers == null || identical(numbers, this.numbers)) &&
-        (scores == null || identical(scores, this.scores)) &&
-        (status == null || identical(status, this.status)) &&
-        (priority == null || identical(priority, this.priority)) &&
-        (role == null || identical(role, this.role)) &&
-        (customEpoch == null || identical(customEpoch, this.customEpoch))) {
-      return this;
+    if ((id == null || identical(id, _value.id)) &&
+        (count == null || identical(count, _value.count)) &&
+        (rating == null || identical(rating, _value.rating)) &&
+        (isActive == null || identical(isActive, _value.isActive)) &&
+        (createdAt == null || identical(createdAt, _value.createdAt)) &&
+        (website == null || identical(website, _value.website)) &&
+        (score == null || identical(score, _value.score)) &&
+        (timeout == null || identical(timeout, _value.timeout)) &&
+        (optionalTag == null || identical(optionalTag, _value.optionalTag)) &&
+        (metadata == null || identical(metadata, _value.metadata)) &&
+        (tags == null || identical(tags, _value.tags)) &&
+        (numbers == null || identical(numbers, _value.numbers)) &&
+        (scores == null || identical(scores, _value.scores)) &&
+        (status == null || identical(status, _value.status)) &&
+        (priority == null || identical(priority, _value.priority)) &&
+        (role == null || identical(role, _value.role)) &&
+        (customEpoch == null || identical(customEpoch, _value.customEpoch))) {
+      return _then(_value);
     }
 
-    return ComplexModel(
-      id ?? this.id,
-      count ?? this.count,
-      rating ?? this.rating,
-      isActive ?? this.isActive,
-      createdAt ?? this.createdAt,
-      website ?? this.website,
-      score ?? this.score,
-      timeout ?? this.timeout,
-      optionalTag ?? this.optionalTag,
-      metadata ?? this.metadata,
-      tags ?? this.tags,
-      numbers ?? this.numbers,
-      scores ?? this.scores,
-      status ?? this.status,
-      priority ?? this.priority,
-      role: role ?? this.role,
-      secretToken: this.secretToken,
-      customEpoch: customEpoch ?? this.customEpoch,
+    return _then(
+      ComplexModel(
+        id ?? _value.id,
+        count ?? _value.count,
+        rating ?? _value.rating,
+        isActive ?? _value.isActive,
+        createdAt ?? _value.createdAt,
+        website ?? _value.website,
+        score ?? _value.score,
+        timeout ?? _value.timeout,
+        optionalTag ?? _value.optionalTag,
+        metadata ?? _value.metadata,
+        tags ?? _value.tags,
+        numbers ?? _value.numbers,
+        scores ?? _value.scores,
+        status ?? _value.status,
+        priority ?? _value.priority,
+        role: role ?? _value.role,
+        secretToken: _value.secretToken,
+        customEpoch: customEpoch ?? _value.customEpoch,
+      ),
     );
   }
+}
+
+extension ComplexModelCopyWithExtension on ComplexModel {
+  $ComplexModelCopyWithProxy<ComplexModel> get copyWith =>
+      $ComplexModelCopyWithProxy(this, (v) => v);
 
   ComplexModel copyWithNull({bool customEpoch = false}) {
     if (!customEpoch) {
@@ -710,25 +787,49 @@ mixin _$NestedContainer
   }
 }
 
-extension NestedContainerCopyWithExtension on NestedContainer {
-  NestedContainer copyWith({
+class $NestedContainerCopyWithProxy<$Res> {
+  $NestedContainerCopyWithProxy(this._value, this._then);
+
+  final NestedContainer _value;
+
+  final $Res Function(NestedContainer) _then;
+
+  $Res call({
     String? containerId,
     ComplexModel? model,
     ComplexModel? optionalModel,
   }) {
-    if ((containerId == null || identical(containerId, this.containerId)) &&
-        (model == null || identical(model, this.model)) &&
+    if ((containerId == null || identical(containerId, _value.containerId)) &&
+        (model == null || identical(model, _value.model)) &&
         (optionalModel == null ||
-            identical(optionalModel, this.optionalModel))) {
-      return this;
+            identical(optionalModel, _value.optionalModel))) {
+      return _then(_value);
     }
 
-    return NestedContainer(
-      containerId: containerId ?? this.containerId,
-      model: model ?? this.model,
-      optionalModel: optionalModel ?? this.optionalModel,
+    return _then(
+      NestedContainer(
+        containerId: containerId ?? _value.containerId,
+        model: model ?? _value.model,
+        optionalModel: optionalModel ?? _value.optionalModel,
+      ),
     );
   }
+
+  $ComplexModelCopyWithProxy<$Res> get model =>
+      $ComplexModelCopyWithProxy(_value.model, (val) => call(model: val));
+
+  $ComplexModelCopyWithProxy<$Res>? get optionalModel {
+    if (_value.optionalModel == null) return null;
+    return $ComplexModelCopyWithProxy(
+      _value.optionalModel!,
+      (val) => call(optionalModel: val),
+    );
+  }
+}
+
+extension NestedContainerCopyWithExtension on NestedContainer {
+  $NestedContainerCopyWithProxy<NestedContainer> get copyWith =>
+      $NestedContainerCopyWithProxy(this, (v) => v);
 
   NestedContainer copyWithNull({bool optionalModel = false}) {
     if (!optionalModel) {
@@ -901,16 +1002,11 @@ extension CustomKeyModelToMapExtension on CustomKeyModel {
 
 NullableConverterModel nullableConverterModelFromMap(
   Map<String, dynamic> json,
-) {
-  return switch (json) {
-    _ => NullableConverterModel(
-      json['nullableConvertedInt'] == null
-          ? null
-          : const StringIntConverter().fromJson(json['nullableConvertedInt']),
-    ),
-  };
-}
-
+) => NullableConverterModel(
+  json['nullableConvertedInt'] == null
+      ? null
+      : const StringIntConverter().fromJson(json['nullableConvertedInt']),
+);
 Map<String, dynamic> nullableConverterModelToMap(
   NullableConverterModel instance, {
   bool excludeNull = false,
@@ -1095,20 +1191,34 @@ mixin _$CaseStyledModel
   }
 }
 
-extension CaseStyledModelCopyWithExtension on CaseStyledModel {
-  CaseStyledModel copyWith({String? userFullName, int? loginAttemptCount}) {
-    if ((userFullName == null || identical(userFullName, this.userFullName)) &&
+class $CaseStyledModelCopyWithProxy<$Res> {
+  $CaseStyledModelCopyWithProxy(this._value, this._then);
+
+  final CaseStyledModel _value;
+
+  final $Res Function(CaseStyledModel) _then;
+
+  $Res call({String? userFullName, int? loginAttemptCount}) {
+    if ((userFullName == null ||
+            identical(userFullName, _value.userFullName)) &&
         (loginAttemptCount == null ||
-            identical(loginAttemptCount, this.loginAttemptCount))) {
-      return this;
+            identical(loginAttemptCount, _value.loginAttemptCount))) {
+      return _then(_value);
     }
 
-    return CaseStyledModel(
-      userFullName ?? this.userFullName,
-      loginAttemptCount ?? this.loginAttemptCount,
-      internalSecret: this.internalSecret,
+    return _then(
+      CaseStyledModel(
+        userFullName ?? _value.userFullName,
+        loginAttemptCount ?? _value.loginAttemptCount,
+        internalSecret: _value.internalSecret,
+      ),
     );
   }
+}
+
+extension CaseStyledModelCopyWithExtension on CaseStyledModel {
+  $CaseStyledModelCopyWithProxy<CaseStyledModel> get copyWith =>
+      $CaseStyledModelCopyWithProxy(this, (v) => v);
 }
 
 LoginEvent loginEventFromMap(Map<String, dynamic> json) {
@@ -1145,12 +1255,7 @@ extension LoginEventToMapExtension on LoginEvent {
       loginEventToMap(this, excludeNull: excludeNull);
 }
 
-LogoutEvent logoutEventFromMap(Map<String, dynamic> json) {
-  return switch (json) {
-    _ => LogoutEvent(),
-  };
-}
-
+LogoutEvent logoutEventFromMap(Map<String, dynamic> json) => LogoutEvent();
 Map<String, dynamic> logoutEventToMap(
   LogoutEvent instance, {
   bool excludeNull = false,
@@ -1317,8 +1422,14 @@ mixin _$LargeModel
   }
 }
 
-extension LargeModelCopyWithExtension on LargeModel {
-  LargeModel copyWith({
+class $LargeModelCopyWithProxy<$Res> {
+  $LargeModelCopyWithProxy(this._value, this._then);
+
+  final LargeModel _value;
+
+  final $Res Function(LargeModel) _then;
+
+  $Res call({
     int? f1,
     int? f2,
     int? f3,
@@ -1342,56 +1453,63 @@ extension LargeModelCopyWithExtension on LargeModel {
     int? f21,
     int? f22,
   }) {
-    if ((f1 == null || identical(f1, this.f1)) &&
-        (f2 == null || identical(f2, this.f2)) &&
-        (f3 == null || identical(f3, this.f3)) &&
-        (f4 == null || identical(f4, this.f4)) &&
-        (f5 == null || identical(f5, this.f5)) &&
-        (f6 == null || identical(f6, this.f6)) &&
-        (f7 == null || identical(f7, this.f7)) &&
-        (f8 == null || identical(f8, this.f8)) &&
-        (f9 == null || identical(f9, this.f9)) &&
-        (f10 == null || identical(f10, this.f10)) &&
-        (f11 == null || identical(f11, this.f11)) &&
-        (f12 == null || identical(f12, this.f12)) &&
-        (f13 == null || identical(f13, this.f13)) &&
-        (f14 == null || identical(f14, this.f14)) &&
-        (f15 == null || identical(f15, this.f15)) &&
-        (f16 == null || identical(f16, this.f16)) &&
-        (f17 == null || identical(f17, this.f17)) &&
-        (f18 == null || identical(f18, this.f18)) &&
-        (f19 == null || identical(f19, this.f19)) &&
-        (f20 == null || identical(f20, this.f20)) &&
-        (f21 == null || identical(f21, this.f21)) &&
-        (f22 == null || identical(f22, this.f22))) {
-      return this;
+    if ((f1 == null || identical(f1, _value.f1)) &&
+        (f2 == null || identical(f2, _value.f2)) &&
+        (f3 == null || identical(f3, _value.f3)) &&
+        (f4 == null || identical(f4, _value.f4)) &&
+        (f5 == null || identical(f5, _value.f5)) &&
+        (f6 == null || identical(f6, _value.f6)) &&
+        (f7 == null || identical(f7, _value.f7)) &&
+        (f8 == null || identical(f8, _value.f8)) &&
+        (f9 == null || identical(f9, _value.f9)) &&
+        (f10 == null || identical(f10, _value.f10)) &&
+        (f11 == null || identical(f11, _value.f11)) &&
+        (f12 == null || identical(f12, _value.f12)) &&
+        (f13 == null || identical(f13, _value.f13)) &&
+        (f14 == null || identical(f14, _value.f14)) &&
+        (f15 == null || identical(f15, _value.f15)) &&
+        (f16 == null || identical(f16, _value.f16)) &&
+        (f17 == null || identical(f17, _value.f17)) &&
+        (f18 == null || identical(f18, _value.f18)) &&
+        (f19 == null || identical(f19, _value.f19)) &&
+        (f20 == null || identical(f20, _value.f20)) &&
+        (f21 == null || identical(f21, _value.f21)) &&
+        (f22 == null || identical(f22, _value.f22))) {
+      return _then(_value);
     }
 
-    return LargeModel(
-      f1 ?? this.f1,
-      f2 ?? this.f2,
-      f3 ?? this.f3,
-      f4 ?? this.f4,
-      f5 ?? this.f5,
-      f6 ?? this.f6,
-      f7 ?? this.f7,
-      f8 ?? this.f8,
-      f9 ?? this.f9,
-      f10 ?? this.f10,
-      f11 ?? this.f11,
-      f12 ?? this.f12,
-      f13 ?? this.f13,
-      f14 ?? this.f14,
-      f15 ?? this.f15,
-      f16 ?? this.f16,
-      f17 ?? this.f17,
-      f18 ?? this.f18,
-      f19 ?? this.f19,
-      f20 ?? this.f20,
-      f21 ?? this.f21,
-      f22 ?? this.f22,
+    return _then(
+      LargeModel(
+        f1 ?? _value.f1,
+        f2 ?? _value.f2,
+        f3 ?? _value.f3,
+        f4 ?? _value.f4,
+        f5 ?? _value.f5,
+        f6 ?? _value.f6,
+        f7 ?? _value.f7,
+        f8 ?? _value.f8,
+        f9 ?? _value.f9,
+        f10 ?? _value.f10,
+        f11 ?? _value.f11,
+        f12 ?? _value.f12,
+        f13 ?? _value.f13,
+        f14 ?? _value.f14,
+        f15 ?? _value.f15,
+        f16 ?? _value.f16,
+        f17 ?? _value.f17,
+        f18 ?? _value.f18,
+        f19 ?? _value.f19,
+        f20 ?? _value.f20,
+        f21 ?? _value.f21,
+        f22 ?? _value.f22,
+      ),
     );
   }
+}
+
+extension LargeModelCopyWithExtension on LargeModel {
+  $LargeModelCopyWithProxy<LargeModel> get copyWith =>
+      $LargeModelCopyWithProxy(this, (v) => v);
 }
 
 Account accountFromMap(Map<String, dynamic> json) {
@@ -1498,21 +1616,34 @@ mixin _$Account implements _$AccountEqualsAndHashCode, _$AccountStringify {
   }
 }
 
-extension AccountCopyWithExtension on Account {
-  Account copyWith({String? id, AccountType? type, int? loginCount}) {
-    if ((id == null || identical(id, this.id)) &&
-        (type == null || identical(type, this.type)) &&
-        (loginCount == null || identical(loginCount, this.loginCount))) {
-      return this;
+class $AccountCopyWithProxy<$Res> {
+  $AccountCopyWithProxy(this._value, this._then);
+
+  final Account _value;
+
+  final $Res Function(Account) _then;
+
+  $Res call({String? id, AccountType? type, int? loginCount}) {
+    if ((id == null || identical(id, _value.id)) &&
+        (type == null || identical(type, _value.type)) &&
+        (loginCount == null || identical(loginCount, _value.loginCount))) {
+      return _then(_value);
     }
 
-    return Account(
-      id: id ?? this.id,
-      type: type ?? this.type,
-      loginCount: loginCount ?? this.loginCount,
-      sessionTimer: this.sessionTimer,
+    return _then(
+      Account(
+        id: id ?? _value.id,
+        type: type ?? _value.type,
+        loginCount: loginCount ?? _value.loginCount,
+        sessionTimer: _value.sessionTimer,
+      ),
     );
   }
+}
+
+extension AccountCopyWithExtension on Account {
+  $AccountCopyWithProxy<Account> get copyWith =>
+      $AccountCopyWithProxy(this, (v) => v);
 }
 
 Address addressFromMap(Map<String, dynamic> json) {
@@ -1620,20 +1751,33 @@ mixin _$Address implements _$AddressEqualsAndHashCode, _$AddressStringify {
   }
 }
 
-extension AddressCopyWithExtension on Address {
-  Address copyWith({String? street, String? apt, String? city}) {
-    if ((street == null || identical(street, this.street)) &&
-        (apt == null || identical(apt, this.apt)) &&
-        (city == null || identical(city, this.city))) {
-      return this;
+class $AddressCopyWithProxy<$Res> {
+  $AddressCopyWithProxy(this._value, this._then);
+
+  final Address _value;
+
+  final $Res Function(Address) _then;
+
+  $Res call({String? street, String? apt, String? city}) {
+    if ((street == null || identical(street, _value.street)) &&
+        (apt == null || identical(apt, _value.apt)) &&
+        (city == null || identical(city, _value.city))) {
+      return _then(_value);
     }
 
-    return Address(
-      street: street ?? this.street,
-      apt: apt ?? this.apt,
-      city: city ?? this.city,
+    return _then(
+      Address(
+        street: street ?? _value.street,
+        apt: apt ?? _value.apt,
+        city: city ?? _value.city,
+      ),
     );
   }
+}
+
+extension AddressCopyWithExtension on Address {
+  $AddressCopyWithProxy<Address> get copyWith =>
+      $AddressCopyWithProxy(this, (v) => v);
 
   Address copyWithNull({bool apt = false}) {
     if (!apt) {
@@ -1742,28 +1886,46 @@ mixin _$Order implements _$OrderEqualsAndHashCode, _$OrderStringify {
   }
 }
 
-extension OrderCopyWithExtension on Order {
-  Order copyWith({
+class $OrderCopyWithProxy<$Res> {
+  $OrderCopyWithProxy(this._value, this._then);
+
+  final Order _value;
+
+  final $Res Function(Order) _then;
+
+  $Res call({
     String? id,
     PaymentStatus? status,
     String? notes,
     Address? shippingAddress,
   }) {
-    if ((id == null || identical(id, this.id)) &&
-        (status == null || identical(status, this.status)) &&
-        (notes == null || identical(notes, this.notes)) &&
+    if ((id == null || identical(id, _value.id)) &&
+        (status == null || identical(status, _value.status)) &&
+        (notes == null || identical(notes, _value.notes)) &&
         (shippingAddress == null ||
-            identical(shippingAddress, this.shippingAddress))) {
-      return this;
+            identical(shippingAddress, _value.shippingAddress))) {
+      return _then(_value);
     }
 
-    return Order(
-      id: id ?? this.id,
-      status: status ?? this.status,
-      notes: notes ?? this.notes,
-      shippingAddress: shippingAddress ?? this.shippingAddress,
+    return _then(
+      Order(
+        id: id ?? _value.id,
+        status: status ?? _value.status,
+        notes: notes ?? _value.notes,
+        shippingAddress: shippingAddress ?? _value.shippingAddress,
+      ),
     );
   }
+
+  $AddressCopyWithProxy<$Res> get shippingAddress => $AddressCopyWithProxy(
+    _value.shippingAddress,
+    (val) => call(shippingAddress: val),
+  );
+}
+
+extension OrderCopyWithExtension on Order {
+  $OrderCopyWithProxy<Order> get copyWith =>
+      $OrderCopyWithProxy(this, (v) => v);
 
   Order copyWithNull({bool notes = false}) {
     if (!notes) {
@@ -1834,6 +1996,93 @@ Map<String, dynamic> userProfileToMap(
 extension UserProfileToMapExtension on UserProfile {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       userProfileToMap(this, excludeNull: excludeNull);
+}
+
+RecordContainer recordContainerFromMap(Map<String, dynamic> json) {
+  return switch (json) {
+    {
+      'user': final Object userRaw,
+      'coords': final Object coordsRaw,
+      'inlineAddress': final Object inlineAddressRaw,
+    } =>
+      RecordContainer(
+        userInfoRecordFromMap(userRaw as Map<String, dynamic>),
+        geoCoordsRecordFromList(coordsRaw as List<dynamic>),
+        (() {
+          final map = inlineAddressRaw as Map<String, dynamic>;
+          return (city: (map['city'] as String), zip: (map['zip'] as String));
+        })(),
+        (json['grid'] == null
+            ? null
+            : (() {
+                final list = json['grid'] as List<dynamic>;
+                return (((list[0] as num).toInt()), ((list[1] as num).toInt()));
+              })()),
+      ),
+    _ => () {
+      if (!json.containsKey('user')) {
+        throw FormatException(
+          "Missing required field 'user' for RecordContainer",
+          json,
+        );
+      }
+      if (json['user'] == null) {
+        throw FormatException(
+          "Invalid type for field 'user' on RecordContainer: expected non-null value, got Null",
+          json,
+        );
+      }
+      if (!json.containsKey('coords')) {
+        throw FormatException(
+          "Missing required field 'coords' for RecordContainer",
+          json,
+        );
+      }
+      if (json['coords'] == null) {
+        throw FormatException(
+          "Invalid type for field 'coords' on RecordContainer: expected non-null value, got Null",
+          json,
+        );
+      }
+      if (!json.containsKey('inlineAddress')) {
+        throw FormatException(
+          "Missing required field 'inlineAddress' for RecordContainer",
+          json,
+        );
+      }
+      if (json['inlineAddress'] == null) {
+        throw FormatException(
+          "Invalid type for field 'inlineAddress' on RecordContainer: expected non-null value, got Null",
+          json,
+        );
+      }
+      throw FormatException(
+        'Invalid JSON shape for RecordContainer: missing or invalid required keys (expected: user, coords, inlineAddress)',
+        json,
+      );
+    }(),
+  };
+}
+
+Map<String, dynamic> recordContainerToMap(
+  RecordContainer instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'user': userInfoRecordToMap(instance.user),
+  'coords': geoCoordsRecordToList(instance.coords),
+  'inlineAddress': {
+    'city': instance.inlineAddress.city,
+    'zip': instance.inlineAddress.zip,
+  },
+  if (!excludeNull || instance.grid != null)
+    'grid': instance.grid == null
+        ? null
+        : [instance.grid!.$1, instance.grid!.$2],
+};
+
+extension RecordContainerToMapExtension on RecordContainer {
+  Map<String, dynamic> toMap({bool excludeNull = false}) =>
+      recordContainerToMap(this, excludeNull: excludeNull);
 }
 
 Shape shapeFromMap(Map<String, dynamic> json) {
@@ -1948,102 +2197,6 @@ Map<String, dynamic> eventToMap(Event instance, {bool excludeNull = false}) {
 extension EventToMapExtension on Event {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       eventToMap(this, excludeNull: excludeNull);
-}
-
-bool _daxleDeepEquals(Object? a, Object? b) {
-  if (identical(a, b)) return true;
-  if (a == null || b == null) return false;
-
-  if (a is List && b is List) {
-    final length = a.length;
-    if (length != b.length) return false;
-    for (var i = 0; i < length; i++) {
-      if (!_daxleDeepEquals(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  if (a is Set && b is Set) {
-    if (a.length != b.length) return false;
-    for (final element in a) {
-      if (!b.contains(element)) {
-        var found = false;
-        for (final otherElement in b) {
-          if (_daxleDeepEquals(element, otherElement)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) return false;
-      }
-    }
-    return true;
-  }
-
-  if (a is Map && b is Map) {
-    if (a.length != b.length) return false;
-    for (final entry in a.entries) {
-      if (!b.containsKey(entry.key)) return false;
-      if (!_daxleDeepEquals(entry.value, b[entry.key])) return false;
-    }
-    return true;
-  }
-
-  if (a is Iterable && b is Iterable) {
-    final itA = a.iterator;
-    final itB = b.iterator;
-    while (itA.moveNext()) {
-      if (!itB.moveNext()) return false;
-      if (!_daxleDeepEquals(itA.current, itB.current)) return false;
-    }
-    return !itB.moveNext();
-  }
-
-  return a == b;
-}
-
-int _daxleDeepHashCode(Object? value) {
-  if (value == null) return 0;
-  if (value is List) {
-    var hash = 1;
-    for (var i = 0; i < value.length; i++) {
-      hash = 0x1fffffff & (hash + _daxleDeepHashCode(value[i]));
-      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-      hash ^= hash >> 6;
-    }
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    hash ^= hash >> 11;
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-  if (value is Set) {
-    var hash = 0;
-    for (final element in value) {
-      hash = (hash + _daxleDeepHashCode(element)) & 0x3fffffff;
-    }
-    return hash;
-  }
-  if (value is Map) {
-    var hash = 0;
-    for (final entry in value.entries) {
-      final entryHash =
-          (_daxleDeepHashCode(entry.key) ^ _daxleDeepHashCode(entry.value)) &
-          0x3fffffff;
-      hash = (hash + entryHash) & 0x3fffffff;
-    }
-    return hash;
-  }
-  if (value is Iterable) {
-    var hash = 1;
-    for (final element in value) {
-      hash = 0x1fffffff & (hash + _daxleDeepHashCode(element));
-      hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-      hash ^= hash >> 6;
-    }
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    hash ^= hash >> 11;
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-  return value.hashCode;
 }
 
 Object? _daxleResolveKey(

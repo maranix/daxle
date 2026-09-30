@@ -3,13 +3,13 @@ import 'package:daxle/daxle.dart';
 part 'models_fixture.daxle.dart';
 
 // 1. Enums
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 @stringify
 enum Status with _$StatusStringify { pending, active, completed }
 
-@SerializeEnum(valueField: 'code')
-@DeserializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
 enum const Priority(final int code) {
   low(10),
   medium(20),
@@ -104,8 +104,8 @@ class Bike implements Vehicle {
 }
 
 // 7. Enhanced enum with multiple positional constructor parameters
-@SerializeEnum(valueField: 'code')
-@DeserializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
 enum const MultiParamEnum(final String label, final int code) {
   first('first_label', 101),
   second('second_label', 202),
@@ -154,13 +154,13 @@ class CaseStyledModel(
 }) with _$CaseStyledModel;
 
 // 12. CaseStyle on enum
-@SerializeEnum(caseStyle: CaseStyle.kebabCase)
-@DeserializeEnum(caseStyle: CaseStyle.kebabCase)
+@Serialize(caseStyle: CaseStyle.kebabCase)
+@Deserialize(caseStyle: CaseStyle.kebabCase)
 enum ThemeMode { lightTheme, darkTheme, systemDefault }
 
 // 13. Enum entries annotated with @SerializeValue and @DeserializeValue
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum AnnotatedEnum {
   @SerializedValue('in_progress')
   inProgress,
@@ -229,8 +229,8 @@ class LargeModel(
 
 // 17. Reference usage: @Fallback on enum, @SerializedValue, @Fallback, @ignore on class
 @Fallback(AccountType.standard)
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 @stringify
 enum AccountType with _$AccountTypeStringify {
   @SerializedValue('std')
@@ -271,8 +271,8 @@ class Account with _$Account {
 }
 
 // 18. Reference Usage: PaymentStatus (aliases), Address, Order (@Flatten, aliases, dynamic null handling)
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 @stringify
 enum PaymentStatus with _$PaymentStatusStringify {
   @SerializedValue(
@@ -349,3 +349,22 @@ class UserProfile(
   final Score score,
   final UserId? backupId,
 );
+
+// 20. Records
+@serialize
+@deserialize
+typedef UserInfoRecord = ({String name, int age});
+
+@serialize
+@deserialize
+typedef GeoCoordsRecord = (double lat, double lng);
+
+@serialize
+@deserialize
+class RecordContainer(
+  final UserInfoRecord user,
+  final GeoCoordsRecord coords,
+  final ({String city, String zip}) inlineAddress,
+  final (int, int)? grid,
+);
+

@@ -193,8 +193,8 @@ class ParsedEnumConstant {
 /// Represents a parsed enum definition.
 class ParsedEnum {
   final String name;
-  final SerializeEnumInfo? serialize;
-  final DeserializeEnumInfo? deserialize;
+  final SerializeInfo? serialize;
+  final DeserializeInfo? deserialize;
   final StringifyInfo? stringify;
   final String? valueFieldName;
   final ParsedType? valueFieldType;
@@ -237,6 +237,24 @@ class ParsedExtensionType {
   bool get shouldDeserialize => deserialize != null;
 }
 
+/// Represents a parsed record typedef definition with Daxle annotations.
+class ParsedRecordAlias {
+  final String name;
+  final ParsedType recordType;
+  final SerializeInfo? serialize;
+  final DeserializeInfo? deserialize;
+
+  const ParsedRecordAlias({
+    required this.name,
+    required this.recordType,
+    this.serialize,
+    this.deserialize,
+  });
+
+  bool get shouldSerialize => serialize != null;
+  bool get shouldDeserialize => deserialize != null;
+}
+
 /// Represents an entire parsed Dart file.
 class ParsedFile {
   final String filePath;
@@ -244,6 +262,7 @@ class ParsedFile {
   final List<ParsedClass> classes;
   final List<ParsedEnum> enums;
   final List<ParsedExtensionType> extensionTypes;
+  final List<ParsedRecordAlias> recordAliases;
   final List<String> partDirectives;
   final Map<String, List<BundledAnnotation>> bundleDeclarations;
   String? partOfPath;
@@ -254,6 +273,7 @@ class ParsedFile {
     required this.classes,
     required this.enums,
     this.extensionTypes = const [],
+    this.recordAliases = const [],
     this.partDirectives = const [],
     this.bundleDeclarations = const {},
     this.partOfPath,
@@ -271,8 +291,10 @@ class ParsedFile {
       enums.any(
         (e) => e.shouldSerialize || e.shouldDeserialize || e.shouldStringify,
       ) ||
-      extensionTypes.any((e) => e.shouldSerialize || e.shouldDeserialize);
+      extensionTypes.any((e) => e.shouldSerialize || e.shouldDeserialize) ||
+      recordAliases.any((r) => r.shouldSerialize || r.shouldDeserialize);
 
   bool get hasDaxlePartDirective =>
       partDirectives.any((p) => p.endsWith('.daxle.dart'));
 }
+

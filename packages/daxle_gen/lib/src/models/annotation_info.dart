@@ -7,11 +7,13 @@ import '../parser/generation_error.dart';
 /// Parsed metadata for `@Serialize`.
 class SerializeInfo {
   final String? discriminator;
+  final String? valueField;
   final CaseStyle? caseStyle;
   final Set<String> ignoreFields;
 
   const SerializeInfo({
     this.discriminator,
+    this.valueField,
     this.caseStyle,
     this.ignoreFields = const {},
   });
@@ -20,11 +22,13 @@ class SerializeInfo {
 /// Parsed metadata for `@Deserialize`.
 class DeserializeInfo {
   final String? discriminator;
+  final String? valueField;
   final CaseStyle? caseStyle;
   final Set<String> ignoreFields;
 
   const DeserializeInfo({
     this.discriminator,
+    this.valueField,
     this.caseStyle,
     this.ignoreFields = const {},
   });
@@ -54,28 +58,6 @@ class CopyWithInfo {
 
   const CopyWithInfo({
     this.ignoreFields = const {},
-  });
-}
-
-/// Parsed metadata for `@SerializeEnum`.
-class SerializeEnumInfo {
-  final String? valueField;
-  final CaseStyle? caseStyle;
-
-  const SerializeEnumInfo({
-    this.valueField,
-    this.caseStyle,
-  });
-}
-
-/// Parsed metadata for `@DeserializeEnum`.
-class DeserializeEnumInfo {
-  final String? valueField;
-  final CaseStyle? caseStyle;
-
-  const DeserializeEnumInfo({
-    this.valueField,
-    this.caseStyle,
   });
 }
 

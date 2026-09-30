@@ -86,12 +86,12 @@ class LegacyItem {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum SimpleStatus { pending, active, completed }
 
-@SerializeEnum(valueField: 'code')
-@DeserializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
 enum const Priority(final int code) {
   low(10),
   medium(20),
@@ -183,7 +183,7 @@ class Car implements Vehicle {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@SerializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
 enum const MultiParam(final String label, final int code) {
   first('first_label', 101),
   second('second_label', 202);
@@ -207,7 +207,7 @@ class Account(
   final String secretToken,
 );
 
-@SerializeEnum(caseStyle: CaseStyle.kebabCase)
+@Serialize(caseStyle: CaseStyle.kebabCase)
 enum ItemCategory { bookItem, electronicDevice }
 ''';
 
@@ -234,8 +234,8 @@ enum ItemCategory { bookItem, electronicDevice }
 import 'package:daxle/daxle.dart';
 
 @Fallback(Status.standard)
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum Status {
   @SerializedValue('in_progress')
   inProgress,
@@ -320,7 +320,7 @@ class BadModel {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serializeEnum
+@serialize
 enum Status {
   @SerializedValue('pay_pending', aliases: ['pending', 'in_progress'])
   pending,
@@ -376,7 +376,7 @@ class Order {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serializeEnum
+@serialize
 enum ConflictEnum {
   @SerializedValue('same_val', aliases: ['alias1'])
   first,
@@ -581,4 +581,181 @@ enum UnannotatedEnum {
       );
     },
   );
+
+  test('parses enum with unified @Serialize and @Deserialize', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+enum OrderStatus { pending, shipped, delivered }
+
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
+enum const HttpMethod(final int code) {
+  get(200),
+  post(201);
 }
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.enums.length, 2);
+
+    final status = parsedFile.enums[0];
+    expect(status.name, 'OrderStatus');
+    expect(status.shouldSerialize, true);
+    expect(status.shouldDeserialize, true);
+
+    final method = parsedFile.enums[1];
+    expect(method.name, 'HttpMethod');
+    expect(method.valueFieldName, 'code');
+    expect(method.shouldSerialize, true);
+    expect(method.shouldDeserialize, true);
+    expect(method.constants[0].explicitValueCode, '200');
+  });
+
+  test('AnnotationRegistry supports custom handler registration', () {
+    final registry = AnnotationRegistry();
+    var customParsed = false;
+
+    registry.register(
+      _TestCustomHandler(() {
+        customParsed = true;
+      }),
+    );
+
+    final customParser = DaxleAstParser(registry: registry);
+    const code = '''
+@CustomTag
+class TaggedModel {}
+''';
+
+    customParser.parseContent(code);
+    expect(customParsed, isTrue);
+  });
+
+  test('EnumGenerator emits unified enum extension with toValue', () {
+    const code = '''
+@serialize
+enum Status { ok, error }
+''';
+    final parsedFile = parser.parseContent(code);
+    final enumGen = EnumGenerator();
+    final generatedCode = enumGen.generate(parsedFile.enums.first);
+
+    expect(generatedCode, contains('extension StatusDaxleEnumExtension on Status'));
+    expect(generatedCode, contains('dynamic toValue() => statusToValue(this);'));
+    expect(generatedCode, contains('statusToValue(Status instance)'));
+    expect(generatedCode, contains('_statusEnumMap'));
+  });
+
+  test('parses named record typedef', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+typedef UserProfile = ({String name, int age});
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.recordAliases.length, 1);
+    final alias = parsedFile.recordAliases.first;
+    expect(alias.name, 'UserProfile');
+    expect(alias.shouldSerialize, true);
+    expect(alias.shouldDeserialize, true);
+    expect(alias.recordType.isRecord, true);
+    expect(alias.recordType.isRecordNamed, true);
+    expect(alias.recordType.recordFields.length, 2);
+    expect(alias.recordType.recordFields[0].name, 'name');
+    expect(alias.recordType.recordFields[0].type.isString, true);
+    expect(alias.recordType.recordFields[1].name, 'age');
+    expect(alias.recordType.recordFields[1].type.isInt, true);
+  });
+
+  test('parses positional record typedef with field annotations', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+typedef Coords = (
+  @SerializedValue('lat_val') double lat,
+  @SerializedValue('lng_val') double lng,
+);
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.recordAliases.length, 1);
+    final alias = parsedFile.recordAliases.first;
+    expect(alias.name, 'Coords');
+    expect(alias.recordType.isRecord, true);
+    expect(alias.recordType.isRecordPositional, true);
+    expect(alias.recordType.recordFields.length, 2);
+    expect(alias.recordType.recordFields[0].name, 'lat');
+    expect(alias.recordType.recordFields[0].serializedKey, 'lat_val');
+    expect(alias.recordType.recordFields[1].name, 'lng');
+    expect(alias.recordType.recordFields[1].serializedKey, 'lng_val');
+  });
+
+  test('parses class with inline record fields', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+class Place(
+  final String name,
+  final ({double lat, double lng}) location,
+  final (int, int)? grid,
+);
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.classes.length, 1);
+    final place = parsedFile.classes.first;
+    expect(place.fields.length, 3);
+
+    final locField = place.fields[1];
+    expect(locField.name, 'location');
+    expect(locField.type.isRecord, true);
+    expect(locField.type.isRecordNamed, true);
+    expect(locField.type.recordFields.length, 2);
+
+    final gridField = place.fields[2];
+    expect(gridField.name, 'grid');
+    expect(gridField.type.isRecord, true);
+    expect(gridField.type.isRecordPositional, true);
+    expect(gridField.type.isNullable, true);
+    expect(gridField.type.recordFields.length, 2);
+  });
+
+  test('parses extension type wrapping record', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+extension type Point2D((double x, double y) it) {}
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.extensionTypes.length, 1);
+    final extType = parsedFile.extensionTypes.first;
+    expect(extType.name, 'Point2D');
+    expect(extType.representationType.isRecord, true);
+    expect(extType.representationType.isRecordPositional, true);
+    expect(extType.representationType.recordFields.length, 2);
+  });
+}
+
+
+final class _TestCustomHandler implements AnnotationHandler<void> {
+  final void Function() onParsed;
+  const _TestCustomHandler(this.onParsed);
+
+  @override
+  List<String> get supportedNames => const ['CustomTag'];
+
+  @override
+  void parse(AnnotationContext context) {
+    onParsed();
+  }
+}
+

@@ -84,6 +84,7 @@ class DaxleGenerator {
     final projectClasses = <String>{};
     final projectCopyWithClasses = <String>{};
     final projectExtensionTypes = <String>{};
+    final projectRecordAliases = <String, ParsedRecordAlias>{};
     final projectBundlesMap = <String, List<BundledAnnotation>>{};
 
     final discoveryFiles = <File>[...filesToProcess];
@@ -121,6 +122,7 @@ class DaxleGenerator {
         if (fileContent.contains('enum') ||
             fileContent.contains('class') ||
             fileContent.contains('extension type') ||
+            fileContent.contains('typedef') ||
             fileContent.contains('AnnotationBundle')) {
           final parsed = parser.parseContent(fileContent, filePath: normPath);
           projectEnums.addAll(parsed.enums.map((e) => e.name));
@@ -128,6 +130,9 @@ class DaxleGenerator {
           projectExtensionTypes.addAll(
             parsed.extensionTypes.map((e) => e.name),
           );
+          for (final r in parsed.recordAliases) {
+            projectRecordAliases[r.name] = r;
+          }
           projectBundlesMap.addAll(parsed.bundleDeclarations);
 
           for (final clazz in parsed.classes) {
@@ -225,6 +230,7 @@ class DaxleGenerator {
           projectClasses: projectClasses,
           projectCopyWithClasses: projectCopyWithClasses,
           projectExtensionTypes: projectExtensionTypes,
+          projectRecordAliases: projectRecordAliases,
         );
         if (generatedCode == null) continue;
 
@@ -288,6 +294,7 @@ class DaxleGenerator {
     final allClasses = [...rootParsed.classes];
     final allEnums = [...rootParsed.enums];
     final allExtTypes = [...rootParsed.extensionTypes];
+    final allRecordAliases = [...rootParsed.recordAliases];
 
     for (final partUri in rootParsed.partDirectives) {
       if (partUri.endsWith('.daxle.dart')) continue; // skip our own output
@@ -303,6 +310,7 @@ class DaxleGenerator {
       allClasses.addAll(partParsed.classes);
       allEnums.addAll(partParsed.enums);
       allExtTypes.addAll(partParsed.extensionTypes);
+      allRecordAliases.addAll(partParsed.recordAliases);
     }
 
     return ParsedFile(
@@ -311,7 +319,10 @@ class DaxleGenerator {
       classes: allClasses,
       enums: allEnums,
       extensionTypes: allExtTypes,
+      recordAliases: allRecordAliases,
       partDirectives: rootParsed.partDirectives,
+      bundleDeclarations: rootParsed.bundleDeclarations,
     );
   }
 }
+
