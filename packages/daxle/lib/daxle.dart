@@ -1,20 +1,23 @@
-/// Build predictable, composable Dart applications.
+/// Build predictable, composable Dart applications with functional primitives and compile-time annotations.
 ///
 /// `daxle` is a lightweight functional programming toolkit that replaces
 /// imperative state checks and nested try/catch blocks with clean,
-/// declarative pipelines. Inspired by languages like Rust and Haskell,
-/// it brings robust functional primitives to modern Dart.
+/// declarative pipelines, type-safe error boundaries, and zero-overhead annotations
+/// for modern Dart 3+.
 ///
-/// This library exports six core types, concurrency controls, and essential async utilities:
+/// This library exports core functional types, concurrency controls, async utilities,
+/// deep equality operators, and declarative code-generation annotations:
 ///
-/// - [Option]: For composing optional values without imperative state checks.
+/// - [Option]: For composing optional values without imperative null checks.
 /// - [Either]: For explicit, type-safe error handling and branching.
 /// - [Task]: For composing lazy, asynchronous workflows with controlled concurrency.
 /// - [TaskEither]: For chaining asynchronous operations that can fail, with automatic short-circuiting and controlled concurrency.
 /// - [Unit]: For representing the absence of a meaningful value.
 /// - [QueryMap]: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
 /// - [Concurrency]: Extension type for fine-grained async worker pool limits (`sequential`, `unbounded`, `bounded(limit)`).
-/// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
+/// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]).
+/// - **Equality Utilities**: Collection-aware deep equality checks ([$deepEquals], [$listEquals], [$setEquals], [$mapEquals]) and hash code calculators ([$deepHashCode]).
+/// - **Compile-Time Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for zero-drift AST code generation.
 ///
 /// ---
 ///
@@ -282,6 +285,57 @@
 ///     return .left('Failed to save: $e');
 ///   }
 /// }
+/// ```
+///
+/// ---
+///
+/// ## Codegen Annotations & Data Classes
+///
+/// `daxle` provides compile-time annotations that define functional serialization,
+/// deep immutable copy lenses, structural equality, and string representations.
+/// The annotations introduce zero runtime overhead or reflective dependencies. Code is
+/// synthesized at compile time by adding `package:daxle_gen` to your `dev_dependencies`:
+///
+/// ### Core Annotations:
+/// - [Serialize] / [serialize]: Marks a class, enum, or extension type for functional serialization (`toMap` / `toValue`).
+/// - [Deserialize] / [deserialize]: Marks a class, enum, or extension type for functional deserialization (`fromJson` / `fromMap` / `fromValue`).
+/// - [CopyWith] / [copyWith]: Generates typed immutable copy proxies supporting chained deep mutations (such as `user.copyWith.address.city(name: 'NYC')`) returning the root type, and `copyWithNull` for explicit nullification.
+/// - [EqualsAndHashCode] / [equalsAndHashCode]: Generates tiered collection-aware `operator ==` and `hashCode` implementations.
+/// - [Stringify] / [stringify]: Generates clean `toString` representations for classes and enums.
+/// - [AnnotationBundle]: Combines multiple annotations into reusable named constants (e.g. `@DataClass`).
+///
+/// ### Member & Field Annotations:
+/// - [SerializedValue]: Customizes the wire key name, binds alternative aliases (`aliases: [...]`), or supplies a custom [DaxleJsonConverter].
+/// - [Fallback]: Injects default fallback values for null or missing fields, or designates fallback enum cases.
+/// - [Flatten] / [flatten]: Inlines child object properties directly into the parent JSON map.
+/// - [Ignore] / [ignore]: Excludes a field completely from all generated logic.
+/// - [CaseStyle]: Controls bidirectional naming conventions (such as `snakeCase`, `kebabCase`, `camelCase`).
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// part 'user.daxle.dart';
+///
+/// const DataClass = AnnotationBundle([
+///   Serialize(),
+///   Deserialize(),
+///   CopyWith(),
+///   EqualsAndHashCode(),
+///   Stringify(),
+/// ]);
+///
+/// @DataClass
+/// class User(
+///   @SerializedValue('user_id', aliases: ['id'])
+///   final String id,
+///   final String name,
+///   @Fallback('user')
+///   final String role,
+///   @ignore
+///   final String cachedToken,
+/// ) with _$User;
 /// ```
 ///
 /// ---

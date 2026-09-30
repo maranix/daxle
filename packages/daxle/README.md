@@ -4,7 +4,7 @@
 [![Pub Points](https://img.shields.io/pub/points/daxle.svg)](https://pub.dev/packages/daxle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Stop writing nested try/catch blocks and imperative state checks. Daxle is a lightweight, type-safe functional programming toolkit that helps you build predictable and composable Dart applications.
+Stop writing nested try/catch blocks and imperative state checks. Daxle is a lightweight, type-safe functional programming toolkit and compile-time annotation suite that helps you build predictable, composable Dart applications.
 
 **[📚 Read the Official Documentation](https://daxle.maranix.in)**
 
@@ -12,10 +12,10 @@ Stop writing nested try/catch blocks and imperative state checks. Daxle is a lig
 
 ## Why Daxle?
 
-Dart's type system is great, but runtime exceptions and complex asynchronous workflows can still lead to unpredictable bugs. Daxle gives you explicit, declarative types to handle missing values and errors gracefully at compile-time.
+Dart's type system is great, but runtime exceptions, missing values, and complex asynchronous workflows can still lead to unpredictable bugs. Daxle gives you explicit, declarative types to handle missing values and errors gracefully at compile time.
 
 ### Stop Guessing What Can Fail
-Instead of throwing exceptions that might crash your app in production, use `Either<L, R>` to make failures an explicit part of your function signature. The compiler will force you to handle both success and error states.
+Instead of throwing untyped exceptions that might crash your app in production, use `Either<L, R>` to make failures an explicit part of your function signatures. The compiler enforces that you handle both success and error states.
 
 ### Compose Values with Option
 While Dart's null safety is excellent, `Option<T extends Object>` takes it further by allowing you to chain operations functionally. Replace imperative `if (val != null)` checks with clean, declarative pipelines that gracefully handle missing data without `null` leaking into your `Some` instances.
@@ -26,15 +26,22 @@ Instead of running unbounded parallel futures that overload your backend, or sta
 ### Zero-Cost Nested Map Querying with QueryMap
 Traversing deeply nested JSON payloads or configuration maps manually requires tedious null checks and risky casting (`map['data']?['users']?[0]?['email'] as String?`), which can throw unhandled `TypeError`s or `RangeError`s in production. `QueryMap` provides a zero-cost compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key lists that gracefully returns `null` on missing paths or type mismatches.
 
+### Zero-Overhead Data Class Annotations
+Daxle provides declarative annotations for functional serialization (`@serialize`, `@deserialize`), deep immutable copies with proxies (`@copyWith`), structural equality (`@equalsAndHashCode`), string formatting (`@stringify`), and annotation bundles (`AnnotationBundle`). All annotations carry zero reflective runtime overhead. Pair with `daxle_gen` in `dev_dependencies` to generate pure, zero-drift Dart 3 pattern matching code.
+
 ---
 
 ## Installation
 
-Add the dependency to your `pubspec.yaml`:
+Add Daxle to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
   daxle: ^4.0.0
+
+# Optional: Add daxle_gen to dev_dependencies for compile-time code generation
+dev_dependencies:
+  daxle_gen: ^0.3.0
 ```
 
 Then run:
@@ -106,11 +113,7 @@ TaskEither<String, String> fetchConfig(String role) => .fromFuture(
 
 void main() async {
   // Chain dependent async computations with clean tear-offs:
-  final task = fetchUser(42)
-      .flatMap(fetchConfig);
-
-  // Or directly chain raw Future functions using flatMapFuture:
-  // final rawTask = fetchUser(42).flatMapFuture(rawApiCall, onError: (e, _) => 'Error: $e');
+  final task = fetchUser(42).flatMap(fetchConfig);
 
   // The computation doesn't start until you run it
   final Either<String, String> result = await task.run();
@@ -176,57 +179,93 @@ void main() {
 }
 ```
 
-### Functional Serialization & Sealed Polymorphism (`daxle_gen`)
-Automate type-safe serialization (`toMap`) and deserialization (`fromJson`) using Dart 3 switch pattern matching.
+---
 
-#### Default vs Custom Discriminator Comparison
+## Data Classes & Compile-Time Codegen (`daxle_gen`)
 
-- **Default Discriminator (`@serialize` / `@deserialize`)**: Defaults to `'type'` with subclass name tags:
-  ```dart
-  @serialize
-  @deserialize
-  sealed class Event {}
-  class LoginEvent extends Event { final String userId; LoginEvent(this.userId); }
-  class LogoutEvent extends Event { LogoutEvent(); }
-  ```
-  Generated Switch Pattern (`event.daxle.dart`):
-  ```dart
-  Event eventFromJson(Map<String, dynamic> json) => switch (json) {
-    {'type': 'LoginEvent'} => loginEventFromJson(json),
-    {'type': 'LogoutEvent'} => logoutEventFromJson(json),
-    _ => () {
-      if (!json.containsKey('type')) {
-        throw FormatException("Missing required discriminator 'type' for Event", json);
-      }
-      throw FormatException("Unknown Event discriminator: '${json['type']}'", json);
-    }(),
-  };
-  ```
+`daxle` provides zero-overhead compile-time annotations. When combined with [`daxle_gen`](https://pub.dev/packages/daxle_gen) in `dev_dependencies`, code generation synthesizes type-safe, functional serialization, deep immutable lenses, structural equality, and clean string representations.
 
-- **Custom Discriminator & Custom Tags (`@Serialize(discriminator: ...)` + `@SerializeValue(name: ...)`)**:
-  ```dart
-  @Serialize(discriminator: 'vehicle_type')
-  @Deserialize(discriminator: 'vehicle_type')
-  sealed class Vehicle {}
+### 1. Bundle Annotations with `AnnotationBundle`
+Avoid repetitive annotation boilerplate by declaring named bundles:
 
-  @SerializeValue(name: 'car_v1')
-  @DeserializeValue(name: 'car_v1')
-  class Car implements Vehicle { final int seats; Car(this.seats); }
-  class Bike implements Vehicle { final bool hasPedals; Bike(this.hasPedals); }
-  ```
-  Generated Switch Pattern (`vehicle.daxle.dart`):
-  ```dart
-  Vehicle vehicleFromJson(Map<String, dynamic> json) => switch (json) {
-    {'vehicle_type': 'car_v1'} => carFromJson(json),
-    {'vehicle_type': 'Bike'} => bikeFromJson(json),
-    _ => () {
-      if (!json.containsKey('vehicle_type')) {
-        throw FormatException("Missing required discriminator 'vehicle_type' for Vehicle", json);
-      }
-      throw FormatException("Unknown Vehicle discriminator: '${json['vehicle_type']}'", json);
-    }(),
-  };
-  ```
+```dart
+import 'package:daxle/daxle.dart';
+
+part 'user.daxle.dart';
+
+const DataClass = AnnotationBundle([
+  Serialize(),
+  Deserialize(),
+  CopyWith(),
+  EqualsAndHashCode(),
+  Stringify(),
+]);
+
+@DataClass
+class User(
+  @SerializedValue('user_id', aliases: ['id'])
+  final String id,
+  final String name,
+  final Address address,
+  @Fallback('member')
+  final String role,
+  @ignore
+  final String internalCache,
+) with _$User;
+```
+
+Generate the corresponding `.daxle.dart` part files with:
+
+```bash
+dart run daxle:generate
+```
+
+### 2. Deep & Proxied `copyWith`
+Generated `$ClassNameCopyWithProxy` lenses allow updating deeply nested hierarchies with natural dot notation while returning the newly constructed root object:
+
+```dart
+final user = User(
+  id: 'u_1',
+  name: 'Alice',
+  address: Address(street: '100 Main St', city: 'Old Town'),
+);
+
+// Fluent deep mutation returning root User:
+final updatedUser = user.copyWith.address(city: 'New Town');
+
+print(updatedUser.address.city); // 'New Town'
+print(updatedUser.address.street); // '100 Main St' (preserved)
+```
+
+### 3. Sealed Class Polymorphism
+Polymorphic hierarchies serialize and deserialize cleanly using Dart 3 pattern matching switches with default (`'type'`) or custom discriminators:
+
+```dart
+@Serialize(discriminator: 'event_type')
+@Deserialize(discriminator: 'event_type')
+sealed class Event {}
+
+@SerializedValue('auth.login')
+class LoginEvent(final String userId) implements Event;
+
+@SerializedValue('auth.logout')
+class LogoutEvent() implements Event;
+```
+
+Generated switch pattern in `event.daxle.dart`:
+
+```dart
+Event eventFromMap(Map<String, dynamic> json) => switch (json) {
+  {'event_type': 'auth.login'} => loginEventFromMap(json),
+  {'event_type': 'auth.logout'} => logoutEventFromMap(json),
+  _ => () {
+    if (!json.containsKey('event_type')) {
+      throw FormatException("Missing required discriminator 'event_type' for Event", json);
+    }
+    throw FormatException("Unknown Event discriminator: '${json['event_type']}'", json);
+  }(),
+};
+```
 
 ---
 
