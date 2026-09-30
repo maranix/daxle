@@ -748,6 +748,66 @@ extension type Point2D((double x, double y) it) {}
     expect(extType.representationType.isRecordPositional, true);
     expect(extType.representationType.recordFields.length, 2);
   });
+
+  test('parses @redact with default and custom configurations', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class UserSecret {
+  @redact
+  final String secretToken;
+
+  @Redact(mask: '***', preserveLength: true)
+  final String maskedPassword;
+
+  UserSecret(this.secretToken, this.maskedPassword);
+}
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.classes.length, 1);
+    final clazz = parsedFile.classes.first;
+    expect(clazz.fields.length, 2);
+
+    final f1 = clazz.fields[0];
+    expect(f1.name, 'secretToken');
+    expect(f1.isRedacted, isTrue);
+    expect(f1.redactConfig?.mask, '[REDACTED]');
+    expect(f1.redactConfig?.preserveLength, isFalse);
+
+    final f2 = clazz.fields[1];
+    expect(f2.name, 'maskedPassword');
+    expect(f2.isRedacted, isTrue);
+    expect(f2.redactConfig?.mask, '***');
+    expect(f2.redactConfig?.preserveLength, isTrue);
+  });
+
+  test('throws InvalidGenerationSourceError when @ignore is paired with @redact', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+class InvalidRedactIgnore {
+  @ignore
+  @redact
+  final String badField;
+
+  InvalidRedactIgnore(this.badField);
+}
+''';
+    expect(
+      () => parser.parseContent(code),
+      throwsA(
+        isA<InvalidGenerationSourceError>().having(
+          (e) => e.message,
+          'message',
+          contains(
+            '@ignore cannot coexist with @SerializedValue, @Fallback, @Flatten, or @redact',
+          ),
+        ),
+      ),
+    );
+  });
 }
 
 final class _TestCustomHandler implements AnnotationHandler<void> {

@@ -368,3 +368,37 @@ class RecordContainer(
   final (int, int)? grid,
 );
 
+// 21. Redaction Models
+@serialize
+@deserialize
+@stringify
+@equalsAndHashCode
+class SecretProfile(
+  final String publicUsername,
+  @redact
+  final String secretToken,
+  @Redact(mask: '*', preserveLength: true)
+  final String rawPassword,
+  @redact
+  final String? optionalPin,
+  @Redact(preserveLength: true)
+  final String? nullablePreserved,
+  @redact
+  final List<String> creditCards,
+  @redact
+  final Set<String> recoveryCodes,
+  @redact
+  final Map<String, String> tokens,
+) with _$SecretProfile;
+
+@serialize
+@deserialize
+@stringify
+@equalsAndHashCode
+class AccountCredentials(
+  final String accountId,
+  final SecretProfile profile,
+  @redact
+  final SecretProfile wholesaleRedactedProfile,
+) with _$AccountCredentials;
+

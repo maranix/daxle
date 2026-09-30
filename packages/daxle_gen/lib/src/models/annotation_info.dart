@@ -61,7 +61,18 @@ class CopyWithInfo {
   });
 }
 
-/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, `@Flatten`, and `@ignore`.
+/// Configuration for sensitive field redaction from `@Redact` or `@redact`.
+class RedactConfig {
+  final String mask;
+  final bool preserveLength;
+
+  const RedactConfig({
+    this.mask = '[REDACTED]',
+    this.preserveLength = false,
+  });
+}
+
+/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, `@Flatten`, `@Redact`, and `@ignore`.
 class FieldConfig {
   final String? serializedKey;
   final List<String> aliases;
@@ -70,6 +81,7 @@ class FieldConfig {
   final bool isFlattened;
   final String flattenPrefix;
   final bool isIgnored;
+  final RedactConfig? redactConfig;
 
   const FieldConfig({
     this.serializedKey,
@@ -79,6 +91,7 @@ class FieldConfig {
     this.isFlattened = false,
     this.flattenPrefix = '',
     this.isIgnored = false,
+    this.redactConfig,
   });
 
   String? get effectiveSerializeKey => serializedKey;
@@ -87,6 +100,7 @@ class FieldConfig {
   String? get effectiveDeserializeConverter => converterCode;
   bool get ignoreSerialize => isIgnored;
   bool get ignoreDeserialize => isIgnored;
+  bool get isRedacted => redactConfig != null;
 
   /// Returns true if this configuration has any explicit member annotation or configuration.
   bool get hasAnyAnnotation =>
@@ -95,6 +109,7 @@ class FieldConfig {
       serializedKey != null ||
       fallbackCode != null ||
       converterCode != null ||
+      redactConfig != null ||
       aliases.isNotEmpty;
 
   FieldConfig merge(FieldConfig other, [String memberName = 'member']) {
@@ -107,13 +122,14 @@ class FieldConfig {
     final mergedFlattenPrefix = other.flattenPrefix.isNotEmpty
         ? other.flattenPrefix
         : flattenPrefix;
+    final mergedRedact = other.redactConfig ?? redactConfig;
 
     if (mergedIgnored &&
-        (mergedKey != null || mergedFallback != null || mergedFlattened)) {
+        (mergedKey != null || mergedFallback != null || mergedFlattened || mergedRedact != null)) {
       throw InvalidGenerationSourceError(
-        '@ignore cannot coexist with @SerializedValue, @Fallback, or @Flatten on "$memberName".',
+        '@ignore cannot coexist with @SerializedValue, @Fallback, @Flatten, or @redact on "$memberName".',
         todo:
-            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten from "$memberName".',
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten/@redact from "$memberName".',
       );
     }
 
@@ -132,6 +148,7 @@ class FieldConfig {
       isFlattened: mergedFlattened,
       flattenPrefix: mergedFlattenPrefix,
       isIgnored: mergedIgnored,
+      redactConfig: mergedRedact,
     );
   }
 }

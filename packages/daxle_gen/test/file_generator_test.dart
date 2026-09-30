@@ -377,5 +377,46 @@ class GeoLocation(
     // Uses inline list serialization for positional record
     expect(generated, contains('[instance.grid!.\$1, instance.grid!.\$2]'));
   });
+
+  test('generates toDebugMap, diff, and toString masking for @redact models', () {
+    const code = r'''
+import 'package:daxle/daxle.dart';
+
+part 'secret.daxle.dart';
+
+@serialize
+@stringify
+class ApiKeyCredentials(
+  final String clientId,
+  @redact
+  final String secretKey,
+  @Redact(mask: '*', preserveLength: true)
+  final String rawPin,
+) with _$ApiKeyCredentials;
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/secret.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(
+      generated,
+      contains('apiKeyCredentialsToDebugMap('),
+    );
+    expect(
+      generated,
+      contains('apiKeyCredentialsDiff('),
+    );
+    expect(generated, contains("'secretKey': '[REDACTED]'"));
+    expect(
+      generated,
+      contains(
+        "'rawPin': ('*'.isNotEmpty ? '*'[0] * instance.rawPin.length : '')",
+      ),
+    );
+    expect(generated, contains('toDebugMap({bool excludeNull = false})'));
+    expect(generated, contains('diff(ApiKeyCredentials other, {bool deep = true})'));
+    expect(generated, contains("secretKey: [REDACTED]"));
+  });
 }
 

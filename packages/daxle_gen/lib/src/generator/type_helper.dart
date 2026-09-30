@@ -237,6 +237,7 @@ class TypeHelper {
     FieldConfig? config,
     bool explicitToJson = true,
     int depth = 0,
+    bool forDebugMap = false,
   }) {
     final converter = config?.effectiveSerializeConverter;
     if (converter != null) {
@@ -275,6 +276,7 @@ class TypeHelper {
           itemVar,
           explicitToJson: explicitToJson,
           depth: depth + 1,
+          forDebugMap: forDebugMap,
         );
         expr = type.isNullable
             ? '$fieldExpr?.map(($itemVar) => $itemSerialize).toList()'
@@ -291,6 +293,7 @@ class TypeHelper {
           itemVar,
           explicitToJson: explicitToJson,
           depth: depth + 1,
+          forDebugMap: forDebugMap,
         );
         expr = type.isNullable
             ? '$fieldExpr?.map(($itemVar) => $itemSerialize).toList()'
@@ -329,6 +332,7 @@ class TypeHelper {
                 vVar,
                 explicitToJson: explicitToJson,
                 depth: depth + 1,
+                forDebugMap: forDebugMap,
               );
         expr = type.isNullable
             ? '$fieldExpr?.map(($kVar, $vVar) => MapEntry($keySerialize, $valSerialize))'
@@ -362,6 +366,7 @@ class TypeHelper {
             access,
             explicitToJson: explicitToJson,
             depth: depth + 1,
+            forDebugMap: forDebugMap,
           );
         }).join(', ');
         expr = type.isNullable
@@ -379,6 +384,7 @@ class TypeHelper {
             access,
             explicitToJson: explicitToJson,
             depth: depth + 1,
+            forDebugMap: forDebugMap,
           );
           return "'$key': $serialized";
         }).join(', ');
@@ -390,10 +396,13 @@ class TypeHelper {
       if (!explicitToJson) {
         expr = fieldExpr;
       } else {
-        final fn = '${toCamelCase(type.baseName)}ToMap';
+        final fn = forDebugMap
+            ? '${toCamelCase(type.baseName)}ToDebugMap'
+            : '${toCamelCase(type.baseName)}ToMap';
+        final callSuffix = forDebugMap ? ', excludeNull: excludeNull' : '';
         expr = type.isNullable
-            ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
-            : '$fn($fieldExpr)';
+            ? '($fieldExpr == null ? null : $fn($fieldExpr!$callSuffix))'
+            : '$fn($fieldExpr$callSuffix)';
       }
     }
 
@@ -417,6 +426,7 @@ class TypeHelper {
     FieldConfig? config,
     bool explicitToJson = true,
     int depth = 0,
+    bool forDebugMap = false,
   }) {
     final converter = config?.effectiveSerializeConverter;
     if (converter != null) {
@@ -445,6 +455,7 @@ class TypeHelper {
         itemVar,
         explicitToJson: explicitToJson,
         depth: depth + 1,
+        forDebugMap: forDebugMap,
       );
       return '$fieldExpr!.map(($itemVar) => $itemSerialize).toList()';
     } else if (type.isSet) {
@@ -458,6 +469,7 @@ class TypeHelper {
         itemVar,
         explicitToJson: explicitToJson,
         depth: depth + 1,
+        forDebugMap: forDebugMap,
       );
       return '$fieldExpr!.map(($itemVar) => $itemSerialize).toList()';
     } else if (type.isMap) {
@@ -493,6 +505,7 @@ class TypeHelper {
               vVar,
               explicitToJson: explicitToJson,
               depth: depth + 1,
+              forDebugMap: forDebugMap,
             );
       return '$fieldExpr!.map(($kVar, $vVar) => MapEntry($keySerialize, $valSerialize))';
     } else if (knownEnums.contains(type.baseName)) {
@@ -514,6 +527,7 @@ class TypeHelper {
             '$fieldExpr!.\$${f.position}',
             explicitToJson: explicitToJson,
             depth: depth + 1,
+            forDebugMap: forDebugMap,
           );
         }).join(', ');
         return '[$elements]';
@@ -526,6 +540,7 @@ class TypeHelper {
             '$fieldExpr!.$member',
             explicitToJson: explicitToJson,
             depth: depth + 1,
+            forDebugMap: forDebugMap,
           );
           return "'$key': $serialized";
         }).join(', ');
@@ -535,8 +550,11 @@ class TypeHelper {
       if (!explicitToJson) {
         return fieldExpr;
       }
-      final fn = '${toCamelCase(type.baseName)}ToMap';
-      return '$fn($fieldExpr!)';
+      final fn = forDebugMap
+          ? '${toCamelCase(type.baseName)}ToDebugMap'
+          : '${toCamelCase(type.baseName)}ToMap';
+      final callSuffix = forDebugMap ? ', excludeNull: excludeNull' : '';
+      return '$fn($fieldExpr!$callSuffix)';
     }
 
   }
