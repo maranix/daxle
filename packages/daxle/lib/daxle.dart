@@ -241,3 +241,6 @@ export 'package:async/async.dart'
 
 // Export stream transformation operators from `stream_transform` package
 export 'package:stream_transform/stream_transform.dart';
+
+// Export Pool from `pool` package
+export 'package:pool/pool.dart' show Pool, PoolResource;

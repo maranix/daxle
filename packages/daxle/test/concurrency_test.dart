@@ -32,6 +32,17 @@ void main() {
         const mode = Concurrency.bounded(-1);
         expect(() => mode.process([]), throwsArgumentError);
       });
+
+      test('createPool returns Pool or null for unbounded', () {
+        final seqPool = Concurrency.sequential.createPool();
+        expect(seqPool, isA<Pool>());
+
+        final boundPool = const Concurrency.bounded(5).createPool();
+        expect(boundPool, isA<Pool>());
+
+        final unbPool = Concurrency.unbounded.createPool();
+        expect(unbPool, isNull);
+      });
     });
 
     group('empty and single item processing', () {

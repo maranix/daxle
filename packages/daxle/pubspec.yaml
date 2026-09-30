@@ -20,6 +20,7 @@ resolution: workspace
 dependencies:
   async: ^2.13.1
   meta: ^1.19.0
+  pool: ^1.5.3
   stream_transform: ^2.1.2
 
 dev_dependencies:

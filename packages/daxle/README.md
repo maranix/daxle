@@ -13,7 +13,8 @@ Daxle is a lightweight, zero-overhead Dart 3+ toolkit providing zero-cost map qu
 ## Core Capabilities
 
 - **Zero-Cost Nested Map Traversal (`QueryMap`)**: Zero-overhead compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key support. Safely returns `null` on missing paths or type mismatches without exceptions.
-- **Sliding-Window Worker Pool (`Concurrency`)**: Manage asynchronous workload throughput using `.sequential`, `.unbounded`, or `.bounded(poolSize)` modes, with early termination abort protection via `shouldStop`.
+- **Sliding-Window Worker Pool (`Concurrency`)**: Manage asynchronous workload throughput using `.sequential`, `.unbounded`, or `.bounded(poolSize)` modes backed by `package:pool`, with early termination abort protection via `shouldStop`.
+- **Resource Pooling (`Pool`)**: Re-exports `Pool` and `PoolResource` from `package:pool` for robust asynchronous throttling and resource management.
 - **Deep Structural Equality (`$deepEquals`, `$deepHashCode`)**: Multi-tiered equality comparisons for nested maps, sets, lists, and records.
 - **Stream Transformation Operators**: Re-exports all operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
 - **Async Flow Utilities**: Re-exports key utilities from `package:async` (`FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, `StreamGroup`, `StreamSplitter`).

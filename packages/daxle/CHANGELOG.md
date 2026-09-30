@@ -6,6 +6,11 @@
 
 - **NEW FEATURES**:
   - Re-exported complete reactive stream operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
+  - Added dependency on `package:pool` and re-exported `Pool` and `PoolResource`.
+  - Added `Concurrency.createPool()` method to construct a `Pool` corresponding to the concurrency strategy.
+
+- **INTERNAL IMPROVEMENTS**:
+  - Rewrote `Concurrency` internal worker scheduling to use `package:pool` for battle-tested resource pooling, while keeping the public API, determinism, and `shouldStop` early termination guarantees intact.
 
 ## 4.0.0 (2026-08-13)
 

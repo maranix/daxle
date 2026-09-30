@@ -9,7 +9,8 @@ High-performance data modeling, zero-cost map querying, concurrency control, and
 Daxle provides lightweight, zero-overhead primitives designed specifically for Dart 3+:
 
 - **`QueryMap`**: Zero-cost compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key support. Safely returns `null` on missing paths or type mismatches.
-- **`Concurrency`**: Extension type for fine-grained async worker limits (`sequential`, `unbounded`, `bounded(limit)`), sliding-window worker pool execution, and early termination (`shouldStop`).
+- **`Concurrency`**: Extension type for fine-grained async worker limits (`sequential`, `unbounded`, `bounded(limit)`), sliding-window worker pool execution backed by `package:pool`, and early termination (`shouldStop`).
+- **`Pool`**: Re-exports `Pool` and `PoolResource` from `package:pool` for robust asynchronous resource management.
 - **Deep Structural Equality**: Collection-aware equality checks (`$deepEquals`, `$deepHashCode`, `$listEquals`, `$setEquals`, `$mapEquals`).
 - **Stream Transformations**: Complete suite of reactive operators from `package:stream_transform` (debounce, throttle, audit, merge, combineLatest, switchMap, scan, tap).
 - **Async Flow Utilities**: Re-exports of key utilities from `package:async` (`FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, `StreamGroup`, `StreamSplitter`).

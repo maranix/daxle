@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:meta/meta.dart';
+import 'package:pool/pool.dart';
 
 /// {@template concurrency}
 /// Defines the concurrency execution strategy for asynchronous tasks.
@@ -44,6 +45,15 @@ extension type const Concurrency._(int poolSize) {
 
   /// Whether execution is bounded with a worker pool poolSize (poolSize >= 2).
   bool get isBounded => poolSize > 1;
+
+  /// Creates a new [Pool] corresponding to this concurrency strategy.
+  ///
+  /// Returns `null` if [isUnbounded].
+  Pool? createPool() {
+    _validateLimit();
+    if (isUnbounded) return null;
+    return Pool(poolSize);
+  }
 
   /// Executes [items] according to this concurrency strategy and returns the collected results.
   ///
@@ -135,26 +145,30 @@ extension type const Concurrency._(int poolSize) {
     bool Function(R)? shouldStop,
   }) async {
     final SplayTreeMap<int, R> jobResults = .new();
-
+    final pool = Pool(poolSize);
     final iter = jobs.indexed.iterator;
     var isStopped = false;
 
-    await Future.wait(
-      .generate(poolSize, (_) async {
-        while (!isStopped && iter.moveNext()) {
-          final (index, job) = iter.current;
+    try {
+      await Future.wait(
+        .generate(poolSize, (_) async {
+          while (!isStopped) {
+            if (isStopped || !iter.moveNext()) return;
+            final (index, job) = iter.current;
+            final result = await pool.withResource(job);
+            jobResults.putIfAbsent(index, () => result);
 
-          final result = await job();
-          jobResults.putIfAbsent(index, () => result);
-
-          if (shouldStop?.call(result) ?? false) {
-            isStopped = true;
-            break;
+            if (shouldStop?.call(result) ?? false) {
+              isStopped = true;
+              break;
+            }
           }
-        }
-      }),
-      eagerError: true,
-    );
+        }),
+        eagerError: true,
+      );
+    } finally {
+      await pool.close();
+    }
 
     return jobResults.values.toList();
   }
