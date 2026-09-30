@@ -1,17 +1,16 @@
-/// Build predictable, high-performance Dart applications with zero-overhead data modeling, concurrency, and stream transformations.
+/// Build predictable, high-performance Dart applications with zero-overhead data modeling and map querying.
 ///
-/// `daxle` provides type-safe utilities, zero-cost map querying, concurrency scheduling,
-/// deep structural equality, stream transformation operators, and declarative
-/// compile-time annotations for modern Dart 3+.
-///
-/// This library exports core utilities and declarative code-generation annotations:
-///
+/// `package:daxle/daxle.dart` is the primary entrypoint for:
+/// - **Compile-Time Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for pure AST code generation.
 /// - [QueryMap]: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
-/// - [Concurrency]: Extension type for fine-grained async worker pool limits (`sequential`, `unbounded`, `bounded(limit)`), [Concurrency.dispatch], and [Concurrency.process].
-/// - **Equality Utilities**: Collection-aware deep equality checks ([$deepEquals], [$listEquals], [$setEquals], [$mapEquals]) and hash code calculators ([$deepHashCode]).
-/// - **Stream Transformation Utilities**: Comprehensive stream operator extensions from `package:stream_transform` (such as `debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, and `whereType`).
-/// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]).
-/// - **Compile-Time Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for zero-drift AST code generation.
+/// - **Structural Equality Utilities**: Collection-aware deep equality checks ([$deepEquals], [$listEquals], [$setEquals], [$mapEquals]) and hash code calculators ([$deepHashCode]).
+///
+/// For asynchronous and reactive stream utilities (`Concurrency`, `Pool`, `stream_transform`, `FutureGroup`, `AsyncCache`),
+/// import `package:daxle/async.dart`:
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+/// import 'package:daxle/async.dart';
+/// ```
 ///
 /// ---
 ///
@@ -82,36 +81,6 @@
 ///
 /// ---
 ///
-/// ## `Concurrency`
-///
-/// Fine-grained control over asynchronous worker scheduling across the event loop:
-///
-/// - `Concurrency.sequential`: Runs tasks 1 by 1 in strict sequence.
-/// - `Concurrency.unbounded`: Dispatches all tasks simultaneously in parallel without limits.
-/// - `Concurrency.bounded(int poolSize)`: Executes tasks using a **sliding-window worker pool**.
-///   Fast tasks never wait for slow tasks; available workers immediately pull the next task from the queue.
-/// - **Standalone `dispatch` & `process`**: Use `concurrency.dispatch(items, worker)` to process raw collections without boilerplate, or `concurrency.process(thunks)` for zero-arg task closures.
-/// - **Early Termination (`shouldStop`)**: Halts worker queue consumption as soon as a stop condition is met,
-///   protecting your system from running redundant operations when a failure or target state is reached.
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// void main() async {
-///   final urls = ['https://api.a.com', 'https://api.b.com', 'https://api.c.com'];
-///
-///   // Process concurrently with a pool limit of 2:
-///   final results = await Concurrency.bounded(2).dispatch(
-///     urls,
-///     (url) => httpGet(url),
-///   );
-/// }
-/// ```
-///
-/// ---
-///
 /// ## Codegen Annotations & Data Classes
 ///
 /// `daxle` provides compile-time annotations that define functional serialization,
@@ -160,87 +129,8 @@
 ///   final String cachedToken,
 /// ) with _$User;
 /// ```
-///
-/// ---
-///
-/// ## Stream Transformation Utilities
-///
-/// `daxle` re-exports the complete set of reactive stream transformation extensions from `package:stream_transform`:
-///
-/// - **Rate Limiting & Buffering**:
-///   - `stream.debounce(duration)`: Emits only after a specified quiet window has elapsed.
-///   - `stream.throttle(duration)`: Emits the initial event and blocks subsequent events for a duration.
-///   - `stream.audit(duration)`: Waits for quiet periods and emits the most recent event.
-///   - `stream.buffer(trigger)`: Gathers events until a trigger stream emits.
-/// - **Combining & Merging**:
-///   - `stream.combineLatest(other, combiner)`: Pairs the latest events from multiple streams.
-///   - `stream.merge(other)` / `stream.mergeAll(others)`: Interleaves events from multiple streams.
-///   - `stream.followedBy(other)`: Chains an alternate stream after the source terminates.
-/// - **Higher-Order Switching**:
-///   - `stream.switchMap(mapper)`: Flattens stream-of-streams, automatically canceling stale inner subscriptions.
-/// - **Transformation & Filtering**:
-///   - `stream.scan(initial, accumulator)`: Yields successive cumulative accumulator states.
-///   - `stream.tap(callback)`: Observes stream items for side effects without extra subscriptions.
-///   - `stream.whereType<T>()`: Filters stream events by runtime type.
-///   - `stream.takeUntil(future)`: Closes stream when an asynchronous future completes.
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'dart:async';
-/// import 'package:daxle/daxle.dart';
-///
-/// void main() async {
-///   final clicks = StreamController<String>();
-///
-///   // Debounce search query input to prevent redundant network requests:
-///   final queries = clicks.stream
-///       .debounce(const Duration(milliseconds: 300))
-///       .tap((query) => print('Querying: $query'));
-///
-///   queries.listen(print);
-/// }
-/// ```
-///
-/// ---
-///
-/// ## Async Utilities
-///
-/// This package re-exports several powerful primitives from `package:async` to simplify asynchronous control flow and stream manipulation:
-///
-/// - **Future Utilities**:
-///   - [FutureGroup]: Collects futures and fires when all are complete, allowing dynamic addition of futures.
-///   - [AsyncCache]: Caches the results of asynchronous operations.
-///   - [AsyncMemoizer]: Runs an asynchronous block once and caches the result for future calls.
-///
-/// - **Stream Utilities**:
-///   - [StreamZip]: Combines multiple streams into a single stream of zipped values.
-///   - [StreamQueue]: Simplifies stream consumption with pull-based operations.
-///   - [StreamGroup]: Merges multiple streams into a single output stream.
-///   - [StreamSplitter]: Splits a single stream into multiple identical, independent streams.
 library;
 
 export 'src/annotations/codegen.dart';
-export 'src/util/concurrency.dart';
 export 'src/util/equality.dart';
 export 'src/util/query_map.dart';
-
-// Export some useful utilities from `async` package
-export 'package:async/async.dart'
-    show
-        // Future
-        FutureGroup,
-        // Async
-        AsyncCache,
-        AsyncMemoizer,
-        // Stream
-        StreamZip,
-        StreamQueue,
-        StreamGroup,
-        StreamSplitter;
-
-// Export stream transformation operators from `stream_transform` package
-export 'package:stream_transform/stream_transform.dart';
-
-// Export Pool from `pool` package
-export 'package:pool/pool.dart' show Pool, PoolResource;

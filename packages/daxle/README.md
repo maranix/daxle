@@ -22,6 +22,23 @@ Daxle is a lightweight, zero-overhead Dart 3+ toolkit providing zero-cost map qu
 
 ---
 
+## Structured Library Exports
+
+To keep auto-complete clean and imports focused, Daxle organizes its exports into dedicated libraries:
+
+- **`package:daxle/daxle.dart`**: Core annotations, data classes, structural equality (`$deepEquals`), and zero-cost map querying (`QueryMap`).
+- **`package:daxle/async.dart`**: Curated asynchronous & reactive toolkit (`Concurrency`, `Pool`, `package:stream_transform` operators, `FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, etc.).
+
+```dart
+// Data modeling & querying
+import 'package:daxle/daxle.dart';
+
+// Async concurrency & reactive streams
+import 'package:daxle/async.dart';
+```
+
+---
+
 ## Installation
 
 Add Daxle to your `pubspec.yaml`:
@@ -99,7 +116,7 @@ void main() {
 Control worker limits and execute raw collections directly:
 
 ```dart
-import 'package:daxle/daxle.dart';
+import 'package:daxle/async.dart';
 
 void main() async {
   final urls = [
@@ -124,7 +141,7 @@ Manipulate, debounce, and interleave event streams with reactive operators from 
 
 ```dart
 import 'dart:async';
-import 'package:daxle/daxle.dart';
+import 'package:daxle/async.dart';
 
 void main() async {
   final searchController = StreamController<String>();

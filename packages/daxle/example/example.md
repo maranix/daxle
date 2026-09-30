@@ -1,6 +1,7 @@
 ```dart
 import 'dart:async';
 import 'package:daxle/daxle.dart';
+import 'package:daxle/async.dart';
 
 void main() async {
   // 1. QueryMap: Zero-cost nested map and embedded list querying

@@ -8,6 +8,9 @@
   - Re-exported complete reactive stream operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
   - Added dependency on `package:pool` and re-exported `Pool` and `PoolResource`.
   - Added `Concurrency.createPool()` method to construct a `Pool` corresponding to the concurrency strategy.
+  - **Structured Library Architecture**:
+    - `package:daxle/daxle.dart`: Focused entrypoint for core annotations, data classes, and zero-cost data access (`QueryMap`). Keeps IDE auto-complete clean.
+    - `package:daxle/async.dart`: Curated asynchronous & reactive toolkit (`Concurrency`, `Pool`, `stream_transform`, `FutureGroup`, `AsyncCache`, `StreamQueue`, etc.).
 
 - **INTERNAL IMPROVEMENTS**:
   - Rewrote `Concurrency` internal worker scheduling to use `package:pool` for battle-tested resource pooling, while keeping the public API, determinism, and `shouldStop` early termination guarantees intact.

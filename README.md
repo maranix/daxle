@@ -16,6 +16,8 @@ Daxle provides lightweight, zero-overhead primitives designed specifically for D
 - **Async Flow Utilities**: Re-exports of key utilities from `package:async` (`FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, `StreamGroup`, `StreamSplitter`).
 - **Compile-Time Codegen Annotations**: Declarative annotations (`@serialize`, `@deserialize`, `@copyWith`, `@equalsAndHashCode`, `@stringify`, `@AnnotationBundle`) paired with `daxle_gen` in `dev_dependencies` for pure AST code generation.
 
+Import `package:daxle/daxle.dart` for core annotations, data classes, and QueryMap. Import `package:daxle/async.dart` for the curated async/reactive toolkit (`Concurrency`, `Pool`, `stream_transform`, `FutureGroup`, `AsyncCache`).
+
 [📚 Read the Documentation](https://daxle.maranix.in) • [📦 View on Pub.dev](https://pub.dev/packages/daxle)
 
 ---

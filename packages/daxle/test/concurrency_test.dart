@@ -1,4 +1,4 @@
-import 'package:daxle/daxle.dart';
+import 'package:daxle/async.dart';
 import 'package:test/test.dart';
 
 void main() {
