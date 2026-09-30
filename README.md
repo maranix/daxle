@@ -55,7 +55,7 @@ TaskEither<NetworkError, User> fetchUser(String id) =>
 | Package | Path | Description | Version | Pub |
 | :--- | :--- | :--- | :--- | :--- |
 | **daxle** | [`packages/daxle`](packages/daxle/) | Core functional toolkit containing `Option`, `Either`, `Task`, `TaskEither`, `Unit`, and `QueryMap`. | `4.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
-| **daxle_gen** | [`packages/daxle_gen`](packages/daxle_gen/) | High-performance AST code generator for functional serialization, deep copyWith, equality, and stringify. | `0.2.1-beta` | [![Pub](https://img.shields.io/pub/v/daxle_gen.svg)](https://pub.dev/packages/daxle_gen) |
+| **daxle_gen** | [`packages/daxle_gen`](packages/daxle_gen/) | High-performance AST code generator for functional serialization, deep copyWith, equality, and stringify. | `0.3.0` | [![Pub](https://img.shields.io/pub/v/daxle_gen.svg)](https://pub.dev/packages/daxle_gen) |
 
 ---
 

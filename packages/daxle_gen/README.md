@@ -59,7 +59,7 @@ dependencies:
   daxle: ^4.0.0
 
 dev_dependencies:
-  daxle_gen: ^0.2.1-beta
+  daxle_gen: ^0.3.0
 ```
 
 In any source file where generation is required, declare the generated part file:
