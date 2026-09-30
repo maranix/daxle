@@ -305,4 +305,77 @@ class GuildConfig({
       ),
     );
   });
+
+  test('generates serialization and deserialization for record typedefs', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'records.daxle.dart';
+
+@serialize
+@deserialize
+typedef UserInfo = ({String name, int age});
+
+@serialize
+@deserialize
+typedef LatLng = (double lat, double lng);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/records.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    // Named record
+    expect(generated, contains('Map<String, dynamic> userInfoToMap(UserInfo instance)'));
+    expect(generated, contains("'name': instance.name"));
+    expect(generated, contains("'age': instance.age"));
+    expect(generated, contains('UserInfo userInfoFromMap(Map<String, dynamic> map)'));
+    expect(generated, contains('name: (map[\'name\'] as String)'));
+    expect(generated, contains('extension UserInfoToMapExtension on UserInfo'));
+    expect(generated, contains('extension UserInfoMapExtension on Map<String, dynamic>'));
+
+    // Positional record
+    expect(generated, contains('List<dynamic> latLngToList(LatLng instance)'));
+    expect(generated, contains('[instance.\$1, instance.\$2]'));
+    expect(generated, contains('LatLng latLngFromList(List<dynamic> list)'));
+    expect(generated, contains('((list[0] as num).toDouble()), ((list[1] as num).toDouble())'));
+    expect(generated, contains('extension LatLngToListExtension on LatLng'));
+    expect(generated, contains('extension LatLngListExtension on List<dynamic>'));
+  });
+
+
+  test('generates code for class with inline record fields and record typedefs', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'geo.daxle.dart';
+
+@serialize
+@deserialize
+typedef Coords = (double, double);
+
+@serialize
+@deserialize
+class GeoLocation(
+  final String title,
+  final Coords coords,
+  final ({String street, int zip}) address,
+  final (int, int)? grid,
+);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/geo.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    // Uses coordsToList for the known record alias field
+    expect(generated, contains('coordsToList(instance.coords)'));
+    expect(generated, contains('coordsFromList('));
+    // Uses inline map serialization for named record
+    expect(generated, contains("'street': instance.address.street"));
+    expect(generated, contains("'zip': instance.address.zip"));
+    // Uses inline list serialization for positional record
+    expect(generated, contains('[instance.grid!.\$1, instance.grid!.\$2]'));
+  });
 }
+

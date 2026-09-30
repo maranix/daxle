@@ -18,6 +18,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
   final List<ParsedClass> classes = [];
   final List<ParsedEnum> enums = [];
   final List<ParsedExtensionType> extensionTypes = [];
+  final List<ParsedRecordAlias> recordAliases = [];
   final List<String> partDirectives = [];
   String? partOfPath;
 
@@ -632,6 +633,125 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
+  @override
+  void visitGenericTypeAlias(GenericTypeAlias node) {
+    final name = node.name.lexeme;
+
+    SerializeInfo? serializeInfo;
+    DeserializeInfo? deserializeInfo;
+
+    for (final (annotName, arguments) in registry.resolveAnnotations(
+      node.metadata,
+      bundleMap,
+    )) {
+      if (annotName == 'Serialize' || annotName == 'serialize') {
+        serializeInfo = registry.parseAnnotation<SerializeInfo>(
+          name: annotName,
+          arguments: arguments,
+          memberName: name,
+        );
+      } else if (annotName == 'Deserialize' || annotName == 'deserialize') {
+        deserializeInfo = registry.parseAnnotation<DeserializeInfo>(
+          name: annotName,
+          arguments: arguments,
+          memberName: name,
+        );
+      }
+    }
+
+    if (serializeInfo == null && deserializeInfo == null) return;
+
+    final typeStr = node.type.toSource();
+    ParsedType recordType;
+
+    if (node.type case RecordTypeAnnotation recordNode) {
+      recordType = _parseRecordTypeAnnotation(recordNode, typeStr);
+    } else {
+      recordType = ParsedType.parse(typeStr);
+    }
+
+    recordAliases.add(
+      ParsedRecordAlias(
+        name: name,
+        recordType: recordType,
+        serialize: serializeInfo,
+        deserialize: deserializeInfo,
+      ),
+    );
+  }
+
+  ParsedType _parseRecordTypeAnnotation(
+    RecordTypeAnnotation recordNode,
+    String typeStr,
+  ) {
+    final fields = <ParsedRecordField>[];
+    var posIndex = 1;
+
+    for (final f in recordNode.positionalFields) {
+      final fieldTypeStr = f.type.toSource();
+      final fieldType = f.type is RecordTypeAnnotation
+          ? _parseRecordTypeAnnotation(
+              f.type as RecordTypeAnnotation,
+              fieldTypeStr,
+            )
+          : ParsedType.parse(fieldTypeStr);
+      final fieldName = f.name?.lexeme;
+      final cfg = registry.parseFieldConfig(
+        f.metadata,
+        bundleMap,
+        memberName: fieldName ?? '\$$posIndex',
+      );
+      fields.add(
+        ParsedRecordField(
+          name: fieldName,
+          type: fieldType,
+          isNamed: false,
+          position: posIndex++,
+          serializedKey: cfg.serializedKey,
+        ),
+      );
+    }
+
+    if (recordNode.namedFields case RecordTypeAnnotationNamedFields named) {
+      for (final f in named.fields) {
+        final fieldTypeStr = f.type.toSource();
+        final fieldType = f.type is RecordTypeAnnotation
+            ? _parseRecordTypeAnnotation(
+                f.type as RecordTypeAnnotation,
+                fieldTypeStr,
+              )
+            : ParsedType.parse(fieldTypeStr);
+        final fieldName = f.name.lexeme;
+        final cfg = registry.parseFieldConfig(
+          f.metadata,
+          bundleMap,
+          memberName: fieldName,
+        );
+        fields.add(
+          ParsedRecordField(
+            name: fieldName,
+            type: fieldType,
+            isNamed: true,
+            position: posIndex++,
+            serializedKey: cfg.serializedKey,
+          ),
+        );
+      }
+    }
+
+    final isNullable = typeStr.endsWith('?');
+    final baseName = isNullable
+        ? typeStr.substring(0, typeStr.length - 1).trim()
+        : typeStr.trim();
+
+    return ParsedType(
+      rawType: typeStr.trim(),
+      baseName: baseName,
+      isNullable: isNullable,
+      recordFields: fields,
+    );
+  }
+
   void _validateRootAnnotations() {
     final sealedClasses = classes.where((c) => c.isSealed).toList();
     for (final clazz in classes) {
@@ -715,6 +835,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
         classes: classes,
         enums: enums,
         extensionTypes: extensionTypes,
+        recordAliases: recordAliases,
         partDirectives: partDirectives,
         bundleDeclarations: bundleMap,
         partOfPath: partOfPath,

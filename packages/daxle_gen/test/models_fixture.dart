@@ -349,3 +349,22 @@ class UserProfile(
   final Score score,
   final UserId? backupId,
 );
+
+// 20. Records
+@serialize
+@deserialize
+typedef UserInfoRecord = ({String name, int age});
+
+@serialize
+@deserialize
+typedef GeoCoordsRecord = (double lat, double lng);
+
+@serialize
+@deserialize
+class RecordContainer(
+  final UserInfoRecord user,
+  final GeoCoordsRecord coords,
+  final ({String city, String zip}) inlineAddress,
+  final (int, int)? grid,
+);
+

@@ -1,4 +1,5 @@
 import '../models/annotation_info.dart';
+import '../models/parsed_element.dart';
 import '../models/parsed_type.dart';
 
 /// Helper for generating Dart code expressions for serialization and deserialization.
@@ -6,11 +7,13 @@ class TypeHelper {
   final Set<String> knownEnums;
   final Set<String> knownClasses;
   final Set<String> knownExtensionTypes;
+  final Map<String, ParsedRecordAlias> knownRecordAliases;
 
   const TypeHelper({
     this.knownEnums = const {},
     this.knownClasses = const {},
     this.knownExtensionTypes = const {},
+    this.knownRecordAliases = const {},
   });
 
   static String toCamelCase(String s) {
@@ -184,6 +187,45 @@ class TypeHelper {
       expr = type.isNullable
           ? '($jsonExpr == null ? null : $fn($jsonExpr))'
           : '$fn($jsonExpr)';
+    } else if (knownRecordAliases.containsKey(type.baseName)) {
+      final alias = knownRecordAliases[type.baseName]!;
+      final isPos = alias.recordType.isRecordPositional;
+      final fn =
+          '${toCamelCase(type.baseName)}${isPos ? "FromList" : "FromMap"}';
+      final castType = isPos ? 'List<dynamic>' : 'Map<String, dynamic>';
+      expr = type.isNullable
+          ? '($jsonExpr == null ? null : $fn($jsonExpr as $castType))'
+          : '$fn($jsonExpr as $castType)';
+    } else if (type.isRecord) {
+      if (type.isRecordPositional) {
+        final varName = 'list${depth == 0 ? '' : depth}';
+        final fieldExprs = type.recordFields.map((f) {
+          return generateDeserialize(
+            f.type,
+            '$varName[${f.position - 1}]',
+            explicitFromJson: explicitFromJson,
+            depth: depth + 1,
+          );
+        }).join(', ');
+        expr = type.isNullable
+            ? '($jsonExpr == null ? null : (() { final $varName = $jsonExpr as List<dynamic>; return ($fieldExprs); })())'
+            : '(() { final $varName = $jsonExpr as List<dynamic>; return ($fieldExprs); })()';
+      } else {
+        final varName = 'map${depth == 0 ? '' : depth}';
+        final fieldExprs = type.recordFields.map((f) {
+          final key = f.effectiveKey;
+          final fieldVal = generateDeserialize(
+            f.type,
+            "$varName['$key']",
+            explicitFromJson: explicitFromJson,
+            depth: depth + 1,
+          );
+          return f.isNamed ? '${f.name}: $fieldVal' : fieldVal;
+        }).join(', ');
+        expr = type.isNullable
+            ? '($jsonExpr == null ? null : (() { final $varName = $jsonExpr as Map<String, dynamic>; return ($fieldExprs); })())'
+            : '(() { final $varName = $jsonExpr as Map<String, dynamic>; return ($fieldExprs); })()';
+      }
     } else {
       if (!explicitFromJson) {
         expr = '($jsonExpr as ${type.rawType})';
@@ -194,6 +236,7 @@ class TypeHelper {
             : '$fn($jsonExpr as Map<String, dynamic>)';
       }
     }
+
 
     if (fallbackCode != null) {
       return '$jsonExpr == null ? $fallbackCode : $expr';
@@ -337,6 +380,48 @@ class TypeHelper {
       expr = type.isNullable
           ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
           : '$fn($fieldExpr)';
+    } else if (knownRecordAliases.containsKey(type.baseName)) {
+      final alias = knownRecordAliases[type.baseName]!;
+      final isPos = alias.recordType.isRecordPositional;
+      final fn = '${toCamelCase(type.baseName)}${isPos ? "ToList" : "ToMap"}';
+      expr = type.isNullable
+          ? '($fieldExpr == null ? null : $fn($fieldExpr!))'
+          : '$fn($fieldExpr)';
+    } else if (type.isRecord) {
+      if (type.isRecordPositional) {
+        final elements = type.recordFields.map((f) {
+          final access = type.isNullable
+              ? '$fieldExpr!.\$${f.position}'
+              : '$fieldExpr.\$${f.position}';
+          return generateSerialize(
+            f.type,
+            access,
+            explicitToJson: explicitToJson,
+            depth: depth + 1,
+          );
+        }).join(', ');
+        expr = type.isNullable
+            ? '($fieldExpr == null ? null : [$elements])'
+            : '[$elements]';
+      } else {
+        final entries = type.recordFields.map((f) {
+          final key = f.effectiveKey;
+          final member = f.isNamed ? f.name! : '\$${f.position}';
+          final access = type.isNullable
+              ? '$fieldExpr!.$member'
+              : '$fieldExpr.$member';
+          final serialized = generateSerialize(
+            f.type,
+            access,
+            explicitToJson: explicitToJson,
+            depth: depth + 1,
+          );
+          return "'$key': $serialized";
+        }).join(', ');
+        expr = type.isNullable
+            ? '($fieldExpr == null ? null : {$entries})'
+            : '{$entries}';
+      }
     } else {
       if (!explicitToJson) {
         expr = fieldExpr;
@@ -347,6 +432,7 @@ class TypeHelper {
             : '$fn($fieldExpr)';
       }
     }
+
 
     final serializeFallback = config?.fallbackCode;
     if (serializeFallback != null && type.isNullable) {
@@ -466,6 +552,36 @@ class TypeHelper {
     } else if (knownExtensionTypes.contains(type.baseName)) {
       final fn = '${toCamelCase(type.baseName)}ToMap';
       return '$fn($fieldExpr!)';
+    } else if (knownRecordAliases.containsKey(type.baseName)) {
+      final alias = knownRecordAliases[type.baseName]!;
+      final isPos = alias.recordType.isRecordPositional;
+      final fn = '${toCamelCase(type.baseName)}${isPos ? "ToList" : "ToMap"}';
+      return '$fn($fieldExpr!)';
+    } else if (type.isRecord) {
+      if (type.isRecordPositional) {
+        final elements = type.recordFields.map((f) {
+          return generateSerialize(
+            f.type,
+            '$fieldExpr!.\$${f.position}',
+            explicitToJson: explicitToJson,
+            depth: depth + 1,
+          );
+        }).join(', ');
+        return '[$elements]';
+      } else {
+        final entries = type.recordFields.map((f) {
+          final key = f.effectiveKey;
+          final member = f.isNamed ? f.name! : '\$${f.position}';
+          final serialized = generateSerialize(
+            f.type,
+            '$fieldExpr!.$member',
+            explicitToJson: explicitToJson,
+            depth: depth + 1,
+          );
+          return "'$key': $serialized";
+        }).join(', ');
+        return '{$entries}';
+      }
     } else {
       if (!explicitToJson) {
         return fieldExpr;
@@ -473,6 +589,7 @@ class TypeHelper {
       final fn = '${toCamelCase(type.baseName)}ToMap';
       return '$fn($fieldExpr!)';
     }
+
   }
 
   String _generateKeyDeserialize(

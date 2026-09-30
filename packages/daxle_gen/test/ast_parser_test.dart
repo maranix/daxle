@@ -648,7 +648,103 @@ enum Status { ok, error }
     expect(generatedCode, contains('statusToValue(Status instance)'));
     expect(generatedCode, contains('_statusEnumMap'));
   });
+
+  test('parses named record typedef', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+typedef UserProfile = ({String name, int age});
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.recordAliases.length, 1);
+    final alias = parsedFile.recordAliases.first;
+    expect(alias.name, 'UserProfile');
+    expect(alias.shouldSerialize, true);
+    expect(alias.shouldDeserialize, true);
+    expect(alias.recordType.isRecord, true);
+    expect(alias.recordType.isRecordNamed, true);
+    expect(alias.recordType.recordFields.length, 2);
+    expect(alias.recordType.recordFields[0].name, 'name');
+    expect(alias.recordType.recordFields[0].type.isString, true);
+    expect(alias.recordType.recordFields[1].name, 'age');
+    expect(alias.recordType.recordFields[1].type.isInt, true);
+  });
+
+  test('parses positional record typedef with field annotations', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+typedef Coords = (
+  @SerializedValue('lat_val') double lat,
+  @SerializedValue('lng_val') double lng,
+);
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.recordAliases.length, 1);
+    final alias = parsedFile.recordAliases.first;
+    expect(alias.name, 'Coords');
+    expect(alias.recordType.isRecord, true);
+    expect(alias.recordType.isRecordPositional, true);
+    expect(alias.recordType.recordFields.length, 2);
+    expect(alias.recordType.recordFields[0].name, 'lat');
+    expect(alias.recordType.recordFields[0].serializedKey, 'lat_val');
+    expect(alias.recordType.recordFields[1].name, 'lng');
+    expect(alias.recordType.recordFields[1].serializedKey, 'lng_val');
+  });
+
+  test('parses class with inline record fields', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+class Place(
+  final String name,
+  final ({double lat, double lng}) location,
+  final (int, int)? grid,
+);
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.classes.length, 1);
+    final place = parsedFile.classes.first;
+    expect(place.fields.length, 3);
+
+    final locField = place.fields[1];
+    expect(locField.name, 'location');
+    expect(locField.type.isRecord, true);
+    expect(locField.type.isRecordNamed, true);
+    expect(locField.type.recordFields.length, 2);
+
+    final gridField = place.fields[2];
+    expect(gridField.name, 'grid');
+    expect(gridField.type.isRecord, true);
+    expect(gridField.type.isRecordPositional, true);
+    expect(gridField.type.isNullable, true);
+    expect(gridField.type.recordFields.length, 2);
+  });
+
+  test('parses extension type wrapping record', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+extension type Point2D((double x, double y) it) {}
+''';
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.extensionTypes.length, 1);
+    final extType = parsedFile.extensionTypes.first;
+    expect(extType.name, 'Point2D');
+    expect(extType.representationType.isRecord, true);
+    expect(extType.representationType.isRecordPositional, true);
+    expect(extType.representationType.recordFields.length, 2);
+  });
 }
+
 
 final class _TestCustomHandler implements AnnotationHandler<void> {
   final void Function() onParsed;

@@ -7,6 +7,7 @@ import 'copy_with_generator.dart';
 import 'enum_generator.dart';
 import 'equality_generator.dart';
 import 'extension_type_generator.dart';
+import 'record_generator.dart';
 import 'sealed_generator.dart';
 import 'stringify_generator.dart';
 import 'type_helper.dart';
@@ -30,6 +31,7 @@ class FileGenerator {
     Set<String> projectClasses = const {},
     Set<String> projectCopyWithClasses = const {},
     Set<String> projectExtensionTypes = const {},
+    Map<String, ParsedRecordAlias> projectRecordAliases = const {},
   }) {
     if (!parsedFile.hasDaxleAnnotations) {
       return null;
@@ -47,10 +49,15 @@ class FileGenerator {
       ...parsedFile.extensionTypes.map((e) => e.name),
       ...projectExtensionTypes,
     };
+    final knownRecordAliases = {
+      for (final r in parsedFile.recordAliases) r.name: r,
+      ...projectRecordAliases,
+    };
     final typeHelper = TypeHelper(
       knownEnums: knownEnums,
       knownClasses: knownClasses,
       knownExtensionTypes: knownExtensionTypes,
+      knownRecordAliases: knownRecordAliases,
     );
 
     final knownCopyWithClasses = {
@@ -61,6 +68,7 @@ class FileGenerator {
     final classGen = ClassGenerator(typeHelper);
     final enumGen = EnumGenerator();
     final extTypeGen = ExtensionTypeGenerator(typeHelper);
+    final recordGen = RecordGenerator(typeHelper);
     final sealedGen = SealedGenerator();
     final equalityGen = EqualityGenerator(typeHelper);
     final stringifyGen = const StringifyGenerator();
@@ -82,6 +90,13 @@ class FileGenerator {
     for (final extType in parsedFile.extensionTypes) {
       if (extType.shouldSerialize || extType.shouldDeserialize) {
         specs.addAll(extTypeGen.build(extType));
+      }
+    }
+
+    // 1.6. Record typedefs
+    for (final recordAlias in parsedFile.recordAliases) {
+      if (recordAlias.shouldSerialize || recordAlias.shouldDeserialize) {
+        specs.addAll(recordGen.build(recordAlias));
       }
     }
 
