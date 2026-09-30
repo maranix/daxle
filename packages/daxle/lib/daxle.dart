@@ -16,6 +16,7 @@
 /// - [QueryMap]: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
 /// - [Concurrency]: Extension type for fine-grained async worker pool limits (`sequential`, `unbounded`, `bounded(limit)`).
 /// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]).
+/// - **Stream Transformation Utilities**: Comprehensive stream operator extensions from `package:stream_transform` (such as `debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, and `whereType`).
 /// - **Equality Utilities**: Collection-aware deep equality checks ([$deepEquals], [$listEquals], [$setEquals], [$mapEquals]) and hash code calculators ([$deepHashCode]).
 /// - **Compile-Time Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for zero-drift AST code generation.
 ///
@@ -371,6 +372,46 @@
 ///   }
 /// }
 /// ```
+///
+/// ---
+///
+/// ## Stream Transformation Utilities
+///
+/// `daxle` re-exports the complete set of reactive stream transformation extensions from `package:stream_transform`:
+///
+/// - **Rate Limiting & Buffering**:
+///   - `stream.debounce(duration)`: Emits only after a specified quiet window has elapsed.
+///   - `stream.throttle(duration)`: Emits the initial event and blocks subsequent events for a duration.
+///   - `stream.audit(duration)`: Waits for quiet periods and emits the most recent event.
+///   - `stream.buffer(trigger)`: Gathers events until a trigger stream emits.
+/// - **Combining & Merging**:
+///   - `stream.combineLatest(other, combiner)`: Pairs the latest events from multiple streams.
+///   - `stream.merge(other)` / `stream.mergeAll(others)`: Interleaves events from multiple streams.
+///   - `stream.followedBy(other)`: Chains an alternate stream after the source terminates.
+/// - **Higher-Order Switching**:
+///   - `stream.switchMap(mapper)`: Flattens stream-of-streams, automatically canceling stale inner subscriptions.
+/// - **Transformation & Filtering**:
+///   - `stream.scan(initial, accumulator)`: Yields successive cumulative accumulator states.
+///   - `stream.tap(callback)`: Observes stream items for side effects without extra subscriptions.
+///   - `stream.whereType<T>()`: Filters stream events by runtime type.
+///   - `stream.takeUntil(future)`: Closes stream when an asynchronous future completes.
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'package:daxle/daxle.dart';
+///
+/// void main() async {
+///   final clicks = StreamController<String>();
+///
+///   // Debounce search query input to prevent redundant network requests:
+///   final queries = clicks.stream
+///       .debounce(const Duration(milliseconds: 300))
+///       .tap((query) => print('Querying: $query'));
+///
+///   queries.listen(print);
+/// }
+/// ```
 library;
 
 export 'src/annotations/codegen.dart';
@@ -396,3 +437,6 @@ export 'package:async/async.dart'
         StreamQueue,
         StreamGroup,
         StreamSplitter;
+
+// Export stream transformation operators from `stream_transform` package
+export 'package:stream_transform/stream_transform.dart';

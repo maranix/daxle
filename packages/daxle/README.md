@@ -269,6 +269,37 @@ Event eventFromMap(Map<String, dynamic> json) => switch (json) {
 
 ---
 
+## Stream Transformation Utilities
+
+`daxle` re-exports the complete suite of reactive stream operators from `package:stream_transform` so you can manipulate, debounce, and interleave event streams without adding external dependencies:
+
+```dart
+import 'dart:async';
+import 'package:daxle/daxle.dart';
+
+void main() async {
+  final inputEvents = StreamController<String>();
+
+  // 1. Debounce rapid events to prevent hammering backend APIs:
+  final debounced = inputEvents.stream
+      .debounce(const Duration(milliseconds: 300))
+      .tap((text) => print('Searching for: $text'));
+
+  // 2. Interleave multiple streams concurrently:
+  final streamA = Stream.fromIterable([1, 3, 5]);
+  final streamB = Stream.fromIterable([2, 4, 6]);
+  final merged = streamA.merge(streamB); // 1, 2, 3, 4, 5, 6
+
+  // 3. Combine latest values from multiple streams:
+  final combined = streamA.combineLatest(streamB, (a, b) => '$a-$b');
+
+  // 4. Cancel stale asynchronous work with switchMap:
+  final results = debounced.switchMap((query) => searchApi(query));
+}
+```
+
+---
+
 ## Ready to build safer apps?
 
 Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Concurrency`, `Unit`, `Async Utilities`, `QueryMap`, and advanced combinators. 

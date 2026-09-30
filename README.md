@@ -21,6 +21,7 @@ Daxle provides lightweight primitives designed specifically for Dart 3+ sealed c
 - **`Task<T>` & `TaskEither<L, R>`**: Handles lazy async evaluation, controlled concurrency, and failure recovery pipelines.
 - **`Unit`**: Represents void operations as explicit functional returns.
 - **`QueryMap`**: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
+- **Stream Transformations**: Complete suite of reactive operators from `package:stream_transform` (debounce, throttle, audit, merge, combineLatest, switchMap).
 
 ---
 
