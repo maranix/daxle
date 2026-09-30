@@ -386,8 +386,8 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
   void visitEnumDeclaration(EnumDeclaration node) {
     final enumName = node.namePart.typeName.lexeme;
 
-    SerializeEnumInfo? serializeInfo;
-    DeserializeEnumInfo? deserializeInfo;
+    SerializeInfo? serializeInfo;
+    DeserializeInfo? deserializeInfo;
     StringifyInfo? stringifyInfo;
     String? fallbackCaseCode;
 
@@ -410,34 +410,18 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
             arguments: arguments,
             memberName: enumName,
           );
-        case 'SerializeEnum' || 'serializeEnum':
-          final ser = registry.parseAnnotation<SerializeInfo>(
-            name: name,
-            arguments: arguments,
-            memberName: enumName,
-          );
-          serializeInfo = ser?.toEnumInfo();
         case 'Serialize' || 'serialize':
-          final ser = registry.parseAnnotation<SerializeInfo>(
+          serializeInfo = registry.parseAnnotation<SerializeInfo>(
             name: name,
             arguments: arguments,
             memberName: enumName,
           );
-          serializeInfo = ser?.toEnumInfo();
-        case 'DeserializeEnum' || 'deserializeEnum':
-          final deser = registry.parseAnnotation<DeserializeInfo>(
-            name: name,
-            arguments: arguments,
-            memberName: enumName,
-          );
-          deserializeInfo = deser?.toEnumInfo();
         case 'Deserialize' || 'deserialize':
-          final deser = registry.parseAnnotation<DeserializeInfo>(
+          deserializeInfo = registry.parseAnnotation<DeserializeInfo>(
             name: name,
             arguments: arguments,
             memberName: enumName,
           );
-          deserializeInfo = deser?.toEnumInfo();
         case 'Fallback':
           final code = const FallbackAnnotationHandler().parse((
             name: name,
@@ -707,7 +691,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
           if (constant.config.hasAnyAnnotation) {
             throw InvalidGenerationSourceError(
               'Enum case "${constant.name}" in enum "${enumEl.name}" is annotated with a Daxle member annotation, '
-              'but "${enumEl.name}" is not marked with any root annotation (@serializeEnum, @deserializeEnum, @stringify, @Fallback).',
+              'but "${enumEl.name}" is not marked with any root annotation (@serialize, @deserialize, @stringify, @Fallback).',
               todo:
                   'Add a root annotation to "${enumEl.name}" or remove the annotation from "${constant.name}".',
             );

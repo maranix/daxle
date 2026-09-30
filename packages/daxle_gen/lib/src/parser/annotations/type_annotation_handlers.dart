@@ -5,7 +5,7 @@ import '../../models/case_style.dart';
 import 'annotation_context.dart';
 import 'annotation_handler.dart';
 
-/// Handler for `@Serialize` and `@SerializeEnum`.
+/// Handler for `@Serialize`.
 final class SerializeAnnotationHandler implements AnnotationHandler<SerializeInfo> {
   const SerializeAnnotationHandler();
 
@@ -13,8 +13,6 @@ final class SerializeAnnotationHandler implements AnnotationHandler<SerializeInf
   List<String> get supportedNames => const [
     'Serialize',
     'serialize',
-    'SerializeEnum',
-    'serializeEnum',
   ];
 
   @override
@@ -50,7 +48,7 @@ final class SerializeAnnotationHandler implements AnnotationHandler<SerializeInf
   }
 }
 
-/// Handler for `@Deserialize` and `@DeserializeEnum`.
+/// Handler for `@Deserialize`.
 final class DeserializeAnnotationHandler
     implements AnnotationHandler<DeserializeInfo> {
   const DeserializeAnnotationHandler();
@@ -59,8 +57,6 @@ final class DeserializeAnnotationHandler
   List<String> get supportedNames => const [
     'Deserialize',
     'deserialize',
-    'DeserializeEnum',
-    'deserializeEnum',
   ];
 
   @override

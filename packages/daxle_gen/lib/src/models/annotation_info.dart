@@ -17,11 +17,6 @@ class SerializeInfo {
     this.caseStyle,
     this.ignoreFields = const {},
   });
-
-  SerializeEnumInfo toEnumInfo() => SerializeEnumInfo(
-    valueField: valueField,
-    caseStyle: caseStyle,
-  );
 }
 
 /// Parsed metadata for `@Deserialize`.
@@ -37,11 +32,6 @@ class DeserializeInfo {
     this.caseStyle,
     this.ignoreFields = const {},
   });
-
-  DeserializeEnumInfo toEnumInfo() => DeserializeEnumInfo(
-    valueField: valueField,
-    caseStyle: caseStyle,
-  );
 }
 
 /// Parsed metadata for `@EqualsAndHashCode`.
@@ -68,28 +58,6 @@ class CopyWithInfo {
 
   const CopyWithInfo({
     this.ignoreFields = const {},
-  });
-}
-
-/// Parsed metadata for `@SerializeEnum`.
-class SerializeEnumInfo {
-  final String? valueField;
-  final CaseStyle? caseStyle;
-
-  const SerializeEnumInfo({
-    this.valueField,
-    this.caseStyle,
-  });
-}
-
-/// Parsed metadata for `@DeserializeEnum`.
-class DeserializeEnumInfo {
-  final String? valueField;
-  final CaseStyle? caseStyle;
-
-  const DeserializeEnumInfo({
-    this.valueField,
-    this.caseStyle,
   });
 }
 

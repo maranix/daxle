@@ -56,12 +56,12 @@ import 'package:daxle/daxle.dart';
 
 part 'status.daxle.dart';
 
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum Status { pending, active, completed }
 
-@SerializeEnum(valueField: 'code')
-@DeserializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
 enum const Priority(final int code) {
   low(10),
   high(20);
@@ -157,8 +157,8 @@ import 'package:daxle/daxle.dart';
 
 part 'state.daxle.dart';
 
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum TaskState {
   @SerializedValue('in_progress')
   inProgress,
@@ -226,8 +226,8 @@ import 'package:daxle/daxle.dart';
 part 'single.daxle.dart';
 
 @Fallback(SingleConfig.fallbackCase)
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum SingleConfig {
   @SerializedValue('std')
   standard,
@@ -260,8 +260,8 @@ import 'package:daxle/daxle.dart';
 
 part 'guild.daxle.dart';
 
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum HeroRole { warrior, mage, rogue }
 
 @serialize

@@ -193,8 +193,8 @@ class ParsedEnumConstant {
 /// Represents a parsed enum definition.
 class ParsedEnum {
   final String name;
-  final SerializeEnumInfo? serialize;
-  final DeserializeEnumInfo? deserialize;
+  final SerializeInfo? serialize;
+  final DeserializeInfo? deserialize;
   final StringifyInfo? stringify;
   final String? valueFieldName;
   final ParsedType? valueFieldType;

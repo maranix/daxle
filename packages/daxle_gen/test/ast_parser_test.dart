@@ -86,12 +86,12 @@ class LegacyItem {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum SimpleStatus { pending, active, completed }
 
-@SerializeEnum(valueField: 'code')
-@DeserializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
 enum const Priority(final int code) {
   low(10),
   medium(20),
@@ -183,7 +183,7 @@ class Car implements Vehicle {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@SerializeEnum(valueField: 'code')
+@Serialize(valueField: 'code')
 enum const MultiParam(final String label, final int code) {
   first('first_label', 101),
   second('second_label', 202);
@@ -207,7 +207,7 @@ class Account(
   final String secretToken,
 );
 
-@SerializeEnum(caseStyle: CaseStyle.kebabCase)
+@Serialize(caseStyle: CaseStyle.kebabCase)
 enum ItemCategory { bookItem, electronicDevice }
 ''';
 
@@ -234,8 +234,8 @@ enum ItemCategory { bookItem, electronicDevice }
 import 'package:daxle/daxle.dart';
 
 @Fallback(Status.standard)
-@serializeEnum
-@deserializeEnum
+@serialize
+@deserialize
 enum Status {
   @SerializedValue('in_progress')
   inProgress,
@@ -320,7 +320,7 @@ class BadModel {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serializeEnum
+@serialize
 enum Status {
   @SerializedValue('pay_pending', aliases: ['pending', 'in_progress'])
   pending,
@@ -376,7 +376,7 @@ class Order {
     const code = '''
 import 'package:daxle/daxle.dart';
 
-@serializeEnum
+@serialize
 enum ConflictEnum {
   @SerializedValue('same_val', aliases: ['alias1'])
   first,
