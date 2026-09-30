@@ -581,4 +581,85 @@ enum UnannotatedEnum {
       );
     },
   );
+
+  test('parses enum with unified @Serialize and @Deserialize', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+@serialize
+@deserialize
+enum OrderStatus { pending, shipped, delivered }
+
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
+enum const HttpMethod(final int code) {
+  get(200),
+  post(201);
 }
+''';
+
+    final parsedFile = parser.parseContent(code);
+    expect(parsedFile.enums.length, 2);
+
+    final status = parsedFile.enums[0];
+    expect(status.name, 'OrderStatus');
+    expect(status.shouldSerialize, true);
+    expect(status.shouldDeserialize, true);
+
+    final method = parsedFile.enums[1];
+    expect(method.name, 'HttpMethod');
+    expect(method.valueFieldName, 'code');
+    expect(method.shouldSerialize, true);
+    expect(method.shouldDeserialize, true);
+    expect(method.constants[0].explicitValueCode, '200');
+  });
+
+  test('AnnotationRegistry supports custom handler registration', () {
+    final registry = AnnotationRegistry();
+    var customParsed = false;
+
+    registry.register(
+      _TestCustomHandler(() {
+        customParsed = true;
+      }),
+    );
+
+    final customParser = DaxleAstParser(registry: registry);
+    const code = '''
+@CustomTag
+class TaggedModel {}
+''';
+
+    customParser.parseContent(code);
+    expect(customParsed, isTrue);
+  });
+
+  test('EnumGenerator emits unified enum extension with toValue', () {
+    const code = '''
+@serialize
+enum Status { ok, error }
+''';
+    final parsedFile = parser.parseContent(code);
+    final enumGen = EnumGenerator();
+    final generatedCode = enumGen.generate(parsedFile.enums.first);
+
+    expect(generatedCode, contains('extension StatusDaxleEnumExtension on Status'));
+    expect(generatedCode, contains('dynamic toValue() => statusToValue(this);'));
+    expect(generatedCode, contains('statusToValue(Status instance)'));
+    expect(generatedCode, contains('_statusEnumMap'));
+  });
+}
+
+final class _TestCustomHandler implements AnnotationHandler<void> {
+  final void Function() onParsed;
+  const _TestCustomHandler(this.onParsed);
+
+  @override
+  List<String> get supportedNames => const ['CustomTag'];
+
+  @override
+  void parse(AnnotationContext context) {
+    onParsed();
+  }
+}
+

@@ -3,13 +3,14 @@ import 'package:code_builder/code_builder.dart';
 import '../models/parsed_element.dart';
 import 'type_helper.dart';
 
-/// Generates top-level functional serialization and deserialization for enums using [code_builder].
-class EnumGenerator {
+/// Generates serialization and deserialization for enums using [code_builder].
+final class EnumGenerator {
   final DartEmitter _emitter;
 
-  EnumGenerator() : _emitter = DartEmitter(useNullSafetySyntax: true);
+  EnumGenerator({DartEmitter? emitter})
+      : _emitter = emitter ?? DartEmitter(useNullSafetySyntax: true);
 
-  /// Builds the [Spec] list (Field and Methods) for an enum.
+  /// Builds the [Spec] list (Map, Functions, and Extension) for an enum.
   List<Spec> build(ParsedEnum parsedEnum) {
     final enumName = parsedEnum.name;
     final camelName = TypeHelper.toCamelCase(enumName);
@@ -20,8 +21,7 @@ class EnumGenerator {
     final specs = <Spec>[];
 
     // 1. Enum map constant field
-    final mapEntries = StringBuffer();
-    mapEntries.writeln('{');
+    final mapEntries = StringBuffer('{\n');
     for (final constant in parsedEnum.constants) {
       if (constant.isIgnored) continue;
       final valueCode = constant.resolvedSerializeValue(serializeCaseStyle);
@@ -57,8 +57,7 @@ class EnumGenerator {
     );
 
     // 3. fromValue function (switch pattern matching)
-    final fromValueBody = StringBuffer();
-    fromValueBody.writeln('switch (value) {');
+    final fromValueBody = StringBuffer('switch (value) {\n');
     for (final constant in parsedEnum.constants) {
       if (constant.isIgnored) continue;
       final matchValue = constant.resolvedDeserializeValue(
@@ -73,8 +72,8 @@ class EnumGenerator {
       );
     }
 
-    if (parsedEnum.fallbackCaseCode != null) {
-      fromValueBody.writeln('  _ => ${parsedEnum.fallbackCaseCode},');
+    if (parsedEnum.fallbackCaseCode case final fallback?) {
+      fromValueBody.writeln('  _ => $fallback,');
     } else {
       fromValueBody.writeln(
         "  _ => throw ArgumentError('Unknown $enumName value: \$value'),",
@@ -96,6 +95,24 @@ class EnumGenerator {
           )
           ..lambda = true
           ..body = Code(fromValueBody.toString()),
+      ),
+    );
+
+    // 4. Unified enum extension (matching ClassGenerator's toMap extension pattern)
+    specs.add(
+      Extension(
+        (b) => b
+          ..name = '${enumName}DaxleEnumExtension'
+          ..on = refer(enumName)
+          ..methods.add(
+            Method(
+              (m) => m
+                ..name = 'toValue'
+                ..returns = refer('dynamic')
+                ..lambda = true
+                ..body = Code('${camelName}ToValue(this)'),
+            ),
+          ),
       ),
     );
 

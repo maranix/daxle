@@ -7,27 +7,41 @@ import '../parser/generation_error.dart';
 /// Parsed metadata for `@Serialize`.
 class SerializeInfo {
   final String? discriminator;
+  final String? valueField;
   final CaseStyle? caseStyle;
   final Set<String> ignoreFields;
 
   const SerializeInfo({
     this.discriminator,
+    this.valueField,
     this.caseStyle,
     this.ignoreFields = const {},
   });
+
+  SerializeEnumInfo toEnumInfo() => SerializeEnumInfo(
+    valueField: valueField,
+    caseStyle: caseStyle,
+  );
 }
 
 /// Parsed metadata for `@Deserialize`.
 class DeserializeInfo {
   final String? discriminator;
+  final String? valueField;
   final CaseStyle? caseStyle;
   final Set<String> ignoreFields;
 
   const DeserializeInfo({
     this.discriminator,
+    this.valueField,
     this.caseStyle,
     this.ignoreFields = const {},
   });
+
+  DeserializeEnumInfo toEnumInfo() => DeserializeEnumInfo(
+    valueField: valueField,
+    caseStyle: caseStyle,
+  );
 }
 
 /// Parsed metadata for `@EqualsAndHashCode`.
