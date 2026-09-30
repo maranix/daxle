@@ -14,7 +14,7 @@ class User(
   @SerializedValue('user_id')
   final String id,
   final String name,
-  final Option<String> nickname, {
+  final String? nickname, {
   final int age = 18,
 });
 ''';
@@ -36,8 +36,8 @@ class User(
     expect(user.fields[1].jsonKey, 'name');
 
     expect(user.fields[2].name, 'nickname');
-    expect(user.fields[2].type.isOption, true);
-    expect(user.fields[2].type.singleTypeArgument?.isString, true);
+    expect(user.fields[2].type.isNullable, true);
+    expect(user.fields[2].type.isString, true);
 
     expect(user.fields[3].name, 'age');
     expect(user.fields[3].hasDefaultValue, true);

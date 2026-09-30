@@ -21,7 +21,7 @@ class User(
   final String id,
   final String name,
   final DateTime createdAt,
-  final Option<String> nickname, {
+  final String? nickname, {
   final int age = 18,
 });
 ''';

@@ -4,50 +4,18 @@
 [![Pub Version](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](packages/daxle/LICENSE)
 
-Predictable data flow and composable error handling for modern Dart.
+High-performance data modeling, zero-cost map querying, concurrency control, and stream transformations for modern Dart.
 
-Daxle introduces type-safe, zero-dependency functional primitives to Dart and Flutter applications, eliminating uncaught runtime exceptions and defensive null checks at compile time.
+Daxle provides lightweight, zero-overhead primitives designed specifically for Dart 3+:
+
+- **`QueryMap`**: Zero-cost compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key support. Safely returns `null` on missing paths or type mismatches.
+- **`Concurrency`**: Extension type for fine-grained async worker limits (`sequential`, `unbounded`, `bounded(limit)`), sliding-window worker pool execution, and early termination (`shouldStop`).
+- **Deep Structural Equality**: Collection-aware equality checks (`$deepEquals`, `$deepHashCode`, `$listEquals`, `$setEquals`, `$mapEquals`).
+- **Stream Transformations**: Complete suite of reactive operators from `package:stream_transform` (debounce, throttle, audit, merge, combineLatest, switchMap, scan, tap).
+- **Async Flow Utilities**: Re-exports of key utilities from `package:async` (`FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, `StreamGroup`, `StreamSplitter`).
+- **Compile-Time Codegen Annotations**: Declarative annotations (`@serialize`, `@deserialize`, `@copyWith`, `@equalsAndHashCode`, `@stringify`, `@AnnotationBundle`) paired with `daxle_gen` in `dev_dependencies` for pure AST code generation.
 
 [📚 Read the Documentation](https://daxle.maranix.in) • [📦 View on Pub.dev](https://pub.dev/packages/daxle)
-
----
-
-## Overview
-
-Daxle provides lightweight primitives designed specifically for Dart 3+ sealed classes and pattern matching:
-
-- **`Option<T>`**: Represents optional values safely without runtime null ambiguity or nested null checks.
-- **`Either<L, R>`**: Encapsulates operations that can fail, turning untyped exceptions into explicit, compile-time enforced types.
-- **`Task<T>` & `TaskEither<L, R>`**: Handles lazy async evaluation, controlled concurrency, and failure recovery pipelines.
-- **`Unit`**: Represents void operations as explicit functional returns.
-- **`QueryMap`**: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
-- **Stream Transformations**: Complete suite of reactive operators from `package:stream_transform` (debounce, throttle, audit, merge, combineLatest, switchMap).
-
----
-
-## Quick Example
-
-### Imperative Exception Handling
-```dart
-// May throw unhandled exceptions or return null without warning
-Future<User> fetchUser(String id) async {
-  final response = await api.get('/users/$id');
-  if (response.statusCode != 200) throw Exception('Failed to fetch user');
-  return User.fromJson(response.data);
-}
-```
-
-### Daxle Declarative Flow
-```dart
-// Failure and success are explicit in the return type signature
-TaskEither<NetworkError, User> fetchUser(String id) =>
-    TaskEither.fromFuture(
-      () => api.get('/users/$id')),
-      (error, stack) => NetworkError.from(error),
-    )
-    .tap((r) => print("Response: ${r.body}"));
-    .map((r) => User.fromJson(r.body));
-```
 
 ---
 
@@ -55,24 +23,8 @@ TaskEither<NetworkError, User> fetchUser(String id) =>
 
 | Package | Path | Description | Version | Pub |
 | :--- | :--- | :--- | :--- | :--- |
-| **daxle** | [`packages/daxle`](packages/daxle/) | Core functional toolkit containing `Option`, `Either`, `Task`, `TaskEither`, `Unit`, and `QueryMap`. | `4.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
+| **daxle** | [`packages/daxle`](packages/daxle/) | Core toolkit containing `QueryMap`, `Concurrency`, equality, stream transforms, and codegen annotations. | `4.0.0` | [![Pub](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle) |
 | **daxle_gen** | [`packages/daxle_gen`](packages/daxle_gen/) | High-performance AST code generator for functional serialization, deep copyWith, equality, and stringify. | `0.3.0` | [![Pub](https://img.shields.io/pub/v/daxle_gen.svg)](https://pub.dev/packages/daxle_gen) |
-
----
-
-## Why Daxle?
-
-### Explicit Error Handling
-Runtime exceptions force developers to inspect internal implementations to anticipate failures. `Either<L, R>` makes failure paths explicit in function signatures, ensuring error handling is enforced at compile time.
-
-### Expressive Value Composition
-While Dart null safety prevents accessing null references, operating on optional values often results in repetitive `if (val != null)` blocks. `Option<T>` enables declarative chaining with `map`, `flatMap`, and pattern matching.
-
-### Controlled Async Execution
-`Task` and `TaskEither` enable lazy async computation with built-in concurrency controls (`sequential`, `bounded`, `unbounded`), ensuring predictable execution without unhandled async rejections.
-
-### Zero-Cost Nested Map Traversal
-`QueryMap` provides compile-time zero-cost nested map querying using dot and bracket notations, eliminating brittle manual casting and avoiding unhandled `TypeError`s or index `RangeError`s.
 
 ---
 
@@ -91,11 +43,12 @@ While Dart null safety prevents accessing null references, operating on optional
 2. Run the test suite:
    ```bash
    cd packages/daxle && dart test
+   cd ../daxle_gen && dart test
    ```
 
 3. Run an example:
    ```bash
-   dart run packages/daxle/example/option_example.dart
+   dart run packages/daxle/example/query_map.dart
    ```
 
 ---
@@ -114,4 +67,3 @@ Contributions are welcome. To propose changes:
 ## License
 
 `daxle` is distributed under the terms of the [MIT License](packages/daxle/LICENSE).
-

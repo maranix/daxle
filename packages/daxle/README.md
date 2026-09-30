@@ -1,33 +1,23 @@
-# Daxle: Write Safer, Predictable Dart Code
+# Daxle: High-Performance Data Modeling, Concurrency & Stream Transformation
 
 [![Pub Version](https://img.shields.io/pub/v/daxle.svg)](https://pub.dev/packages/daxle)
 [![Pub Points](https://img.shields.io/pub/points/daxle.svg)](https://pub.dev/packages/daxle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Stop writing nested try/catch blocks and imperative state checks. Daxle is a lightweight, type-safe functional programming toolkit and compile-time annotation suite that helps you build predictable, composable Dart applications.
+Daxle is a lightweight, zero-overhead Dart 3+ toolkit providing zero-cost map querying (`QueryMap`), flexible sliding-window concurrency (`Concurrency`), deep collection equality, stream transformation operators, and declarative compile-time code generation annotations.
 
 **[📚 Read the Official Documentation](https://daxle.maranix.in)**
 
 ---
 
-## Why Daxle?
+## Core Capabilities
 
-Dart's type system is great, but runtime exceptions, missing values, and complex asynchronous workflows can still lead to unpredictable bugs. Daxle gives you explicit, declarative types to handle missing values and errors gracefully at compile time.
-
-### Stop Guessing What Can Fail
-Instead of throwing untyped exceptions that might crash your app in production, use `Either<L, R>` to make failures an explicit part of your function signatures. The compiler enforces that you handle both success and error states.
-
-### Compose Values with Option
-While Dart's null safety is excellent, `Option<T extends Object>` takes it further by allowing you to chain operations functionally. Replace imperative `if (val != null)` checks with clean, declarative pipelines that gracefully handle missing data without `null` leaking into your `Some` instances.
-
-### Sliding-Window Concurrency & Early-Abort Protection
-Instead of running unbounded parallel futures that overload your backend, or static batch chunks that leave workers idle, use `TaskEither` and `Task` with built-in `Concurrency` controls (`.sequential`, `.unbounded`, `.bounded(poolSize)`), or run raw collections directly via `concurrency.dispatch(items, worker)`. In bounded mode, a dynamic sliding-window worker pool ensures fast tasks never wait for slow tasks. If any task fails, unstarted queued tasks are **canceled immediately** to save network requests and computing resources.
-
-### Zero-Cost Nested Map Querying with QueryMap
-Traversing deeply nested JSON payloads or configuration maps manually requires tedious null checks and risky casting (`map['data']?['users']?[0]?['email'] as String?`), which can throw unhandled `TypeError`s or `RangeError`s in production. `QueryMap` provides a zero-cost compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key lists that gracefully returns `null` on missing paths or type mismatches.
-
-### Zero-Overhead Data Class Annotations
-Daxle provides declarative annotations for functional serialization (`@serialize`, `@deserialize`), deep immutable copies with proxies (`@copyWith`), structural equality (`@equalsAndHashCode`), string formatting (`@stringify`), and annotation bundles (`AnnotationBundle`). All annotations carry zero reflective runtime overhead. Pair with `daxle_gen` in `dev_dependencies` to generate pure, zero-drift Dart 3 pattern matching code.
+- **Zero-Cost Nested Map Traversal (`QueryMap`)**: Zero-overhead compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key support. Safely returns `null` on missing paths or type mismatches without exceptions.
+- **Sliding-Window Worker Pool (`Concurrency`)**: Manage asynchronous workload throughput using `.sequential`, `.unbounded`, or `.bounded(poolSize)` modes, with early termination abort protection via `shouldStop`.
+- **Deep Structural Equality (`$deepEquals`, `$deepHashCode`)**: Multi-tiered equality comparisons for nested maps, sets, lists, and records.
+- **Stream Transformation Operators**: Re-exports all operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
+- **Async Flow Utilities**: Re-exports key utilities from `package:async` (`FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, `StreamGroup`, `StreamSplitter`).
+- **Zero-Overhead Data Class Annotations**: Declarative annotations (`@serialize`, `@deserialize`, `@copyWith`, `@equalsAndHashCode`, `@stringify`, `@AnnotationBundle`) paired with `daxle_gen` in `dev_dependencies` for pure AST code generation.
 
 ---
 
@@ -52,82 +42,10 @@ dart pub get
 
 ---
 
-## How It Works
+## Quick Tour
 
-### Handle Missing Values with `Option<T>`
-An alternative to nullable values (`T?`). Represents either the presence of a value (`Some`) or the absence of a value (`None`).
+### 1. Safely Query Nested Maps & Embedded Lists (`QueryMap`)
 
-```dart
-import 'package:daxle/daxle.dart';
-
-void main() {
-  // Smart constructor Option(value) converts null -> None() and non-null -> Some(value):
-  final Option<int> someValue = Option(42);
-  final Option<int> noValue = Option(null);
-
-  // Exhaustive pattern matching enforced at compile-time!
-  final message = switch (someValue) {
-    Some(value: final v) => 'Found: $v',
-    None() => 'Nothing here',
-  };
-}
-```
-
-### Make Errors Explicit with `Either<L, R>`
-By convention, `Right` is success and `Left` is an error.
-
-```dart
-import 'package:daxle/daxle.dart';
-
-Either<String, int> divide(int a, int b) {
-  if (b == 0) return const .left('Cannot divide by zero');
-  return .right(a ~/ b);
-}
-
-void main() {
-  final result = divide(10, 2);
-
-  // Safely extract the value or handle the error
-  final message = result.fold(
-    (error) => 'Failure: $error',
-    (value) => 'Result: $value',
-  );
-}
-```
-
-### Chain Async Operations & Manage Concurrency with `TaskEither<L, R>`
-A lazy, asynchronous computation that returns an `Either<L, R>`. It embeds the `Either` state at each step, short-circuiting on failure and managing parallel worker limits cleanly.
-
-```dart
-import 'package:daxle/daxle.dart';
-
-TaskEither<String, String> fetchUser(int id) => .fromFuture(
-  () async => 'User #$id',
-  (err, _) => 'User not found',
-);
-
-TaskEither<String, String> fetchConfig(String role) => .fromFuture(
-  () async => 'Config for $role',
-  (err, _) => 'Config not found',
-);
-
-void main() async {
-  // Chain dependent async computations with clean tear-offs:
-  final task = fetchUser(42).flatMap(fetchConfig);
-
-  // The computation doesn't start until you run it
-  final Either<String, String> result = await task.run();
-
-  // Run multiple tasks with a sliding-window worker pool of 3.
-  // If any task returns a Left, pending unstarted tasks are canceled immediately:
-  final batchResult = await TaskEither.sequence(
-    [fetchUser(1), fetchUser(2), fetchUser(3)],
-    mode: .bounded(3),
-  ).run();
-}
-```
-
-### Safely Query Nested Maps & Embedded Lists with `QueryMap`
 Wrap any `Map` at zero runtime cost to query deeply nested properties, embedded lists, and multi-dimensional matrices using dot notation, bracket indexing, or key lists.
 
 ```dart
@@ -153,29 +71,75 @@ void main() {
 
   final query = QueryMap(payload);
 
-  // 1. Dot notation for nested maps:
+  // Dot notation for nested maps:
   final host = query.get<String>('services.server.host'); // 'https://api.internal'
   final port = query.get<int>('services.server.port'); // 8080
 
-  // 2. Bracket notation for embedded lists and matrices:
+  // Bracket notation for embedded lists and matrices:
   final userName = query.get<String>('users[0].name'); // 'Alice'
   final firstRole = query.get<String>('users[0].roles[0]'); // 'admin'
   final matrixCell = query.get<int>('matrix[1][0]'); // 30
 
-  // 3. Key lists for non-string map keys:
+  // Key lists for non-string map keys:
   final status = query.get<String>(['cluster', 101, 'status']); // 'healthy'
 
-  // 4. Safe failure handling (no exceptions thrown):
+  // Safe failure handling (no exceptions thrown):
   final wrongType = query.get<int>('services.server.host'); // null (value is a String)
   final outOfBounds = query.get<String>('users[99].name'); // null
 
-  // 5. Presence checking (distinguishes explicit null from missing keys):
+  // Presence checking (distinguishes explicit null from missing keys):
   query.has('services.database'); // true (key exists with null value)
   query.has('services.cache'); // false (key does not exist)
+}
+```
 
-  // 6. Seamless composition with Option:
-  final serverHost = Option(query.get<String>('services.server.host'))
-      .getOrElse(() => 'https://fallback.internal');
+### 2. Controlled Asynchronous Concurrency
+
+Control worker limits and execute raw collections directly:
+
+```dart
+import 'package:daxle/daxle.dart';
+
+void main() async {
+  final urls = [
+    'https://api.site.com/1',
+    'https://api.site.com/2',
+    'https://api.site.com/3',
+    'https://api.site.com/4',
+  ];
+
+  // Process items concurrently with a sliding-window pool of 2 workers:
+  final results = await const Concurrency.bounded(2).dispatch(
+    urls,
+    (url) async => httpGet(url),
+    shouldStop: (response) => response.statusCode >= 500, // Early abort condition
+  );
+}
+```
+
+### 3. Stream Transformation Utilities
+
+Manipulate, debounce, and interleave event streams with reactive operators from `package:stream_transform`:
+
+```dart
+import 'dart:async';
+import 'package:daxle/daxle.dart';
+
+void main() async {
+  final searchController = StreamController<String>();
+
+  // Debounce rapid user input events:
+  final debounced = searchController.stream
+      .debounce(const Duration(milliseconds: 300))
+      .tap((query) => print('Querying: $query'));
+
+  // Interleave multiple event streams concurrently:
+  final streamA = Stream.fromIterable([1, 3, 5]);
+  final streamB = Stream.fromIterable([2, 4, 6]);
+  final merged = streamA.merge(streamB); // 1, 2, 3, 4, 5, 6
+
+  // Switch map to automatically cancel stale asynchronous calls:
+  final searchResults = debounced.switchMap((query) => executeSearch(query));
 }
 ```
 
@@ -186,6 +150,7 @@ void main() {
 `daxle` provides zero-overhead compile-time annotations. When combined with [`daxle_gen`](https://pub.dev/packages/daxle_gen) in `dev_dependencies`, code generation synthesizes type-safe, functional serialization, deep immutable lenses, structural equality, and clean string representations.
 
 ### 1. Bundle Annotations with `AnnotationBundle`
+
 Avoid repetitive annotation boilerplate by declaring named bundles:
 
 ```dart
@@ -214,13 +179,14 @@ class User(
 ) with _$User;
 ```
 
-Generate the corresponding `.daxle.dart` part files with:
+Generate code with:
 
 ```bash
 dart run daxle:generate
 ```
 
 ### 2. Deep & Proxied `copyWith`
+
 Generated `$ClassNameCopyWithProxy` lenses allow updating deeply nested hierarchies with natural dot notation while returning the newly constructed root object:
 
 ```dart
@@ -238,6 +204,7 @@ print(updatedUser.address.street); // '100 Main St' (preserved)
 ```
 
 ### 3. Sealed Class Polymorphism
+
 Polymorphic hierarchies serialize and deserialize cleanly using Dart 3 pattern matching switches with default (`'type'`) or custom discriminators:
 
 ```dart
@@ -266,43 +233,6 @@ Event eventFromMap(Map<String, dynamic> json) => switch (json) {
   }(),
 };
 ```
-
----
-
-## Stream Transformation Utilities
-
-`daxle` re-exports the complete suite of reactive stream operators from `package:stream_transform` so you can manipulate, debounce, and interleave event streams without adding external dependencies:
-
-```dart
-import 'dart:async';
-import 'package:daxle/daxle.dart';
-
-void main() async {
-  final inputEvents = StreamController<String>();
-
-  // 1. Debounce rapid events to prevent hammering backend APIs:
-  final debounced = inputEvents.stream
-      .debounce(const Duration(milliseconds: 300))
-      .tap((text) => print('Searching for: $text'));
-
-  // 2. Interleave multiple streams concurrently:
-  final streamA = Stream.fromIterable([1, 3, 5]);
-  final streamB = Stream.fromIterable([2, 4, 6]);
-  final merged = streamA.merge(streamB); // 1, 2, 3, 4, 5, 6
-
-  // 3. Combine latest values from multiple streams:
-  final combined = streamA.combineLatest(streamB, (a, b) => '$a-$b');
-
-  // 4. Cancel stale asynchronous work with switchMap:
-  final results = debounced.switchMap((query) => searchApi(query));
-}
-```
-
----
-
-## Ready to build safer apps?
-
-Check out the full **[Documentation](https://daxle.maranix.in)** to explore `Task`, `Concurrency`, `Unit`, `Async Utilities`, `QueryMap`, and advanced combinators. 
 
 ---
 

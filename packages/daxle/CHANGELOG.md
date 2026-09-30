@@ -1,3 +1,12 @@
+## 5.0.0
+
+- **BREAKING CHANGES**:
+  - Completely removed functional types: `Option`, `Either`, `Task`, `TaskEither`, and `Unit`.
+  - Daxle now strictly focuses on zero-cost nested map queries (`QueryMap`), flexible sliding-window concurrency (`Concurrency`), collection equality, reactive stream transformation utilities (`stream_transform`), and declarative code generation annotations.
+
+- **NEW FEATURES**:
+  - Re-exported complete reactive stream operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
+
 ## 4.0.0 (2026-08-13)
 
 - **BREAKING CHANGES**:

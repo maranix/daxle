@@ -79,21 +79,6 @@ class TypeHelper {
       expr = type.isNullable
           ? '($jsonExpr == null ? null : Duration(microseconds: ($jsonExpr as num).toInt()))'
           : 'Duration(microseconds: ($jsonExpr as num).toInt())';
-    } else if (type.isOption) {
-      final innerType =
-          type.singleTypeArgument ??
-          const ParsedType(
-            rawType: 'Object',
-            baseName: 'Object',
-            isNullable: false,
-          );
-      final innerDeserialize = generateDeserialize(
-        innerType,
-        jsonExpr,
-        explicitFromJson: explicitFromJson,
-        depth: depth,
-      );
-      expr = '($jsonExpr == null ? const None() : Some($innerDeserialize))';
     } else if (type.isQueryMap) {
       expr = type.isNullable
           ? '($jsonExpr == null ? null : QueryMap(($jsonExpr as Map).cast<Object?, Object?>()))'
@@ -277,27 +262,6 @@ class TypeHelper {
       expr = type.isNullable
           ? '$fieldExpr?.inMicroseconds'
           : '$fieldExpr.inMicroseconds';
-    } else if (type.isOption) {
-      final innerType =
-          type.singleTypeArgument ??
-          const ParsedType(
-            rawType: 'Object',
-            baseName: 'Object',
-            isNullable: false,
-          );
-      final innerSerialize = generateSerialize(
-        innerType,
-        'value',
-        explicitToJson: explicitToJson,
-        depth: depth,
-      );
-      if (type.isNullable) {
-        expr =
-            '$fieldExpr == null ? null : switch ($fieldExpr!) { Some(:final value) => $innerSerialize, None() => null }';
-      } else {
-        expr =
-            'switch ($fieldExpr) { Some(:final value) => $innerSerialize, None() => null }';
-      }
     } else if (type.isQueryMap) {
       expr = type.isNullable ? '$fieldExpr?.map' : '$fieldExpr.map';
     } else if (type.isList) {
@@ -468,21 +432,6 @@ class TypeHelper {
       return '$fieldExpr!.toString()';
     } else if (type.isDuration) {
       return '$fieldExpr!.inMicroseconds';
-    } else if (type.isOption) {
-      final innerType =
-          type.singleTypeArgument ??
-          const ParsedType(
-            rawType: 'Object',
-            baseName: 'Object',
-            isNullable: false,
-          );
-      final innerSerialize = generateSerialize(
-        innerType,
-        'value',
-        explicitToJson: explicitToJson,
-        depth: depth,
-      );
-      return 'switch ($fieldExpr!) { Some(:final value) => $innerSerialize, None() => null }';
     } else if (type.isQueryMap) {
       return '$fieldExpr!.map';
     } else if (type.isList) {

@@ -224,9 +224,7 @@ ComplexModel complexModelFromMap(Map<String, dynamic> json) {
         Uri.parse(websiteRaw),
         BigInt.parse(scoreRaw),
         Duration(microseconds: timeoutRaw.toInt()),
-        (json['optionalTag'] == null
-            ? const None()
-            : Some((json['optionalTag'] as String))),
+        (json['optionalTag'] as String?),
         QueryMap(metadataRaw.cast<Object?, Object?>()),
         tagsRaw.cast<dynamic>().map((e) => (e as String)).toList(),
         numbersRaw.cast<dynamic>().map((e) => ((e as num).toInt())).toSet(),
@@ -429,11 +427,8 @@ Map<String, dynamic> complexModelToMap(
   'website': instance.website.toString(),
   'score': instance.score.toString(),
   'timeout': instance.timeout.inMicroseconds,
-  if (!excludeNull || instance.optionalTag.isSome)
-    'optionalTag': switch (instance.optionalTag) {
-      Some(:final value) => value,
-      None() => null,
-    },
+  if (!excludeNull || instance.optionalTag != null)
+    'optionalTag': instance.optionalTag == null ? null : instance.optionalTag,
   'metadata': instance.metadata.map,
   'tags': instance.tags,
   'numbers': instance.numbers.toList(),
@@ -463,6 +458,7 @@ mixin _$ComplexModelEqualsAndHashCode {
         self.count == other.count &&
         self.rating == other.rating &&
         self.isActive == other.isActive &&
+        self.optionalTag == other.optionalTag &&
         self.status == other.status &&
         self.priority == other.priority &&
         self.role == other.role &&
@@ -470,7 +466,6 @@ mixin _$ComplexModelEqualsAndHashCode {
         self.website == other.website &&
         self.score == other.score &&
         self.timeout == other.timeout &&
-        self.optionalTag == other.optionalTag &&
         self.customEpoch == other.customEpoch &&
         $mapEquals(self.metadata.map, other.metadata.map) &&
         $listEquals(self.tags, other.tags) &&
@@ -523,6 +518,7 @@ mixin _$ComplexModel
         self.count == other.count &&
         self.rating == other.rating &&
         self.isActive == other.isActive &&
+        self.optionalTag == other.optionalTag &&
         self.status == other.status &&
         self.priority == other.priority &&
         self.role == other.role &&
@@ -530,7 +526,6 @@ mixin _$ComplexModel
         self.website == other.website &&
         self.score == other.score &&
         self.timeout == other.timeout &&
-        self.optionalTag == other.optionalTag &&
         self.customEpoch == other.customEpoch &&
         $mapEquals(self.metadata.map, other.metadata.map) &&
         $listEquals(self.tags, other.tags) &&
@@ -585,7 +580,7 @@ class $ComplexModelCopyWithProxy<$Res> {
     Uri? website,
     BigInt? score,
     Duration? timeout,
-    Option<String>? optionalTag,
+    String? optionalTag,
     QueryMap? metadata,
     List<String>? tags,
     Set<int>? numbers,
@@ -644,8 +639,11 @@ extension ComplexModelCopyWithExtension on ComplexModel {
   $ComplexModelCopyWithProxy<ComplexModel> get copyWith =>
       $ComplexModelCopyWithProxy(this, (v) => v);
 
-  ComplexModel copyWithNull({bool customEpoch = false}) {
-    if (!customEpoch) {
+  ComplexModel copyWithNull({
+    bool optionalTag = false,
+    bool customEpoch = false,
+  }) {
+    if (!optionalTag && !customEpoch) {
       return this;
     }
 
@@ -658,7 +656,7 @@ extension ComplexModelCopyWithExtension on ComplexModel {
       this.website,
       this.score,
       this.timeout,
-      this.optionalTag,
+      optionalTag ? null : this.optionalTag,
       this.metadata,
       this.tags,
       this.numbers,

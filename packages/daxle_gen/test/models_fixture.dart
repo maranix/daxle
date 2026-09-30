@@ -41,7 +41,7 @@ class ComplexModel(
   final Uri website,
   final BigInt score,
   final Duration timeout,
-  final Option<String> optionalTag,
+  final String? optionalTag,
   final QueryMap metadata,
   final List<String> tags,
   final Set<int> numbers,

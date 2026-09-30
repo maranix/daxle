@@ -321,21 +321,7 @@ void main() {
       });
     });
 
-    group('Option Integration', () {
-      test(
-        'integrates cleanly with Option smart constructor and chaining',
-        () {
-          final query = QueryMap(sampleMap);
-          final hostOpt = Option(query.get<String>('services.server.host'));
-          expect(hostOpt.isSome, isTrue);
-          expect(hostOpt.get(), 'https://api.production.internal');
 
-          final fallback = Option(query.get<String>('services.missing'))
-              .getOrElse(() => 'https://fallback.domain');
-          expect(fallback, 'https://fallback.domain');
-        },
-      );
-    });
   });
 
   group('QueryMap - has', () {

@@ -178,7 +178,6 @@ class ClassGenerator {
         final hasFallback = param.config.fallbackCode != null;
         final isRequiredInJson =
             !param.type.isNullable &&
-            !param.type.isOption &&
             !hasFallback &&
             !param.hasDefault;
 
@@ -349,7 +348,6 @@ class ClassGenerator {
       final hasFallback = param.config.fallbackCode != null;
       final isRequiredInJson =
           !param.type.isNullable &&
-          !param.type.isOption &&
           !hasFallback &&
           !param.hasDefault;
 
@@ -555,7 +553,6 @@ class ClassGenerator {
       final hasSerializeFallback = field.config.fallbackCode != null;
 
       if (field.type.isNullable &&
-          !field.type.isOption &&
           !hasSerializeFallback) {
         final serializeNonNullExpr = typeHelper.generateSerializeNonNull(
           field.type,
@@ -565,22 +562,6 @@ class ClassGenerator {
         );
         buffer.writeln(
           "  if (!excludeNull || $fieldExpr != null) '$key': $fieldExpr == null ? null : $serializeNonNullExpr,",
-        );
-      } else if (field.type.isOption) {
-        final innerType =
-            field.type.singleTypeArgument ??
-            const ParsedType(
-              rawType: 'Object',
-              baseName: 'Object',
-              isNullable: false,
-            );
-        final innerSerialize = typeHelper.generateSerialize(
-          innerType,
-          'value',
-          explicitToJson: true,
-        );
-        buffer.writeln(
-          "  if (!excludeNull || $fieldExpr.isSome) '$key': switch ($fieldExpr) { Some(:final value) => $innerSerialize, None() => null },",
         );
       } else {
         final serializeExpr = typeHelper.generateSerialize(

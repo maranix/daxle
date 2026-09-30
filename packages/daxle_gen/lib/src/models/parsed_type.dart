@@ -232,7 +232,6 @@ class ParsedType {
   bool get isBigInt => baseName == 'BigInt';
   bool get isDuration => baseName == 'Duration';
 
-  bool get isOption => baseName == 'Option';
   bool get isQueryMap => baseName == 'QueryMap';
 
   bool get isList => baseName == 'List';

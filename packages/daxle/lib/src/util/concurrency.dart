@@ -5,8 +5,8 @@ import 'package:meta/meta.dart';
 /// {@template concurrency}
 /// Defines the concurrency execution strategy for asynchronous tasks.
 ///
-/// `Concurrency` controls how collections of deferred tasks (such as [Task]
-/// or [TaskEither]) are scheduled and executed across the event loop:
+/// `Concurrency` controls how collections of asynchronous operations
+/// are scheduled and executed across the event loop via [dispatch] or [process]:
 ///
 /// - [Concurrency.sequential]: Executes tasks strictly one after another (1 active task).
 /// - [Concurrency.unbounded]: Executes all tasks simultaneously in parallel without limits.
@@ -14,14 +14,11 @@ import 'package:meta/meta.dart';
 ///
 /// ### Examples using Dot-Shorthand Syntax:
 /// ```dart
-/// // Unbounded parallel (default)
-/// Task.sequence(tasks, mode: .unbounded);
+/// // Worker pool of 5 concurrent tasks
+/// await Concurrency.bounded(5).dispatch(urls, fetchUrl);
 ///
 /// // Strictly sequential
-/// Task.sequence(tasks, mode: .sequential);
-///
-/// // Worker pool of 10 concurrent tasks
-/// Task.sequence(tasks, mode: .bounded(10));
+/// await Concurrency.sequential.process(taskThunks);
 /// ```
 /// {@endtemplate}
 @immutable

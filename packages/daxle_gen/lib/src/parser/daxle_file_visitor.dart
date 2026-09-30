@@ -327,7 +327,6 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
             t.isSet ||
             t.isMap ||
             t.isQueryMap ||
-            t.isOption ||
             t.isDynamic ||
             t.isObject) {
           throw InvalidGenerationSourceError(

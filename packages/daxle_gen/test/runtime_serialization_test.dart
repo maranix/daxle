@@ -42,7 +42,7 @@ void main() {
         Uri.parse('https://daxle.dev'),
         BigInt.from(987654321),
         const Duration(milliseconds: 500),
-        const Some('nickname-val'),
+        'nickname-val',
         const QueryMap({'env': 'prod', 'version': 4}),
         ['dart', 'daxle'],
         {1, 2, 3},
@@ -101,7 +101,7 @@ void main() {
       expect(restored.customEpoch, model.customEpoch);
     });
 
-    test('handles Option.none and default fallbacks', () {
+    test('handles null optionalTag and default fallbacks', () {
       final now = DateTime.utc(2026, 9, 26);
       final json = <String, dynamic>{
         'id': 'mod-456',
@@ -124,7 +124,7 @@ void main() {
       };
 
       final restored = complexModelFromMap(json);
-      expect(restored.optionalTag, const None<String>());
+      expect(restored.optionalTag, isNull);
       expect(restored.role, 'guest');
       expect(restored.customEpoch, isNull);
 
@@ -151,7 +151,7 @@ void main() {
         Uri.parse('https://inner.com'),
         BigInt.from(1),
         const Duration(seconds: 1),
-        const None(),
+        null,
         const QueryMap({}),
         [],
         {},
@@ -193,7 +193,7 @@ void main() {
         Uri.parse('https://inner.com'),
         BigInt.from(1),
         const Duration(seconds: 1),
-        const None(),
+        null,
         const QueryMap({}),
         [],
         {},

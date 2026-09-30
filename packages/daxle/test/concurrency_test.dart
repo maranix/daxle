@@ -201,10 +201,8 @@ void main() {
           },
         ];
 
-        final task = Task(() => const Concurrency.bounded(1).process(tasks));
-        expect(log, isEmpty); // lazy before run()
-
-        final results = await task.run();
+        expect(log, isEmpty);
+        final results = await const Concurrency.bounded(1).process(tasks);
         expect(results, equals([1, 2]));
         expect(
           log,

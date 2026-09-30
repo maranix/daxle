@@ -1,15 +1,16 @@
 name: daxle
-description: A lightweight Dart utility package offering common abstractions and missing features to write safer, more expressive code.
+description: High-performance data modeling, zero-cost map querying, concurrency control, and stream transformations for Dart.
 version: 5.0.0+3-beta
 homepage: https://github.com/maranix/daxle/tree/main/packages/daxle
 repository: https://github.com/maranix/daxle/tree/main/packages/daxle
 issues: https://github.com/maranix/daxle/issues?q=state%3Aopen%20label%3Adaxle
 
 topics:
-  - functional
-  - option
-  - either
-  - fp
+  - query-map
+  - concurrency
+  - stream-transform
+  - codegen
+  - utilities
 
 environment:
   sdk: ^3.13.0

@@ -1,11 +1,12 @@
 import 'package:daxle/daxle.dart';
 
-// Fluent querying of server host with Option and QueryMap
-Option<String> getSanitizedServerHostSafe(Map<String, dynamic> config) {
-  return Option(QueryMap(config))
-      .map((q) => q.get<String>('services.server.host'))
-      .map((host) => host.trim())
-      .filter((host) => host.isNotEmpty && !host.startsWith('localhost'));
+// Querying server host with QueryMap
+String? getSanitizedServerHostSafe(Map<String, dynamic> config) {
+  final host = QueryMap(config).get<String>('services.server.host')?.trim();
+  if (host != null && host.isNotEmpty && !host.startsWith('localhost')) {
+    return host;
+  }
+  return null;
 }
 
 void main() {
@@ -18,8 +19,8 @@ void main() {
     },
   };
 
-  final host = getSanitizedServerHostSafe(appConfig)
-      .getOrElse(() => 'https://default-gateway.internal');
+  final host = getSanitizedServerHostSafe(appConfig) ??
+      'https://default-gateway.internal';
 
   print('Target host: $host'); // Prints: Target host: api.production.internal
 }
