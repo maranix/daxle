@@ -49,6 +49,7 @@ class DaxleGenerator {
     String targetPath = '.',
     GlobFilter? filter,
     bool check = false,
+    bool force = false,
     bool verbose = false,
     void Function(String msg)? log,
   }) async {
@@ -202,7 +203,7 @@ class DaxleGenerator {
         if (!processedRoots.add(effectiveSrcPath)) continue;
 
         // Check cache for instant hit
-        if (!check && cache.isUpToDate(effectiveSrcPath, effectiveGenPath)) {
+        if (!force && !check && cache.isUpToDate(effectiveSrcPath, effectiveGenPath)) {
           cached++;
           logger('[CACHE HIT] $effectiveSrcPath');
           continue;

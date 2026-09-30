@@ -125,4 +125,22 @@ class ContentCache {
     final relSource = p.relative(sourcePath, from: rootDir);
     _entries.remove(relSource);
   }
+
+  /// Removes all generated files tracked in the manifest, clears entries, and deletes the manifest file.
+  /// Returns list of deleted file paths.
+  List<String> clean() {
+    final deleted = <String>[];
+    for (final entry in _entries.values) {
+      final genFile = File(p.join(rootDir, entry.generatedPath));
+      if (genFile.existsSync()) {
+        genFile.deleteSync();
+        deleted.add(genFile.path);
+      }
+    }
+    _entries.clear();
+    if (manifestFile.existsSync()) {
+      manifestFile.deleteSync();
+    }
+    return deleted;
+  }
 }

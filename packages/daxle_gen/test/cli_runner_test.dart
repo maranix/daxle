@@ -131,5 +131,56 @@ class Item(final String id, final int price);
       final code = await runner.run(['--help']);
       expect(code, 0);
     });
+
+    test('--clean deletes all generated files and manifest', () async {
+      final sourceFile = File('${tempDir.path}/item.dart');
+      sourceFile.writeAsStringSync('''
+import 'package:daxle/daxle.dart';
+
+part 'item.daxle.dart';
+
+@serialize
+class Item(final String id);
+''');
+
+      final runner = DaxleCliRunner();
+      var code = await runner.run(['generate', tempDir.path]);
+      expect(code, 0);
+
+      final genFile = File('${tempDir.path}/item.daxle.dart');
+      expect(genFile.existsSync(), true);
+
+      code = await runner.run(['generate', tempDir.path, '--clean']);
+      expect(code, 0);
+      expect(genFile.existsSync(), false);
+    });
+
+    test('--force regenerates even if cache is up-to-date', () async {
+      final sourceFile = File('${tempDir.path}/item.dart');
+      sourceFile.writeAsStringSync('''
+import 'package:daxle/daxle.dart';
+
+part 'item.daxle.dart';
+
+@serialize
+class Item(final String id);
+''');
+
+      final runner = DaxleCliRunner();
+      var code = await runner.run(['generate', tempDir.path]);
+      expect(code, 0);
+
+      final genFile = File('${tempDir.path}/item.daxle.dart');
+      expect(genFile.existsSync(), true);
+
+      // Overwrite generated file with comment
+      genFile.writeAsStringSync('// modified comment\n${genFile.readAsStringSync()}');
+
+      // Normal run skips because source didn't change (if cached) or updates cache
+      // Running with --force will overwrite and restore pure generated content
+      code = await runner.run(['generate', tempDir.path, '--force']);
+      expect(code, 0);
+      expect(genFile.readAsStringSync().contains('// modified comment'), false);
+    });
   });
 }

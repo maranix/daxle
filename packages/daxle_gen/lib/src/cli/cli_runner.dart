@@ -32,6 +32,19 @@ class DaxleCliRunner {
     );
 
     parser.addFlag(
+      'clean',
+      abbr: 'c',
+      negatable: false,
+      help: 'Deletes all generated files recorded in the manifest.',
+    );
+
+    parser.addFlag(
+      'force',
+      negatable: false,
+      help: 'Force regenerate all files ignoring cache.',
+    );
+
+    parser.addFlag(
       'check',
       negatable: false,
       help: 'Verifies whether generated code is up-to-date without writing files.',
@@ -82,6 +95,8 @@ class DaxleCliRunner {
 
     final target = results.rest.isNotEmpty ? results.rest.first : '.';
     final watch = results['watch'] as bool;
+    final clean = results['clean'] as bool;
+    final force = results['force'] as bool;
     final check = results['check'] as bool;
     final verbose = results['verbose'] as bool;
     final filterPatterns = results['filter'] as List<String>;
@@ -89,6 +104,13 @@ class DaxleCliRunner {
     final globFilter = GlobFilter.fromPatterns(filterPatterns, context: target);
     final cacheRoot = findPackageRoot(target);
     final cache = ContentCache(root: cacheRoot);
+
+    if (clean) {
+      final deleted = cache.clean();
+      print('Cleaned ${deleted.length} generated file(s).');
+      return 0;
+    }
+
     final generator = DaxleGenerator(cache: cache);
 
     if (watch) {
@@ -105,6 +127,7 @@ class DaxleCliRunner {
       targetPath: target,
       filter: globFilter,
       check: check,
+      force: force,
       verbose: verbose,
       log: print,
     );
@@ -190,8 +213,10 @@ class DaxleCliRunner {
         for (final filePath in toProcess) {
           if (File(filePath).existsSync()) {
             print('[CHANGE DETECTED] ${p.relative(filePath)}');
+            // Invalidate cache for changed file to guarantee reaction & rebuild
+            generator.cache.remove(filePath);
             await generator.run(
-              targetPath: filePath,
+              targetPath: target,
               filter: filter,
               verbose: verbose,
               log: print,
