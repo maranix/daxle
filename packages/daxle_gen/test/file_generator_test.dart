@@ -414,5 +414,37 @@ class ApiKeyCredentials(
     expect(generated, contains('diff(ApiKeyCredentials other, {bool deep = true})'));
     expect(generated, contains("secretKey: [REDACTED]"));
   });
+
+  test('extension type in model uses toMap in toDebugMap without expecting toDebugMap', () {
+    const code = r'''
+import 'package:daxle/daxle.dart';
+
+const serde = AnnotationBundle([const Serialize(), const Deserialize()]);
+
+@serde
+extension type const VariantId(String key) implements String;
+
+@serde
+class ModelSettings(
+  final Map<String, VariantId> selectedVariants,
+) with _$ModelSettings;
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/settings.dart');
+    final generated = generator.generate(
+      parsedFile,
+      projectExtensionTypes: {'VariantId'},
+    );
+
+    expect(generated, isNotNull);
+    // In toMap: uses variantIdToMap
+    expect(generated, contains('variantIdToMap(v)'));
+    // In toDebugMap: uses variantIdToMap (NOT variantIdToDebugMap)
+    expect(generated, contains('variantIdToMap(v)'));
+    expect(generated, isNot(contains('variantIdToDebugMap')));
+    // In fromMap: uses variantIdFromMap(v) (NOT v as Map<String, dynamic>)
+    expect(generated, contains('variantIdFromMap(v)'));
+    expect(generated, isNot(contains('variantIdFromMap(v as Map<String, dynamic>)')));
+  });
 }
 
