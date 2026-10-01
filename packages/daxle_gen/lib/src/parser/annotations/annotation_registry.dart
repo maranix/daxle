@@ -33,6 +33,7 @@ final class AnnotationRegistry {
     register(const FlattenAnnotationHandler());
     register(const IgnoreAnnotationHandler());
     register(const RedactAnnotationHandler());
+    register(const StateMachineAnnotationHandler());
   }
 
   /// Extracts identifier name from an AST annotation (stripping library prefixes).

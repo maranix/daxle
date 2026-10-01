@@ -10,6 +10,7 @@ import 'equality_generator.dart';
 import 'extension_type_generator.dart';
 import 'record_generator.dart';
 import 'sealed_generator.dart';
+import 'state_machine_generator.dart';
 import 'stringify_generator.dart';
 import 'type_helper.dart';
 
@@ -75,6 +76,7 @@ class FileGenerator {
     final equalityGen = EqualityGenerator(typeHelper);
     final stringifyGen = const StringifyGenerator();
     final copyWithGen = const CopyWithGenerator();
+    final stateMachineGen = const StateMachineGenerator();
 
     final specs = <Spec>[];
 
@@ -212,6 +214,11 @@ class FileGenerator {
       if (clazz.shouldCopyWith) {
         specs.addAll(copyWithGen.build(clazz, knownCopyWithClasses));
       }
+
+      // StateMachine mixin
+      if (clazz.shouldGenerateStateMachine) {
+        specs.add(stateMachineGen.build(clazz, parsedFile));
+      }
     }
 
     // 4. Sealed Classes
@@ -270,6 +277,11 @@ class FileGenerator {
               ]),
           ),
         );
+      }
+
+      // StateMachine mixin on sealed class
+      if (sc.shouldGenerateStateMachine) {
+        specs.add(stateMachineGen.build(sc, parsedFile));
       }
     }
 

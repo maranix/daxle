@@ -5,28 +5,24 @@ import 'exceptions.dart';
 
 /// Provides safe, validated state transitions and liveness tracking for active asynchronous flows.
 final class TransitionScope<TState> {
-  final TState Function() _getActiveState;
-  final void Function(TState) _setActiveState;
-  final bool Function() _isStillActive;
-  final Map<Type, Set<Type>> _allowedTransitions;
-  final void Function(TState) _emit;
+  final TState Function() getActiveState;
+  final void Function(TState) setActiveState;
+  final bool Function() isStillActive;
+  final Map<Type, Set<Type>> allowedTransitions;
+  final void Function(TState) emit;
 
   TransitionScope({
-    required TState Function() getActiveState,
-    required void Function(TState) setActiveState,
-    required bool Function() isStillActive,
-    required Map<Type, Set<Type>> allowedTransitions,
-    required void Function(TState) emit,
-  })  : _getActiveState = getActiveState,
-        _setActiveState = setActiveState,
-        _isStillActive = isStillActive,
-        _allowedTransitions = allowedTransitions,
-        _emit = emit;
+    required this.getActiveState,
+    required this.setActiveState,
+    required this.isStillActive,
+    required this.allowedTransitions,
+    required this.emit,
+  });
 
   /// Whether the flow execution that received this scope is still current.
   ///
   /// Returns `false` if the state machine has transitioned due to a newer event or flow.
-  bool get isCurrent => _isStillActive();
+  bool get isCurrent => isStillActive();
 
   /// Transitions the state machine into [nextState].
   ///
@@ -37,8 +33,8 @@ final class TransitionScope<TState> {
   void transit(TState nextState) {
     if (!isCurrent) return;
 
-    final current = _getActiveState();
-    final allowed = _allowedTransitions[current.runtimeType] ?? const {};
+    final current = getActiveState();
+    final allowed = allowedTransitions[current.runtimeType] ?? const {};
 
     if (!allowed.contains(nextState.runtimeType)) {
       throw InvalidFlowException(
@@ -48,7 +44,7 @@ final class TransitionScope<TState> {
       );
     }
 
-    _setActiveState(nextState);
-    _emit(nextState);
+    setActiveState(nextState);
+    emit(nextState);
   }
 }
