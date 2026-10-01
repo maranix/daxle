@@ -32,6 +32,7 @@ final class AnnotationRegistry {
     register(const FallbackAnnotationHandler());
     register(const FlattenAnnotationHandler());
     register(const IgnoreAnnotationHandler());
+    register(const RedactAnnotationHandler());
   }
 
   /// Extracts identifier name from an AST annotation (stripping library prefixes).
@@ -89,6 +90,7 @@ final class AnnotationRegistry {
     var isIgnored = false;
     var hasSerializedValue = false;
     var hasFallback = false;
+    RedactConfig? redactConfig;
 
     for (final (name, arguments) in resolveAnnotations(metadata, bundleMap)) {
       final context = (name: name, arguments: arguments, memberName: memberName);
@@ -107,14 +109,20 @@ final class AnnotationRegistry {
         case 'Fallback':
           hasFallback = true;
           fallbackCode = const FallbackAnnotationHandler().parse(context);
+        case 'Redact' || 'redact':
+          redactConfig = const RedactAnnotationHandler().parse(context);
       }
     }
 
-    if (isIgnored && (hasSerializedValue || hasFallback || isFlattened)) {
+    if (isIgnored &&
+        (hasSerializedValue ||
+            hasFallback ||
+            isFlattened ||
+            redactConfig != null)) {
       throw InvalidGenerationSourceError(
-        '@ignore cannot coexist with @SerializedValue, @Fallback, or @Flatten on "$memberName".',
+        '@ignore cannot coexist with @SerializedValue, @Fallback, @Flatten, or @redact on "$memberName".',
         todo:
-            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten from "$memberName".',
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten/@redact from "$memberName".',
       );
     }
 
@@ -133,6 +141,7 @@ final class AnnotationRegistry {
       isFlattened: isFlattened,
       flattenPrefix: flattenPrefix,
       isIgnored: isIgnored,
+      redactConfig: redactConfig,
     );
   }
 }

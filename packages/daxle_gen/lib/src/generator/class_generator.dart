@@ -610,4 +610,137 @@ class ClassGenerator {
   String generateToMap(ParsedClass clazz) {
     return buildToMap(clazz).accept(_emitter).toString();
   }
+
+  /// Builds the `toDebugMap` [Method] specification with sensitive field redaction.
+  Method buildToDebugMap(ParsedClass clazz) {
+    final camelName = TypeHelper.toCamelCase(clazz.name);
+    final caseStyle = clazz.serialize?.caseStyle;
+
+    final buffer = StringBuffer();
+    buffer.writeln('<String, dynamic>{');
+
+    for (final field in clazz.fields) {
+      if (field.isIgnoredForSerialize(clazz.serialize)) continue;
+
+      final fieldExpr = 'instance.${field.name}';
+      final key = field.resolvedSerializeKey(caseStyle);
+
+      if (field.config.isFlattened) {
+        final childToDebugMapCall =
+            typeHelper.knownClasses.contains(field.type.baseName)
+            ? '${TypeHelper.toCamelCase(field.type.baseName)}ToDebugMap($fieldExpr${field.type.isNullable ? '!' : ''}, excludeNull: excludeNull)'
+            : '$fieldExpr${field.type.isNullable ? '!' : ''}.toDebugMap(excludeNull: excludeNull)';
+
+        if (field.type.isNullable) {
+          buffer.writeln('  if ($fieldExpr != null)');
+        }
+        buffer.writeln('    for (final entry in $childToDebugMapCall.entries)');
+        if (field.config.flattenPrefix.isNotEmpty) {
+          buffer.writeln(
+            "      '${field.config.flattenPrefix}\${entry.key}': entry.value,",
+          );
+        } else {
+          buffer.writeln('      entry.key: entry.value,');
+        }
+        continue;
+      }
+
+      if (field.isRedacted) {
+        final cfg = field.redactConfig!;
+        final maskEscaped = cfg.mask
+            .replaceAll(r'\', r'\\')
+            .replaceAll(r'$', r'\$')
+            .replaceAll(r"'", r"\'");
+
+        String redactedExpr;
+        if (cfg.preserveLength && field.type.isString) {
+          if (field.type.isNullable) {
+            redactedExpr =
+                "$fieldExpr == null ? null : ('$maskEscaped'.isNotEmpty ? '$maskEscaped'[0] * $fieldExpr!.length : '')";
+          } else {
+            redactedExpr =
+                "('$maskEscaped'.isNotEmpty ? '$maskEscaped'[0] * $fieldExpr.length : '')";
+          }
+        } else if (field.type.isList || field.type.isSet) {
+          if (field.type.isNullable) {
+            redactedExpr =
+                "$fieldExpr == null ? null : ($fieldExpr!.isEmpty ? <dynamic>[] : <dynamic>['$maskEscaped'])";
+          } else {
+            redactedExpr =
+                "$fieldExpr.isEmpty ? <dynamic>[] : <dynamic>['$maskEscaped']";
+          }
+        } else {
+          if (field.type.isNullable) {
+            redactedExpr = "$fieldExpr == null ? null : '$maskEscaped'";
+          } else {
+            redactedExpr = "'$maskEscaped'";
+          }
+        }
+
+        if (field.type.isNullable) {
+          buffer.writeln(
+            "  if (!excludeNull || $fieldExpr != null) '$key': $redactedExpr,",
+          );
+        } else {
+          buffer.writeln("  '$key': $redactedExpr,");
+        }
+        continue;
+      }
+
+      final hasSerializeFallback = field.config.fallbackCode != null;
+
+      if (field.type.isNullable && !hasSerializeFallback) {
+        final serializeNonNullExpr = typeHelper.generateSerializeNonNull(
+          field.type,
+          fieldExpr,
+          config: field.config,
+          explicitToJson: true,
+          forDebugMap: true,
+        );
+        buffer.writeln(
+          "  if (!excludeNull || $fieldExpr != null) '$key': $fieldExpr == null ? null : $serializeNonNullExpr,",
+        );
+      } else {
+        final serializeExpr = typeHelper.generateSerialize(
+          field.type,
+          fieldExpr,
+          config: field.config,
+          explicitToJson: true,
+          forDebugMap: true,
+        );
+        buffer.writeln("  '$key': $serializeExpr,");
+      }
+    }
+
+    buffer.write('}');
+
+    return Method(
+      (b) => b
+        ..name = '${camelName}ToDebugMap'
+        ..returns = refer('Map<String, dynamic>')
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'instance'
+              ..type = refer(clazz.name),
+          ),
+        )
+        ..optionalParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'excludeNull'
+              ..type = refer('bool')
+              ..named = true
+              ..defaultTo = const Code('false'),
+          ),
+        )
+        ..lambda = true
+        ..body = Code(buffer.toString()),
+    );
+  }
+
+  /// Generates the `toDebugMap` function as code string.
+  String generateToDebugMap(ParsedClass clazz) {
+    return buildToDebugMap(clazz).accept(_emitter).toString();
+  }
 }

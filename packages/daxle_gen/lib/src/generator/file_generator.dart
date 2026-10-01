@@ -4,6 +4,7 @@ import 'package:dart_style/dart_style.dart';
 import '../models/parsed_element.dart';
 import 'class_generator.dart';
 import 'copy_with_generator.dart';
+import 'diff_generator.dart';
 import 'enum_generator.dart';
 import 'equality_generator.dart';
 import 'extension_type_generator.dart';
@@ -66,6 +67,7 @@ class FileGenerator {
     };
 
     final classGen = ClassGenerator(typeHelper);
+    final diffGen = DiffGenerator(typeHelper);
     final enumGen = EnumGenerator();
     final extTypeGen = ExtensionTypeGenerator(typeHelper);
     final recordGen = RecordGenerator(typeHelper);
@@ -129,13 +131,14 @@ class FileGenerator {
       }
       if (shouldSer) {
         specs.add(classGen.buildToMap(clazz));
+        specs.add(classGen.buildToDebugMap(clazz));
         final camelName = TypeHelper.toCamelCase(clazz.name);
         specs.add(
           Extension(
             (b) => b
               ..name = '${clazz.name}ToMapExtension'
               ..on = refer(clazz.name)
-              ..methods.add(
+              ..methods.addAll([
                 Method(
                   (m) => m
                     ..name = 'toMap'
@@ -154,7 +157,26 @@ class FileGenerator {
                       '${camelName}ToMap(this, excludeNull: excludeNull)',
                     ),
                 ),
-              ),
+                Method(
+                  (m) => m
+                    ..name = 'toDebugMap'
+                    ..returns = refer('Map<String, dynamic>')
+                    ..optionalParameters.add(
+                      Parameter(
+                        (p) => p
+                          ..name = 'excludeNull'
+                          ..type = refer('bool')
+                          ..named = true
+                          ..defaultTo = const Code('false'),
+                      ),
+                    )
+                    ..lambda = true
+                    ..body = Code(
+                      '${camelName}ToDebugMap(this, excludeNull: excludeNull)',
+                    ),
+                ),
+                diffGen.buildDiffMethod(clazz),
+              ]),
           ),
         );
       }
@@ -200,13 +222,14 @@ class FileGenerator {
       }
       if (sc.shouldSerialize) {
         specs.add(sealedGen.buildToMap(sc, subs));
+        specs.add(sealedGen.buildToDebugMap(sc, subs));
         final camelName = TypeHelper.toCamelCase(sc.name);
         specs.add(
           Extension(
             (b) => b
               ..name = '${sc.name}ToMapExtension'
               ..on = refer(sc.name)
-              ..methods.add(
+              ..methods.addAll([
                 Method(
                   (m) => m
                     ..name = 'toMap'
@@ -225,7 +248,26 @@ class FileGenerator {
                       '${camelName}ToMap(this, excludeNull: excludeNull)',
                     ),
                 ),
-              ),
+                Method(
+                  (m) => m
+                    ..name = 'toDebugMap'
+                    ..returns = refer('Map<String, dynamic>')
+                    ..optionalParameters.add(
+                      Parameter(
+                        (p) => p
+                          ..name = 'excludeNull'
+                          ..type = refer('bool')
+                          ..named = true
+                          ..defaultTo = const Code('false'),
+                      ),
+                    )
+                    ..lambda = true
+                    ..body = Code(
+                      '${camelName}ToDebugMap(this, excludeNull: excludeNull)',
+                    ),
+                ),
+                sealedGen.buildDiffMethod(sc, subs),
+              ]),
           ),
         );
       }

@@ -131,4 +131,118 @@ class SealedGenerator {
   ) {
     return buildToMap(sealedClass, subclasses).accept(_emitter).toString();
   }
+
+  /// Builds the polymorphic `toDebugMap` [Method] specification.
+  Method buildToDebugMap(
+    ParsedClass sealedClass,
+    List<ParsedClass> subclasses,
+  ) {
+    final camelName = TypeHelper.toCamelCase(sealedClass.name);
+    final discriminator =
+        sealedClass.serialize?.discriminator ??
+        sealedClass.deserialize?.discriminator ??
+        'type';
+    final caseStyle =
+        sealedClass.serialize?.caseStyle ?? sealedClass.deserialize?.caseStyle;
+
+    final buffer = StringBuffer();
+    buffer.writeln('return switch (instance) {');
+
+    for (final sub in subclasses) {
+      final subVar = TypeHelper.toCamelCase(sub.name);
+      final defaultTag = caseStyle != null
+          ? caseStyle.transform(sub.name)
+          : sub.name;
+      final tag = sub.customDiscriminatorName ?? defaultTag;
+      buffer.writeln(
+        "  final ${sub.name} $subVar => ${subVar}ToDebugMap($subVar, excludeNull: excludeNull)..['$discriminator'] = '$tag',",
+      );
+    }
+
+    buffer.write('};');
+
+    return Method(
+      (b) => b
+        ..name = '${camelName}ToDebugMap'
+        ..returns = refer('Map<String, dynamic>')
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'instance'
+              ..type = refer(sealedClass.name),
+          ),
+        )
+        ..optionalParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'excludeNull'
+              ..type = refer('bool')
+              ..named = true
+              ..defaultTo = const Code('false'),
+          ),
+        )
+        ..body = Code(buffer.toString()),
+    );
+  }
+
+  /// Generates the `toDebugMap` function as code string.
+  String generateToDebugMap(
+    ParsedClass sealedClass,
+    List<ParsedClass> subclasses,
+  ) {
+    return buildToDebugMap(sealedClass, subclasses).accept(_emitter).toString();
+  }
+
+  /// Builds the polymorphic `diff` extension [Method] specification.
+  Method buildDiffMethod(
+    ParsedClass sealedClass,
+    List<ParsedClass> subclasses,
+  ) {
+    final buffer = StringBuffer();
+    buffer.writeln(
+      'if (identical(this, other)) return const <String, dynamic>{};',
+    );
+    buffer.writeln('return switch ((this, other)) {');
+
+    for (final sub in subclasses) {
+      final subName = sub.name;
+      buffer.writeln(
+        '  (final $subName c, final $subName o) => c.diff(o, deep: deep),',
+      );
+    }
+
+    buffer.writeln('  _ => other.toMap(),');
+    buffer.writeln('};');
+
+    return Method(
+      (b) => b
+        ..name = 'diff'
+        ..returns = refer('Map<String, dynamic>')
+        ..requiredParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'other'
+              ..type = refer(sealedClass.name),
+          ),
+        )
+        ..optionalParameters.add(
+          Parameter(
+            (p) => p
+              ..name = 'deep'
+              ..type = refer('bool')
+              ..named = true
+              ..defaultTo = const Code('true'),
+          ),
+        )
+        ..body = Code(buffer.toString()),
+    );
+  }
+
+  /// Generates the `diff` method as code string.
+  String generateDiffMethod(
+    ParsedClass sealedClass,
+    List<ParsedClass> subclasses,
+  ) {
+    return buildDiffMethod(sealedClass, subclasses).accept(_emitter).toString();
+  }
 }

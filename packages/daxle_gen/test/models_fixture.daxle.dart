@@ -441,10 +441,98 @@ Map<String, dynamic> complexModelToMap(
         ? null
         : const EpochDateTimeConverter().toJson(instance.customEpoch!),
 };
+Map<String, dynamic> complexModelToDebugMap(
+  ComplexModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'id': instance.id,
+  'count': instance.count,
+  'rating': instance.rating,
+  'isActive': instance.isActive,
+  'createdAt': instance.createdAt.toIso8601String(),
+  'website': instance.website.toString(),
+  'score': instance.score.toString(),
+  'timeout': instance.timeout.inMicroseconds,
+  if (!excludeNull || instance.optionalTag != null)
+    'optionalTag': instance.optionalTag == null ? null : instance.optionalTag,
+  'metadata': instance.metadata.map,
+  'tags': instance.tags,
+  'numbers': instance.numbers.toList(),
+  'scores': instance.scores,
+  'status': statusToValue(instance.status),
+  'priority': priorityToValue(instance.priority),
+  'role': instance.role,
+  if (!excludeNull || instance.customEpoch != null)
+    'customEpoch': instance.customEpoch == null
+        ? null
+        : const EpochDateTimeConverter().toJson(instance.customEpoch!),
+};
 
 extension ComplexModelToMapExtension on ComplexModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       complexModelToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      complexModelToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(ComplexModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = other.id;
+    }
+    if (this.count != other.count) {
+      delta['count'] = other.count;
+    }
+    if (this.rating != other.rating) {
+      delta['rating'] = other.rating;
+    }
+    if (this.isActive != other.isActive) {
+      delta['isActive'] = other.isActive;
+    }
+    if (this.createdAt != other.createdAt) {
+      delta['createdAt'] = other.createdAt.toIso8601String();
+    }
+    if (this.website != other.website) {
+      delta['website'] = other.website.toString();
+    }
+    if (this.score != other.score) {
+      delta['score'] = other.score.toString();
+    }
+    if (this.timeout != other.timeout) {
+      delta['timeout'] = other.timeout.inMicroseconds;
+    }
+    if (this.optionalTag != other.optionalTag) {
+      delta['optionalTag'] = other.optionalTag;
+    }
+    if (!$mapEquals(this.metadata.map, other.metadata.map)) {
+      delta['metadata'] = other.metadata.map;
+    }
+    if (!$listEquals(this.tags, other.tags)) {
+      delta['tags'] = other.tags;
+    }
+    if (!$setEquals(this.numbers, other.numbers)) {
+      delta['numbers'] = other.numbers.toList();
+    }
+    if (!$mapEquals(this.scores, other.scores)) {
+      delta['scores'] = other.scores;
+    }
+    if (this.status != other.status) {
+      delta['status'] = statusToValue(other.status);
+    }
+    if (this.priority != other.priority) {
+      delta['priority'] = priorityToValue(other.priority);
+    }
+    if (this.role != other.role) {
+      delta['role'] = other.role;
+    }
+    if (this.customEpoch != other.customEpoch) {
+      delta['customEpoch'] = other.customEpoch == null
+          ? null
+          : const EpochDateTimeConverter().toJson(other.customEpoch!);
+    }
+    return delta;
+  }
 }
 
 mixin _$ComplexModelEqualsAndHashCode {
@@ -726,10 +814,74 @@ Map<String, dynamic> nestedContainerToMap(
         ? null
         : complexModelToMap(instance.optionalModel!),
 };
+Map<String, dynamic> nestedContainerToDebugMap(
+  NestedContainer instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'containerId': instance.containerId,
+  'model': complexModelToDebugMap(instance.model, excludeNull: excludeNull),
+  if (!excludeNull || instance.optionalModel != null)
+    'optionalModel': instance.optionalModel == null
+        ? null
+        : complexModelToDebugMap(
+            instance.optionalModel!,
+            excludeNull: excludeNull,
+          ),
+};
 
 extension NestedContainerToMapExtension on NestedContainer {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       nestedContainerToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      nestedContainerToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(NestedContainer other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.containerId != other.containerId) {
+      delta['containerId'] = other.containerId;
+    }
+    if (deep) {
+      final childDiff = this.model.diff(other.model, deep: true);
+      if (childDiff.isNotEmpty) {
+        delta['model'] = childDiff;
+      }
+    } else {
+      final childDiff = this.model.diff(other.model, deep: false);
+      if (childDiff.isNotEmpty) {
+        delta['model'] = complexModelToMap(other.model);
+      }
+    }
+    if (this.optionalModel == null && other.optionalModel != null) {
+      delta['optionalModel'] = (other.optionalModel == null
+          ? null
+          : complexModelToMap(other.optionalModel!));
+    } else if (this.optionalModel != null && other.optionalModel == null) {
+      delta['optionalModel'] = null;
+    } else if (this.optionalModel != null && other.optionalModel != null) {
+      if (deep) {
+        final childDiff = this.optionalModel!.diff(
+          other.optionalModel!,
+          deep: true,
+        );
+        if (childDiff.isNotEmpty) {
+          delta['optionalModel'] = childDiff;
+        }
+      } else {
+        final childDiff = this.optionalModel!.diff(
+          other.optionalModel!,
+          deep: false,
+        );
+        if (childDiff.isNotEmpty) {
+          delta['optionalModel'] = (other.optionalModel == null
+              ? null
+              : complexModelToMap(other.optionalModel!));
+        }
+      }
+    }
+    return delta;
+  }
 }
 
 mixin _$NestedContainerEqualsAndHashCode {
@@ -868,10 +1020,26 @@ Circle circleFromMap(Map<String, dynamic> json) {
 
 Map<String, dynamic> circleToMap(Circle instance, {bool excludeNull = false}) =>
     <String, dynamic>{'radius': instance.radius};
+Map<String, dynamic> circleToDebugMap(
+  Circle instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'radius': instance.radius};
 
 extension CircleToMapExtension on Circle {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       circleToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      circleToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Circle other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.radius != other.radius) {
+      delta['radius'] = other.radius;
+    }
+    return delta;
+  }
 }
 
 Square squareFromMap(Map<String, dynamic> json) {
@@ -897,10 +1065,26 @@ Square squareFromMap(Map<String, dynamic> json) {
 
 Map<String, dynamic> squareToMap(Square instance, {bool excludeNull = false}) =>
     <String, dynamic>{'side': instance.side};
+Map<String, dynamic> squareToDebugMap(
+  Square instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'side': instance.side};
 
 extension SquareToMapExtension on Square {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       squareToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      squareToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Square other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.side != other.side) {
+      delta['side'] = other.side;
+    }
+    return delta;
+  }
 }
 
 Car carFromMap(Map<String, dynamic> json) {
@@ -926,10 +1110,24 @@ Car carFromMap(Map<String, dynamic> json) {
 
 Map<String, dynamic> carToMap(Car instance, {bool excludeNull = false}) =>
     <String, dynamic>{'seats': instance.seats};
+Map<String, dynamic> carToDebugMap(Car instance, {bool excludeNull = false}) =>
+    <String, dynamic>{'seats': instance.seats};
 
 extension CarToMapExtension on Car {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       carToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      carToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Car other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.seats != other.seats) {
+      delta['seats'] = other.seats;
+    }
+    return delta;
+  }
 }
 
 Bike bikeFromMap(Map<String, dynamic> json) {
@@ -958,10 +1156,26 @@ Bike bikeFromMap(Map<String, dynamic> json) {
 
 Map<String, dynamic> bikeToMap(Bike instance, {bool excludeNull = false}) =>
     <String, dynamic>{'hasPedals': instance.hasPedals};
+Map<String, dynamic> bikeToDebugMap(
+  Bike instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'hasPedals': instance.hasPedals};
 
 extension BikeToMapExtension on Bike {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       bikeToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      bikeToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Bike other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.hasPedals != other.hasPedals) {
+      delta['hasPedals'] = other.hasPedals;
+    }
+    return delta;
+  }
 }
 
 CustomKeyModel customKeyModelFromMap(Map<String, dynamic> json) {
@@ -992,10 +1206,26 @@ Map<String, dynamic> customKeyModelToMap(
   CustomKeyModel instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'wire_key': instance.key};
+Map<String, dynamic> customKeyModelToDebugMap(
+  CustomKeyModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'wire_key': instance.key};
 
 extension CustomKeyModelToMapExtension on CustomKeyModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       customKeyModelToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      customKeyModelToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(CustomKeyModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.key != other.key) {
+      delta['wire_key'] = other.key;
+    }
+    return delta;
+  }
 }
 
 NullableConverterModel nullableConverterModelFromMap(
@@ -1014,10 +1244,33 @@ Map<String, dynamic> nullableConverterModelToMap(
         ? null
         : const StringIntConverter().toJson(instance.nullableConvertedInt!),
 };
+Map<String, dynamic> nullableConverterModelToDebugMap(
+  NullableConverterModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  if (!excludeNull || instance.nullableConvertedInt != null)
+    'nullableConvertedInt': instance.nullableConvertedInt == null
+        ? null
+        : const StringIntConverter().toJson(instance.nullableConvertedInt!),
+};
 
 extension NullableConverterModelToMapExtension on NullableConverterModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       nullableConverterModelToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      nullableConverterModelToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(NullableConverterModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.nullableConvertedInt != other.nullableConvertedInt) {
+      delta['nullableConvertedInt'] = other.nullableConvertedInt == null
+          ? null
+          : const StringIntConverter().toJson(other.nullableConvertedInt!);
+    }
+    return delta;
+  }
 }
 
 DeepCollectionsModel deepCollectionsModelFromMap(Map<String, dynamic> json) {
@@ -1079,10 +1332,32 @@ Map<String, dynamic> deepCollectionsModelToMap(
   'matrix': instance.matrix.map((e) => e).toList(),
   'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
 };
+Map<String, dynamic> deepCollectionsModelToDebugMap(
+  DeepCollectionsModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'matrix': instance.matrix.map((e) => e).toList(),
+  'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
+};
 
 extension DeepCollectionsModelToMapExtension on DeepCollectionsModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       deepCollectionsModelToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      deepCollectionsModelToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(DeepCollectionsModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (!$listEquals(this.matrix, other.matrix)) {
+      delta['matrix'] = other.matrix.map((e) => e).toList();
+    }
+    if (!$mapEquals(this.mappedLists, other.mappedLists)) {
+      delta['mappedLists'] = other.mappedLists.map((k, v) => MapEntry(k, v));
+    }
+    return delta;
+  }
 }
 
 CaseStyledModel caseStyledModelFromMap(Map<String, dynamic> json) {
@@ -1132,10 +1407,32 @@ Map<String, dynamic> caseStyledModelToMap(
   'user_full_name': instance.userFullName,
   'login_attempt_count': instance.loginAttemptCount,
 };
+Map<String, dynamic> caseStyledModelToDebugMap(
+  CaseStyledModel instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'user_full_name': instance.userFullName,
+  'login_attempt_count': instance.loginAttemptCount,
+};
 
 extension CaseStyledModelToMapExtension on CaseStyledModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       caseStyledModelToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      caseStyledModelToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(CaseStyledModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.userFullName != other.userFullName) {
+      delta['user_full_name'] = other.userFullName;
+    }
+    if (this.loginAttemptCount != other.loginAttemptCount) {
+      delta['login_attempt_count'] = other.loginAttemptCount;
+    }
+    return delta;
+  }
 }
 
 mixin _$CaseStyledModelEqualsAndHashCode {
@@ -1247,10 +1544,26 @@ Map<String, dynamic> loginEventToMap(
   LoginEvent instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'userId': instance.userId};
+Map<String, dynamic> loginEventToDebugMap(
+  LoginEvent instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{'userId': instance.userId};
 
 extension LoginEventToMapExtension on LoginEvent {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       loginEventToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      loginEventToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(LoginEvent other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.userId != other.userId) {
+      delta['userId'] = other.userId;
+    }
+    return delta;
+  }
 }
 
 LogoutEvent logoutEventFromMap(Map<String, dynamic> json) => LogoutEvent();
@@ -1258,10 +1571,23 @@ Map<String, dynamic> logoutEventToMap(
   LogoutEvent instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{};
+Map<String, dynamic> logoutEventToDebugMap(
+  LogoutEvent instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{};
 
 extension LogoutEventToMapExtension on LogoutEvent {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       logoutEventToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      logoutEventToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(LogoutEvent other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    return delta;
+  }
 }
 
 mixin _$EqualsOnlyModelEqualsAndHashCode {
@@ -1558,10 +1884,36 @@ Map<String, dynamic> accountToMap(
   'acc_type': accountTypeToValue(instance.type),
   'loginCount': instance.loginCount,
 };
+Map<String, dynamic> accountToDebugMap(
+  Account instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'id': instance.id,
+  'acc_type': accountTypeToValue(instance.type),
+  'loginCount': instance.loginCount,
+};
 
 extension AccountToMapExtension on Account {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       accountToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      accountToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Account other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = other.id;
+    }
+    if (this.type != other.type) {
+      delta['acc_type'] = accountTypeToValue(other.type);
+    }
+    if (this.loginCount != other.loginCount) {
+      delta['loginCount'] = other.loginCount;
+    }
+    return delta;
+  }
 }
 
 mixin _$AccountEqualsAndHashCode {
@@ -1693,10 +2045,37 @@ Map<String, dynamic> addressToMap(
     'apt': instance.apt == null ? null : instance.apt,
   'city': instance.city,
 };
+Map<String, dynamic> addressToDebugMap(
+  Address instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'street': instance.street,
+  if (!excludeNull || instance.apt != null)
+    'apt': instance.apt == null ? null : instance.apt,
+  'city': instance.city,
+};
 
 extension AddressToMapExtension on Address {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       addressToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      addressToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Address other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.street != other.street) {
+      delta['street'] = other.street;
+    }
+    if (this.apt != other.apt) {
+      delta['apt'] = other.apt;
+    }
+    if (this.city != other.city) {
+      delta['city'] = other.city;
+    }
+    return delta;
+  }
 }
 
 mixin _$AddressEqualsAndHashCode {
@@ -1826,10 +2205,49 @@ Map<String, dynamic> orderToMap(Order instance, {bool excludeNull = false}) =>
       ).entries)
         'shipping_${entry.key}': entry.value,
     };
+Map<String, dynamic> orderToDebugMap(
+  Order instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'id': instance.id,
+  'order_status': paymentStatusToValue(instance.status),
+  if (!excludeNull || instance.notes != null)
+    'notes': instance.notes == null ? null : instance.notes,
+  for (final entry in addressToDebugMap(
+    instance.shippingAddress,
+    excludeNull: excludeNull,
+  ).entries)
+    'shipping_${entry.key}': entry.value,
+};
 
 extension OrderToMapExtension on Order {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       orderToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      orderToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Order other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = other.id;
+    }
+    if (this.status != other.status) {
+      delta['order_status'] = paymentStatusToValue(other.status);
+    }
+    if (this.notes != other.notes) {
+      delta['notes'] = other.notes;
+    }
+    final childDiff = this.shippingAddress.diff(
+      other.shippingAddress,
+      deep: deep,
+    );
+    for (final entry in childDiff.entries) {
+      delta['shipping_${entry.key}'] = entry.value;
+    }
+    return delta;
+  }
 }
 
 mixin _$OrderEqualsAndHashCode {
@@ -1990,10 +2408,41 @@ Map<String, dynamic> userProfileToMap(
         ? null
         : userIdToMap(instance.backupId!),
 };
+Map<String, dynamic> userProfileToDebugMap(
+  UserProfile instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'id': userIdToMap(instance.id),
+  'score': scoreToMap(instance.score),
+  if (!excludeNull || instance.backupId != null)
+    'backupId': instance.backupId == null
+        ? null
+        : userIdToMap(instance.backupId!),
+};
 
 extension UserProfileToMapExtension on UserProfile {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       userProfileToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      userProfileToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(UserProfile other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = userIdToMap(other.id);
+    }
+    if (this.score != other.score) {
+      delta['score'] = scoreToMap(other.score);
+    }
+    if (this.backupId != other.backupId) {
+      delta['backupId'] = (other.backupId == null
+          ? null
+          : userIdToMap(other.backupId!));
+    }
+    return delta;
+  }
 }
 
 RecordContainer recordContainerFromMap(Map<String, dynamic> json) {
@@ -2077,10 +2526,505 @@ Map<String, dynamic> recordContainerToMap(
         ? null
         : [instance.grid!.$1, instance.grid!.$2],
 };
+Map<String, dynamic> recordContainerToDebugMap(
+  RecordContainer instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'user': userInfoRecordToMap(instance.user),
+  'coords': geoCoordsRecordToList(instance.coords),
+  'inlineAddress': {
+    'city': instance.inlineAddress.city,
+    'zip': instance.inlineAddress.zip,
+  },
+  if (!excludeNull || instance.grid != null)
+    'grid': instance.grid == null
+        ? null
+        : [instance.grid!.$1, instance.grid!.$2],
+};
 
 extension RecordContainerToMapExtension on RecordContainer {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       recordContainerToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      recordContainerToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(RecordContainer other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.user != other.user) {
+      delta['user'] = userInfoRecordToMap(other.user);
+    }
+    if (this.coords != other.coords) {
+      delta['coords'] = geoCoordsRecordToList(other.coords);
+    }
+    if (this.inlineAddress != other.inlineAddress) {
+      delta['inlineAddress'] = {
+        'city': other.inlineAddress.city,
+        'zip': other.inlineAddress.zip,
+      };
+    }
+    if (this.grid != other.grid) {
+      delta['grid'] = (other.grid == null
+          ? null
+          : [other.grid!.$1, other.grid!.$2]);
+    }
+    return delta;
+  }
+}
+
+SecretProfile secretProfileFromMap(Map<String, dynamic> json) {
+  return switch (json) {
+    {
+      'publicUsername': final String publicUsernameRaw,
+      'secretToken': final String secretTokenRaw,
+      'rawPassword': final String rawPasswordRaw,
+      'creditCards': final List creditCardsRaw,
+      'recoveryCodes': final List recoveryCodesRaw,
+      'tokens': final Map tokensRaw,
+    } =>
+      SecretProfile(
+        publicUsernameRaw,
+        secretTokenRaw,
+        rawPasswordRaw,
+        (json['optionalPin'] as String?),
+        (json['nullablePreserved'] as String?),
+        creditCardsRaw.cast<dynamic>().map((e) => (e as String)).toList(),
+        recoveryCodesRaw.cast<dynamic>().map((e) => (e as String)).toSet(),
+        tokensRaw.cast<String, dynamic>().map(
+          (k, v) => MapEntry(k, (v as String)),
+        ),
+      ),
+    _ => () {
+      if (!json.containsKey('publicUsername')) {
+        throw FormatException(
+          "Missing required field 'publicUsername' for SecretProfile",
+          json,
+        );
+      }
+      if (json['publicUsername'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'publicUsername' on SecretProfile: expected String, got ${json['publicUsername'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('secretToken')) {
+        throw FormatException(
+          "Missing required field 'secretToken' for SecretProfile",
+          json,
+        );
+      }
+      if (json['secretToken'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'secretToken' on SecretProfile: expected String, got ${json['secretToken'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('rawPassword')) {
+        throw FormatException(
+          "Missing required field 'rawPassword' for SecretProfile",
+          json,
+        );
+      }
+      if (json['rawPassword'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'rawPassword' on SecretProfile: expected String, got ${json['rawPassword'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('creditCards')) {
+        throw FormatException(
+          "Missing required field 'creditCards' for SecretProfile",
+          json,
+        );
+      }
+      if (json['creditCards'] is! List) {
+        throw FormatException(
+          "Invalid type for field 'creditCards' on SecretProfile: expected List, got ${json['creditCards'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('recoveryCodes')) {
+        throw FormatException(
+          "Missing required field 'recoveryCodes' for SecretProfile",
+          json,
+        );
+      }
+      if (json['recoveryCodes'] is! List) {
+        throw FormatException(
+          "Invalid type for field 'recoveryCodes' on SecretProfile: expected List, got ${json['recoveryCodes'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('tokens')) {
+        throw FormatException(
+          "Missing required field 'tokens' for SecretProfile",
+          json,
+        );
+      }
+      if (json['tokens'] is! Map) {
+        throw FormatException(
+          "Invalid type for field 'tokens' on SecretProfile: expected Map, got ${json['tokens'].runtimeType}",
+          json,
+        );
+      }
+      throw FormatException(
+        'Invalid JSON shape for SecretProfile: missing or invalid required keys (expected: publicUsername, secretToken, rawPassword, creditCards, recoveryCodes, tokens)',
+        json,
+      );
+    }(),
+  };
+}
+
+Map<String, dynamic> secretProfileToMap(
+  SecretProfile instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'publicUsername': instance.publicUsername,
+  'secretToken': instance.secretToken,
+  'rawPassword': instance.rawPassword,
+  if (!excludeNull || instance.optionalPin != null)
+    'optionalPin': instance.optionalPin == null ? null : instance.optionalPin,
+  if (!excludeNull || instance.nullablePreserved != null)
+    'nullablePreserved': instance.nullablePreserved == null
+        ? null
+        : instance.nullablePreserved,
+  'creditCards': instance.creditCards,
+  'recoveryCodes': instance.recoveryCodes.toList(),
+  'tokens': instance.tokens,
+};
+Map<String, dynamic> secretProfileToDebugMap(
+  SecretProfile instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'publicUsername': instance.publicUsername,
+  'secretToken': '[REDACTED]',
+  'rawPassword': ('*'.isNotEmpty ? '*'[0] * instance.rawPassword.length : ''),
+  if (!excludeNull || instance.optionalPin != null)
+    'optionalPin': instance.optionalPin == null ? null : '[REDACTED]',
+  if (!excludeNull || instance.nullablePreserved != null)
+    'nullablePreserved': instance.nullablePreserved == null
+        ? null
+        : ('[REDACTED]'.isNotEmpty
+              ? '[REDACTED]'[0] * instance.nullablePreserved!.length
+              : ''),
+  'creditCards': instance.creditCards.isEmpty
+      ? <dynamic>[]
+      : <dynamic>['[REDACTED]'],
+  'recoveryCodes': instance.recoveryCodes.isEmpty
+      ? <dynamic>[]
+      : <dynamic>['[REDACTED]'],
+  'tokens': '[REDACTED]',
+};
+
+extension SecretProfileToMapExtension on SecretProfile {
+  Map<String, dynamic> toMap({bool excludeNull = false}) =>
+      secretProfileToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      secretProfileToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(SecretProfile other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.publicUsername != other.publicUsername) {
+      delta['publicUsername'] = other.publicUsername;
+    }
+    if (this.secretToken != other.secretToken) {
+      delta['secretToken'] = other.secretToken;
+    }
+    if (this.rawPassword != other.rawPassword) {
+      delta['rawPassword'] = other.rawPassword;
+    }
+    if (this.optionalPin != other.optionalPin) {
+      delta['optionalPin'] = other.optionalPin;
+    }
+    if (this.nullablePreserved != other.nullablePreserved) {
+      delta['nullablePreserved'] = other.nullablePreserved;
+    }
+    if (!$listEquals(this.creditCards, other.creditCards)) {
+      delta['creditCards'] = other.creditCards;
+    }
+    if (!$setEquals(this.recoveryCodes, other.recoveryCodes)) {
+      delta['recoveryCodes'] = other.recoveryCodes.toList();
+    }
+    if (!$mapEquals(this.tokens, other.tokens)) {
+      delta['tokens'] = other.tokens;
+    }
+    return delta;
+  }
+}
+
+mixin _$SecretProfileEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SecretProfile || runtimeType != other.runtimeType)
+      return false;
+    final self = this as SecretProfile;
+    return self.publicUsername == other.publicUsername &&
+        self.secretToken == other.secretToken &&
+        self.rawPassword == other.rawPassword &&
+        self.optionalPin == other.optionalPin &&
+        self.nullablePreserved == other.nullablePreserved &&
+        $listEquals(self.creditCards, other.creditCards) &&
+        $setEquals(self.recoveryCodes, other.recoveryCodes) &&
+        $mapEquals(self.tokens, other.tokens);
+  }
+
+  @override
+  int get hashCode {
+    final self = this as SecretProfile;
+    return Object.hash(
+      self.publicUsername,
+      self.secretToken,
+      self.rawPassword,
+      self.optionalPin,
+      self.nullablePreserved,
+      $listHashCode(self.creditCards),
+      $setHashCode(self.recoveryCodes),
+      $mapHashCode(self.tokens),
+    );
+  }
+}
+
+mixin _$SecretProfileStringify {
+  @override
+  String toString() {
+    final self = this as SecretProfile;
+    return 'SecretProfile(publicUsername: ${self.publicUsername}, secretToken: [REDACTED], rawPassword: ${'*'.isNotEmpty ? '*'[0] * self.rawPassword.length : ''}, optionalPin: ${self.optionalPin == null ? 'null' : '[REDACTED]'}, nullablePreserved: ${self.nullablePreserved == null ? 'null' : ('[REDACTED]'.isNotEmpty ? '[REDACTED]'[0] * self.nullablePreserved!.length : '')}, creditCards: [REDACTED], recoveryCodes: [REDACTED], tokens: [REDACTED])';
+  }
+}
+
+mixin _$SecretProfile
+    implements _$SecretProfileEqualsAndHashCode, _$SecretProfileStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! SecretProfile || runtimeType != other.runtimeType)
+      return false;
+    final self = this as SecretProfile;
+    return self.publicUsername == other.publicUsername &&
+        self.secretToken == other.secretToken &&
+        self.rawPassword == other.rawPassword &&
+        self.optionalPin == other.optionalPin &&
+        self.nullablePreserved == other.nullablePreserved &&
+        $listEquals(self.creditCards, other.creditCards) &&
+        $setEquals(self.recoveryCodes, other.recoveryCodes) &&
+        $mapEquals(self.tokens, other.tokens);
+  }
+
+  @override
+  int get hashCode {
+    final self = this as SecretProfile;
+    return Object.hash(
+      self.publicUsername,
+      self.secretToken,
+      self.rawPassword,
+      self.optionalPin,
+      self.nullablePreserved,
+      $listHashCode(self.creditCards),
+      $setHashCode(self.recoveryCodes),
+      $mapHashCode(self.tokens),
+    );
+  }
+
+  @override
+  String toString() {
+    final self = this as SecretProfile;
+    return 'SecretProfile(publicUsername: ${self.publicUsername}, secretToken: [REDACTED], rawPassword: ${'*'.isNotEmpty ? '*'[0] * self.rawPassword.length : ''}, optionalPin: ${self.optionalPin == null ? 'null' : '[REDACTED]'}, nullablePreserved: ${self.nullablePreserved == null ? 'null' : ('[REDACTED]'.isNotEmpty ? '[REDACTED]'[0] * self.nullablePreserved!.length : '')}, creditCards: [REDACTED], recoveryCodes: [REDACTED], tokens: [REDACTED])';
+  }
+}
+
+AccountCredentials accountCredentialsFromMap(Map<String, dynamic> json) {
+  return switch (json) {
+    {
+      'accountId': final String accountIdRaw,
+      'profile': final Map profileRaw,
+      'wholesaleRedactedProfile': final Map wholesaleRedactedProfileRaw,
+    } =>
+      AccountCredentials(
+        accountIdRaw,
+        secretProfileFromMap(profileRaw.cast<String, dynamic>()),
+        secretProfileFromMap(
+          wholesaleRedactedProfileRaw.cast<String, dynamic>(),
+        ),
+      ),
+    _ => () {
+      if (!json.containsKey('accountId')) {
+        throw FormatException(
+          "Missing required field 'accountId' for AccountCredentials",
+          json,
+        );
+      }
+      if (json['accountId'] is! String) {
+        throw FormatException(
+          "Invalid type for field 'accountId' on AccountCredentials: expected String, got ${json['accountId'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('profile')) {
+        throw FormatException(
+          "Missing required field 'profile' for AccountCredentials",
+          json,
+        );
+      }
+      if (json['profile'] is! Map) {
+        throw FormatException(
+          "Invalid type for field 'profile' on AccountCredentials: expected Map, got ${json['profile'].runtimeType}",
+          json,
+        );
+      }
+      if (!json.containsKey('wholesaleRedactedProfile')) {
+        throw FormatException(
+          "Missing required field 'wholesaleRedactedProfile' for AccountCredentials",
+          json,
+        );
+      }
+      if (json['wholesaleRedactedProfile'] is! Map) {
+        throw FormatException(
+          "Invalid type for field 'wholesaleRedactedProfile' on AccountCredentials: expected Map, got ${json['wholesaleRedactedProfile'].runtimeType}",
+          json,
+        );
+      }
+      throw FormatException(
+        'Invalid JSON shape for AccountCredentials: missing or invalid required keys (expected: accountId, profile, wholesaleRedactedProfile)',
+        json,
+      );
+    }(),
+  };
+}
+
+Map<String, dynamic> accountCredentialsToMap(
+  AccountCredentials instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'accountId': instance.accountId,
+  'profile': secretProfileToMap(instance.profile),
+  'wholesaleRedactedProfile': secretProfileToMap(
+    instance.wholesaleRedactedProfile,
+  ),
+};
+Map<String, dynamic> accountCredentialsToDebugMap(
+  AccountCredentials instance, {
+  bool excludeNull = false,
+}) => <String, dynamic>{
+  'accountId': instance.accountId,
+  'profile': secretProfileToDebugMap(
+    instance.profile,
+    excludeNull: excludeNull,
+  ),
+  'wholesaleRedactedProfile': '[REDACTED]',
+};
+
+extension AccountCredentialsToMapExtension on AccountCredentials {
+  Map<String, dynamic> toMap({bool excludeNull = false}) =>
+      accountCredentialsToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      accountCredentialsToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(AccountCredentials other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.accountId != other.accountId) {
+      delta['accountId'] = other.accountId;
+    }
+    if (deep) {
+      final childDiff = this.profile.diff(other.profile, deep: true);
+      if (childDiff.isNotEmpty) {
+        delta['profile'] = childDiff;
+      }
+    } else {
+      final childDiff = this.profile.diff(other.profile, deep: false);
+      if (childDiff.isNotEmpty) {
+        delta['profile'] = secretProfileToMap(other.profile);
+      }
+    }
+    if (deep) {
+      final childDiff = this.wholesaleRedactedProfile.diff(
+        other.wholesaleRedactedProfile,
+        deep: true,
+      );
+      if (childDiff.isNotEmpty) {
+        delta['wholesaleRedactedProfile'] = childDiff;
+      }
+    } else {
+      final childDiff = this.wholesaleRedactedProfile.diff(
+        other.wholesaleRedactedProfile,
+        deep: false,
+      );
+      if (childDiff.isNotEmpty) {
+        delta['wholesaleRedactedProfile'] = secretProfileToMap(
+          other.wholesaleRedactedProfile,
+        );
+      }
+    }
+    return delta;
+  }
+}
+
+mixin _$AccountCredentialsEqualsAndHashCode {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! AccountCredentials || runtimeType != other.runtimeType)
+      return false;
+    final self = this as AccountCredentials;
+    return self.accountId == other.accountId &&
+        self.profile == other.profile &&
+        self.wholesaleRedactedProfile == other.wholesaleRedactedProfile;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as AccountCredentials;
+    return Object.hash(
+      self.accountId,
+      self.profile,
+      self.wholesaleRedactedProfile,
+    );
+  }
+}
+
+mixin _$AccountCredentialsStringify {
+  @override
+  String toString() {
+    final self = this as AccountCredentials;
+    return 'AccountCredentials(accountId: ${self.accountId}, profile: ${self.profile}, wholesaleRedactedProfile: [REDACTED])';
+  }
+}
+
+mixin _$AccountCredentials
+    implements
+        _$AccountCredentialsEqualsAndHashCode,
+        _$AccountCredentialsStringify {
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! AccountCredentials || runtimeType != other.runtimeType)
+      return false;
+    final self = this as AccountCredentials;
+    return self.accountId == other.accountId &&
+        self.profile == other.profile &&
+        self.wholesaleRedactedProfile == other.wholesaleRedactedProfile;
+  }
+
+  @override
+  int get hashCode {
+    final self = this as AccountCredentials;
+    return Object.hash(
+      self.accountId,
+      self.profile,
+      self.wholesaleRedactedProfile,
+    );
+  }
+
+  @override
+  String toString() {
+    final self = this as AccountCredentials;
+    return 'AccountCredentials(accountId: ${self.accountId}, profile: ${self.profile}, wholesaleRedactedProfile: [REDACTED])';
+  }
 }
 
 Shape shapeFromMap(Map<String, dynamic> json) {
@@ -2115,9 +3059,37 @@ Map<String, dynamic> shapeToMap(Shape instance, {bool excludeNull = false}) {
   };
 }
 
+Map<String, dynamic> shapeToDebugMap(
+  Shape instance, {
+  bool excludeNull = false,
+}) {
+  return switch (instance) {
+    final Circle circle => circleToDebugMap(
+      circle,
+      excludeNull: excludeNull,
+    )..['shape_type'] = 'Circle',
+    final Square square => squareToDebugMap(
+      square,
+      excludeNull: excludeNull,
+    )..['shape_type'] = 'Square',
+  };
+}
+
 extension ShapeToMapExtension on Shape {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       shapeToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      shapeToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Shape other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    return switch ((this, other)) {
+      (final Circle c, final Circle o) => c.diff(o, deep: deep),
+      (final Square c, final Square o) => c.diff(o, deep: deep),
+      _ => other.toMap(),
+    };
+  }
 }
 
 Vehicle vehicleFromMap(Map<String, dynamic> json) {
@@ -2155,9 +3127,37 @@ Map<String, dynamic> vehicleToMap(
   };
 }
 
+Map<String, dynamic> vehicleToDebugMap(
+  Vehicle instance, {
+  bool excludeNull = false,
+}) {
+  return switch (instance) {
+    final Car car => carToDebugMap(
+      car,
+      excludeNull: excludeNull,
+    )..['vehicle_type'] = 'car_v1',
+    final Bike bike => bikeToDebugMap(
+      bike,
+      excludeNull: excludeNull,
+    )..['vehicle_type'] = 'Bike',
+  };
+}
+
 extension VehicleToMapExtension on Vehicle {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       vehicleToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      vehicleToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Vehicle other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    return switch ((this, other)) {
+      (final Car c, final Car o) => c.diff(o, deep: deep),
+      (final Bike c, final Bike o) => c.diff(o, deep: deep),
+      _ => other.toMap(),
+    };
+  }
 }
 
 Event eventFromMap(Map<String, dynamic> json) {
@@ -2192,9 +3192,37 @@ Map<String, dynamic> eventToMap(Event instance, {bool excludeNull = false}) {
   };
 }
 
+Map<String, dynamic> eventToDebugMap(
+  Event instance, {
+  bool excludeNull = false,
+}) {
+  return switch (instance) {
+    final LoginEvent loginEvent => loginEventToDebugMap(
+      loginEvent,
+      excludeNull: excludeNull,
+    )..['type'] = 'LoginEvent',
+    final LogoutEvent logoutEvent => logoutEventToDebugMap(
+      logoutEvent,
+      excludeNull: excludeNull,
+    )..['type'] = 'LogoutEvent',
+  };
+}
+
 extension EventToMapExtension on Event {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       eventToMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
+      eventToDebugMap(this, excludeNull: excludeNull);
+
+  Map<String, dynamic> diff(Event other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    return switch ((this, other)) {
+      (final LoginEvent c, final LoginEvent o) => c.diff(o, deep: deep),
+      (final LogoutEvent c, final LogoutEvent o) => c.diff(o, deep: deep),
+      _ => other.toMap(),
+    };
+  }
 }
 
 Object? _daxleResolveKey(

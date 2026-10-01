@@ -42,3 +42,17 @@ class const Ignore();
 
 /// Constant instance of [Ignore] for concise `@ignore` annotation.
 const ignore = Ignore();
+
+/// Marks a sensitive property (PII, tokens, secrets) to automatically mask its
+/// value in [toString] and diagnostic outputs ([toDebugMap]) without touching wire-format serialization ([toMap]).
+@immutable
+class const Redact({
+  /// The replacement string displayed in logs and sanitized outputs.
+  final String mask = '[REDACTED]',
+
+  /// If true, matches the original string's length with the mask character.
+  final bool preserveLength = false,
+});
+
+/// Constant instance of [Redact] for concise `@redact` annotation.
+const redact = Redact();

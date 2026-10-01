@@ -1,5 +1,6 @@
 import 'package:analyzer/dart/ast/ast.dart';
 
+import '../../models/annotation_info.dart';
 import 'annotation_context.dart';
 import 'annotation_handler.dart';
 
@@ -113,4 +114,40 @@ final class IgnoreAnnotationHandler
 
   @override
   bool parse(AnnotationContext context) => true;
+}
+
+/// Handler for `@Redact` and `@redact`.
+final class RedactAnnotationHandler
+    implements AnnotationHandler<RedactConfig> {
+  const RedactAnnotationHandler();
+
+  @override
+  List<String> get supportedNames => const ['Redact', 'redact'];
+
+  @override
+  RedactConfig parse(AnnotationContext context) {
+    var mask = '[REDACTED]';
+    var preserveLength = false;
+
+    if (context.arguments case final ArgumentList args) {
+      for (final arg in args.arguments) {
+        if (arg case NamedArgument(:final name, :final argumentExpression)) {
+          switch (name.lexeme) {
+            case 'mask':
+              final strVal = AstArgumentHelper.extractString(argumentExpression);
+              if (strVal != null) mask = strVal;
+            case 'preserveLength':
+              if (argumentExpression case BooleanLiteral(:final value)) {
+                preserveLength = value;
+              }
+          }
+        }
+      }
+    }
+
+    return RedactConfig(
+      mask: mask,
+      preserveLength: preserveLength,
+    );
+  }
 }

@@ -60,6 +60,8 @@ class ParsedField {
   List<String> get aliases => config.aliases;
   bool get isFlattened => config.isFlattened;
   String get flattenPrefix => config.flattenPrefix;
+  bool get isRedacted => config.isRedacted;
+  RedactConfig? get redactConfig => config.redactConfig;
 }
 
 /// Represents a constructor parameter.
@@ -102,6 +104,8 @@ class ParsedConstructorParam {
   List<String> get aliases => config.aliases;
   bool get isFlattened => config.isFlattened;
   String get flattenPrefix => config.flattenPrefix;
+  bool get isRedacted => config.isRedacted;
+  RedactConfig? get redactConfig => config.redactConfig;
 }
 
 /// Represents a parsed class definition.

@@ -22,9 +22,29 @@ class StringifyGenerator {
       );
     }
 
-    final fieldStrings = activeFields
-        .map((f) => '${f.name}: \${self.${f.name}}')
-        .join(', ');
+    final fieldStrings = activeFields.map((f) {
+      if (f.isRedacted) {
+        final cfg = f.redactConfig!;
+        final maskEscaped = cfg.mask
+            .replaceAll(r'\', r'\\')
+            .replaceAll(r'$', r'\$')
+            .replaceAll(r"'", r"\'");
+        if (cfg.preserveLength && f.type.isString) {
+          if (f.type.isNullable) {
+            return "${f.name}: \${self.${f.name} == null ? 'null' : ('$maskEscaped'.isNotEmpty ? '$maskEscaped'[0] * self.${f.name}!.length : '')}";
+          } else {
+            return "${f.name}: \${'$maskEscaped'.isNotEmpty ? '$maskEscaped'[0] * self.${f.name}.length : ''}";
+          }
+        } else {
+          if (f.type.isNullable) {
+            return "${f.name}: \${self.${f.name} == null ? 'null' : '$maskEscaped'}";
+          } else {
+            return "${f.name}: $maskEscaped";
+          }
+        }
+      }
+      return '${f.name}: \${self.${f.name}}';
+    }).join(', ');
     final body =
         'final self = this as ${clazz.name};\n'
         "return '${clazz.name}($fieldStrings)';";

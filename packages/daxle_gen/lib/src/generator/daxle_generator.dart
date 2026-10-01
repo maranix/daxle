@@ -171,6 +171,8 @@ class DaxleGenerator {
           !content.contains('CopyWith') &&
           !content.contains('SerializedValue') &&
           !content.contains('Fallback') &&
+          !content.contains('redact') &&
+          !content.contains('Redact') &&
           !content.contains('ignore') &&
           !content.contains('Ignore')) {
         // Check if content references any known bundle alias
