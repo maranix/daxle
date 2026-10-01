@@ -66,26 +66,44 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitTopLevelVariableDeclaration(TopLevelVariableDeclaration node) {
     for (final variable in node.variables.variables) {
+      ArgumentList? arguments;
+
       if (variable.initializer case MethodInvocation(
         methodName: Identifier(name: 'AnnotationBundle'),
-        argumentList: ArgumentList(:final arguments),
+        argumentList: final args,
       )) {
-        if (arguments.isNotEmpty && arguments.first is ListLiteral) {
-          final elems = (arguments.first as ListLiteral).elements;
-          final constituents = <BundledAnnotation>[];
+        arguments = args;
+      } else if (variable.initializer case InstanceCreationExpression(
+        constructorName: final ctor,
+        argumentList: final args,
+      ) when ctor.type.toSource().split('.').last == 'AnnotationBundle') {
+        arguments = args;
+      }
 
-          for (final e in elems) {
-            if (e case MethodInvocation(:final methodName, :final argumentList)) {
-              constituents.add(
-                BundledAnnotation(methodName.name, argumentList),
-              );
-            } else if (e case SimpleIdentifier(:final name)) {
-              constituents.add(BundledAnnotation(name, null));
-            }
+      if (arguments != null &&
+          arguments.arguments.isNotEmpty &&
+          arguments.arguments.first is ListLiteral) {
+        final elems = (arguments.arguments.first as ListLiteral).elements;
+        final constituents = <BundledAnnotation>[];
+
+        for (final e in elems) {
+          if (e case MethodInvocation(:final methodName, :final argumentList)) {
+            constituents.add(
+              BundledAnnotation(methodName.name, argumentList),
+            );
+          } else if (e case InstanceCreationExpression(:final constructorName, :final argumentList)) {
+            final ctorName = constructorName.type.toSource().split('.').last;
+            constituents.add(
+              BundledAnnotation(ctorName, argumentList),
+            );
+          } else if (e case SimpleIdentifier(:final name)) {
+            constituents.add(BundledAnnotation(name, null));
+          } else if (e case PrefixedIdentifier(:final identifier)) {
+            constituents.add(BundledAnnotation(identifier.name, null));
           }
-
-          bundleMap[variable.name.lexeme] = constituents;
         }
+
+        bundleMap[variable.name.lexeme] = constituents;
       }
     }
   }

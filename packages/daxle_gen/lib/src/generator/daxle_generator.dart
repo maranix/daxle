@@ -89,43 +89,61 @@ class DaxleGenerator {
     final projectBundlesMap = <String, List<BundledAnnotation>>{};
 
     final discoveryFiles = <File>[...filesToProcess];
-    if (targetFile.existsSync()) {
-      var dir = targetFile.parent;
-      while (dir.path != dir.parent.path) {
-        if (File(p.join(dir.path, 'pubspec.yaml')).existsSync()) {
-          break;
-        }
-        dir = dir.parent;
+    var rootDir = targetFile.existsSync() ? targetFile.parent : Directory(targetPath);
+    while (rootDir.path != rootDir.parent.path) {
+      if (File(p.join(rootDir.path, 'pubspec.yaml')).existsSync()) {
+        break;
       }
-      if (dir.existsSync()) {
-        try {
-          for (final entity in dir.listSync(
-            recursive: true,
-            followLinks: false,
-          )) {
-            if (entity is File &&
-                entity.path.endsWith('.dart') &&
-                !entity.path.endsWith('.daxle.dart')) {
-              discoveryFiles.add(entity);
-            }
+      rootDir = rootDir.parent;
+    }
+    if (rootDir.existsSync() && File(p.join(rootDir.path, 'pubspec.yaml')).existsSync()) {
+      try {
+        for (final entity in rootDir.listSync(
+          recursive: true,
+          followLinks: false,
+        )) {
+          if (entity is File &&
+              entity.path.endsWith('.dart') &&
+              !entity.path.endsWith('.daxle.dart')) {
+            discoveryFiles.add(entity);
           }
-        } catch (_) {}
-      }
+        }
+      } catch (_) {}
     }
 
     final seenDiscoveryPaths = <String>{};
+    final fileContents = <String, String>{};
+
+    // Pass 1: Extract all AnnotationBundle constants across the project
     for (final file in discoveryFiles) {
       final normPath = p.normalize(file.path);
       if (!seenDiscoveryPaths.add(normPath)) continue;
 
       try {
-        final fileContent = file.readAsStringSync();
+        final content = file.readAsStringSync();
+        fileContents[normPath] = content;
+        if (content.contains('AnnotationBundle')) {
+          final parsed = parser.parseContent(content, filePath: normPath);
+          projectBundlesMap.addAll(parsed.bundleDeclarations);
+        }
+      } catch (_) {}
+    }
+
+    // Pass 2: Discover all enums, classes, extension types, and record aliases with bundle resolution
+    for (final entry in fileContents.entries) {
+      final normPath = entry.key;
+      final fileContent = entry.value;
+
+      try {
         if (fileContent.contains('enum') ||
             fileContent.contains('class') ||
             fileContent.contains('extension type') ||
-            fileContent.contains('typedef') ||
-            fileContent.contains('AnnotationBundle')) {
-          final parsed = parser.parseContent(fileContent, filePath: normPath);
+            fileContent.contains('typedef')) {
+          final parsed = parser.parseContent(
+            fileContent,
+            filePath: normPath,
+            externalBundleMap: projectBundlesMap,
+          );
           projectEnums.addAll(parsed.enums.map((e) => e.name));
           projectClasses.addAll(parsed.classes.map((c) => c.name));
           projectExtensionTypes.addAll(
@@ -134,7 +152,6 @@ class DaxleGenerator {
           for (final r in parsed.recordAliases) {
             projectRecordAliases[r.name] = r;
           }
-          projectBundlesMap.addAll(parsed.bundleDeclarations);
 
           for (final clazz in parsed.classes) {
             if (clazz.shouldCopyWith) {
