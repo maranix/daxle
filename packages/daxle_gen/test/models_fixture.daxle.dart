@@ -467,68 +467,6 @@ Map<String, dynamic> complexModelToDebugMap(
         ? null
         : const EpochDateTimeConverter().toJson(instance.customEpoch!),
 };
-Map<String, dynamic> complexModelDiff(
-  ComplexModel current,
-  ComplexModel other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.id != other.id) {
-    delta['id'] = other.id;
-  }
-  if (current.count != other.count) {
-    delta['count'] = other.count;
-  }
-  if (current.rating != other.rating) {
-    delta['rating'] = other.rating;
-  }
-  if (current.isActive != other.isActive) {
-    delta['isActive'] = other.isActive;
-  }
-  if (current.createdAt != other.createdAt) {
-    delta['createdAt'] = other.createdAt.toIso8601String();
-  }
-  if (current.website != other.website) {
-    delta['website'] = other.website.toString();
-  }
-  if (current.score != other.score) {
-    delta['score'] = other.score.toString();
-  }
-  if (current.timeout != other.timeout) {
-    delta['timeout'] = other.timeout.inMicroseconds;
-  }
-  if (current.optionalTag != other.optionalTag) {
-    delta['optionalTag'] = other.optionalTag;
-  }
-  if (!$mapEquals(current.metadata.map, other.metadata.map)) {
-    delta['metadata'] = other.metadata.map;
-  }
-  if (!$listEquals(current.tags, other.tags)) {
-    delta['tags'] = other.tags;
-  }
-  if (!$setEquals(current.numbers, other.numbers)) {
-    delta['numbers'] = other.numbers.toList();
-  }
-  if (!$mapEquals(current.scores, other.scores)) {
-    delta['scores'] = other.scores;
-  }
-  if (current.status != other.status) {
-    delta['status'] = statusToValue(other.status);
-  }
-  if (current.priority != other.priority) {
-    delta['priority'] = priorityToValue(other.priority);
-  }
-  if (current.role != other.role) {
-    delta['role'] = other.role;
-  }
-  if (current.customEpoch != other.customEpoch) {
-    delta['customEpoch'] = other.customEpoch == null
-        ? null
-        : const EpochDateTimeConverter().toJson(other.customEpoch!);
-  }
-  return delta;
-}
 
 extension ComplexModelToMapExtension on ComplexModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -537,8 +475,64 @@ extension ComplexModelToMapExtension on ComplexModel {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       complexModelToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(ComplexModel other, {bool deep = true}) =>
-      complexModelDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(ComplexModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = other.id;
+    }
+    if (this.count != other.count) {
+      delta['count'] = other.count;
+    }
+    if (this.rating != other.rating) {
+      delta['rating'] = other.rating;
+    }
+    if (this.isActive != other.isActive) {
+      delta['isActive'] = other.isActive;
+    }
+    if (this.createdAt != other.createdAt) {
+      delta['createdAt'] = other.createdAt.toIso8601String();
+    }
+    if (this.website != other.website) {
+      delta['website'] = other.website.toString();
+    }
+    if (this.score != other.score) {
+      delta['score'] = other.score.toString();
+    }
+    if (this.timeout != other.timeout) {
+      delta['timeout'] = other.timeout.inMicroseconds;
+    }
+    if (this.optionalTag != other.optionalTag) {
+      delta['optionalTag'] = other.optionalTag;
+    }
+    if (!$mapEquals(this.metadata.map, other.metadata.map)) {
+      delta['metadata'] = other.metadata.map;
+    }
+    if (!$listEquals(this.tags, other.tags)) {
+      delta['tags'] = other.tags;
+    }
+    if (!$setEquals(this.numbers, other.numbers)) {
+      delta['numbers'] = other.numbers.toList();
+    }
+    if (!$mapEquals(this.scores, other.scores)) {
+      delta['scores'] = other.scores;
+    }
+    if (this.status != other.status) {
+      delta['status'] = statusToValue(other.status);
+    }
+    if (this.priority != other.priority) {
+      delta['priority'] = priorityToValue(other.priority);
+    }
+    if (this.role != other.role) {
+      delta['role'] = other.role;
+    }
+    if (this.customEpoch != other.customEpoch) {
+      delta['customEpoch'] = other.customEpoch == null
+          ? null
+          : const EpochDateTimeConverter().toJson(other.customEpoch!);
+    }
+    return delta;
+  }
 }
 
 mixin _$ComplexModelEqualsAndHashCode {
@@ -834,58 +828,6 @@ Map<String, dynamic> nestedContainerToDebugMap(
             excludeNull: excludeNull,
           ),
 };
-Map<String, dynamic> nestedContainerDiff(
-  NestedContainer current,
-  NestedContainer other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.containerId != other.containerId) {
-    delta['containerId'] = other.containerId;
-  }
-  if (deep) {
-    final childDiff = complexModelDiff(current.model, other.model, deep: true);
-    if (childDiff.isNotEmpty) {
-      delta['model'] = childDiff;
-    }
-  } else {
-    final childDiff = complexModelDiff(current.model, other.model, deep: false);
-    if (childDiff.isNotEmpty) {
-      delta['model'] = complexModelToMap(other.model);
-    }
-  }
-  if (current.optionalModel == null && other.optionalModel != null) {
-    delta['optionalModel'] = (other.optionalModel == null
-        ? null
-        : complexModelToMap(other.optionalModel!));
-  } else if (current.optionalModel != null && other.optionalModel == null) {
-    delta['optionalModel'] = null;
-  } else if (current.optionalModel != null && other.optionalModel != null) {
-    if (deep) {
-      final childDiff = complexModelDiff(
-        current.optionalModel!,
-        other.optionalModel!,
-        deep: true,
-      );
-      if (childDiff.isNotEmpty) {
-        delta['optionalModel'] = childDiff;
-      }
-    } else {
-      final childDiff = complexModelDiff(
-        current.optionalModel!,
-        other.optionalModel!,
-        deep: false,
-      );
-      if (childDiff.isNotEmpty) {
-        delta['optionalModel'] = (other.optionalModel == null
-            ? null
-            : complexModelToMap(other.optionalModel!));
-      }
-    }
-  }
-  return delta;
-}
 
 extension NestedContainerToMapExtension on NestedContainer {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -894,8 +836,52 @@ extension NestedContainerToMapExtension on NestedContainer {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       nestedContainerToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(NestedContainer other, {bool deep = true}) =>
-      nestedContainerDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(NestedContainer other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.containerId != other.containerId) {
+      delta['containerId'] = other.containerId;
+    }
+    if (deep) {
+      final childDiff = this.model.diff(other.model, deep: true);
+      if (childDiff.isNotEmpty) {
+        delta['model'] = childDiff;
+      }
+    } else {
+      final childDiff = this.model.diff(other.model, deep: false);
+      if (childDiff.isNotEmpty) {
+        delta['model'] = complexModelToMap(other.model);
+      }
+    }
+    if (this.optionalModel == null && other.optionalModel != null) {
+      delta['optionalModel'] = (other.optionalModel == null
+          ? null
+          : complexModelToMap(other.optionalModel!));
+    } else if (this.optionalModel != null && other.optionalModel == null) {
+      delta['optionalModel'] = null;
+    } else if (this.optionalModel != null && other.optionalModel != null) {
+      if (deep) {
+        final childDiff = this.optionalModel!.diff(
+          other.optionalModel!,
+          deep: true,
+        );
+        if (childDiff.isNotEmpty) {
+          delta['optionalModel'] = childDiff;
+        }
+      } else {
+        final childDiff = this.optionalModel!.diff(
+          other.optionalModel!,
+          deep: false,
+        );
+        if (childDiff.isNotEmpty) {
+          delta['optionalModel'] = (other.optionalModel == null
+              ? null
+              : complexModelToMap(other.optionalModel!));
+        }
+      }
+    }
+    return delta;
+  }
 }
 
 mixin _$NestedContainerEqualsAndHashCode {
@@ -1038,18 +1024,6 @@ Map<String, dynamic> circleToDebugMap(
   Circle instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'radius': instance.radius};
-Map<String, dynamic> circleDiff(
-  Circle current,
-  Circle other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.radius != other.radius) {
-    delta['radius'] = other.radius;
-  }
-  return delta;
-}
 
 extension CircleToMapExtension on Circle {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1058,8 +1032,14 @@ extension CircleToMapExtension on Circle {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       circleToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Circle other, {bool deep = true}) =>
-      circleDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Circle other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.radius != other.radius) {
+      delta['radius'] = other.radius;
+    }
+    return delta;
+  }
 }
 
 Square squareFromMap(Map<String, dynamic> json) {
@@ -1089,18 +1069,6 @@ Map<String, dynamic> squareToDebugMap(
   Square instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'side': instance.side};
-Map<String, dynamic> squareDiff(
-  Square current,
-  Square other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.side != other.side) {
-    delta['side'] = other.side;
-  }
-  return delta;
-}
 
 extension SquareToMapExtension on Square {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1109,8 +1077,14 @@ extension SquareToMapExtension on Square {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       squareToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Square other, {bool deep = true}) =>
-      squareDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Square other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.side != other.side) {
+      delta['side'] = other.side;
+    }
+    return delta;
+  }
 }
 
 Car carFromMap(Map<String, dynamic> json) {
@@ -1138,14 +1112,6 @@ Map<String, dynamic> carToMap(Car instance, {bool excludeNull = false}) =>
     <String, dynamic>{'seats': instance.seats};
 Map<String, dynamic> carToDebugMap(Car instance, {bool excludeNull = false}) =>
     <String, dynamic>{'seats': instance.seats};
-Map<String, dynamic> carDiff(Car current, Car other, {bool deep = true}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.seats != other.seats) {
-    delta['seats'] = other.seats;
-  }
-  return delta;
-}
 
 extension CarToMapExtension on Car {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1154,8 +1120,14 @@ extension CarToMapExtension on Car {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       carToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Car other, {bool deep = true}) =>
-      carDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Car other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.seats != other.seats) {
+      delta['seats'] = other.seats;
+    }
+    return delta;
+  }
 }
 
 Bike bikeFromMap(Map<String, dynamic> json) {
@@ -1188,14 +1160,6 @@ Map<String, dynamic> bikeToDebugMap(
   Bike instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'hasPedals': instance.hasPedals};
-Map<String, dynamic> bikeDiff(Bike current, Bike other, {bool deep = true}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.hasPedals != other.hasPedals) {
-    delta['hasPedals'] = other.hasPedals;
-  }
-  return delta;
-}
 
 extension BikeToMapExtension on Bike {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1204,8 +1168,14 @@ extension BikeToMapExtension on Bike {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       bikeToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Bike other, {bool deep = true}) =>
-      bikeDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Bike other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.hasPedals != other.hasPedals) {
+      delta['hasPedals'] = other.hasPedals;
+    }
+    return delta;
+  }
 }
 
 CustomKeyModel customKeyModelFromMap(Map<String, dynamic> json) {
@@ -1240,18 +1210,6 @@ Map<String, dynamic> customKeyModelToDebugMap(
   CustomKeyModel instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'wire_key': instance.key};
-Map<String, dynamic> customKeyModelDiff(
-  CustomKeyModel current,
-  CustomKeyModel other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.key != other.key) {
-    delta['wire_key'] = other.key;
-  }
-  return delta;
-}
 
 extension CustomKeyModelToMapExtension on CustomKeyModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1260,8 +1218,14 @@ extension CustomKeyModelToMapExtension on CustomKeyModel {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       customKeyModelToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(CustomKeyModel other, {bool deep = true}) =>
-      customKeyModelDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(CustomKeyModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.key != other.key) {
+      delta['wire_key'] = other.key;
+    }
+    return delta;
+  }
 }
 
 NullableConverterModel nullableConverterModelFromMap(
@@ -1289,20 +1253,6 @@ Map<String, dynamic> nullableConverterModelToDebugMap(
         ? null
         : const StringIntConverter().toJson(instance.nullableConvertedInt!),
 };
-Map<String, dynamic> nullableConverterModelDiff(
-  NullableConverterModel current,
-  NullableConverterModel other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.nullableConvertedInt != other.nullableConvertedInt) {
-    delta['nullableConvertedInt'] = other.nullableConvertedInt == null
-        ? null
-        : const StringIntConverter().toJson(other.nullableConvertedInt!);
-  }
-  return delta;
-}
 
 extension NullableConverterModelToMapExtension on NullableConverterModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1311,8 +1261,16 @@ extension NullableConverterModelToMapExtension on NullableConverterModel {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       nullableConverterModelToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(NullableConverterModel other, {bool deep = true}) =>
-      nullableConverterModelDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(NullableConverterModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.nullableConvertedInt != other.nullableConvertedInt) {
+      delta['nullableConvertedInt'] = other.nullableConvertedInt == null
+          ? null
+          : const StringIntConverter().toJson(other.nullableConvertedInt!);
+    }
+    return delta;
+  }
 }
 
 DeepCollectionsModel deepCollectionsModelFromMap(Map<String, dynamic> json) {
@@ -1381,21 +1339,6 @@ Map<String, dynamic> deepCollectionsModelToDebugMap(
   'matrix': instance.matrix.map((e) => e).toList(),
   'mappedLists': instance.mappedLists.map((k, v) => MapEntry(k, v)),
 };
-Map<String, dynamic> deepCollectionsModelDiff(
-  DeepCollectionsModel current,
-  DeepCollectionsModel other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (!$listEquals(current.matrix, other.matrix)) {
-    delta['matrix'] = other.matrix.map((e) => e).toList();
-  }
-  if (!$mapEquals(current.mappedLists, other.mappedLists)) {
-    delta['mappedLists'] = other.mappedLists.map((k, v) => MapEntry(k, v));
-  }
-  return delta;
-}
 
 extension DeepCollectionsModelToMapExtension on DeepCollectionsModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1404,8 +1347,17 @@ extension DeepCollectionsModelToMapExtension on DeepCollectionsModel {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       deepCollectionsModelToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(DeepCollectionsModel other, {bool deep = true}) =>
-      deepCollectionsModelDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(DeepCollectionsModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (!$listEquals(this.matrix, other.matrix)) {
+      delta['matrix'] = other.matrix.map((e) => e).toList();
+    }
+    if (!$mapEquals(this.mappedLists, other.mappedLists)) {
+      delta['mappedLists'] = other.mappedLists.map((k, v) => MapEntry(k, v));
+    }
+    return delta;
+  }
 }
 
 CaseStyledModel caseStyledModelFromMap(Map<String, dynamic> json) {
@@ -1462,21 +1414,6 @@ Map<String, dynamic> caseStyledModelToDebugMap(
   'user_full_name': instance.userFullName,
   'login_attempt_count': instance.loginAttemptCount,
 };
-Map<String, dynamic> caseStyledModelDiff(
-  CaseStyledModel current,
-  CaseStyledModel other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.userFullName != other.userFullName) {
-    delta['user_full_name'] = other.userFullName;
-  }
-  if (current.loginAttemptCount != other.loginAttemptCount) {
-    delta['login_attempt_count'] = other.loginAttemptCount;
-  }
-  return delta;
-}
 
 extension CaseStyledModelToMapExtension on CaseStyledModel {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1485,8 +1422,17 @@ extension CaseStyledModelToMapExtension on CaseStyledModel {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       caseStyledModelToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(CaseStyledModel other, {bool deep = true}) =>
-      caseStyledModelDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(CaseStyledModel other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.userFullName != other.userFullName) {
+      delta['user_full_name'] = other.userFullName;
+    }
+    if (this.loginAttemptCount != other.loginAttemptCount) {
+      delta['login_attempt_count'] = other.loginAttemptCount;
+    }
+    return delta;
+  }
 }
 
 mixin _$CaseStyledModelEqualsAndHashCode {
@@ -1602,18 +1548,6 @@ Map<String, dynamic> loginEventToDebugMap(
   LoginEvent instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{'userId': instance.userId};
-Map<String, dynamic> loginEventDiff(
-  LoginEvent current,
-  LoginEvent other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.userId != other.userId) {
-    delta['userId'] = other.userId;
-  }
-  return delta;
-}
 
 extension LoginEventToMapExtension on LoginEvent {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1622,8 +1556,14 @@ extension LoginEventToMapExtension on LoginEvent {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       loginEventToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(LoginEvent other, {bool deep = true}) =>
-      loginEventDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(LoginEvent other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.userId != other.userId) {
+      delta['userId'] = other.userId;
+    }
+    return delta;
+  }
 }
 
 LogoutEvent logoutEventFromMap(Map<String, dynamic> json) => LogoutEvent();
@@ -1635,15 +1575,6 @@ Map<String, dynamic> logoutEventToDebugMap(
   LogoutEvent instance, {
   bool excludeNull = false,
 }) => <String, dynamic>{};
-Map<String, dynamic> logoutEventDiff(
-  LogoutEvent current,
-  LogoutEvent other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  return delta;
-}
 
 extension LogoutEventToMapExtension on LogoutEvent {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1652,8 +1583,11 @@ extension LogoutEventToMapExtension on LogoutEvent {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       logoutEventToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(LogoutEvent other, {bool deep = true}) =>
-      logoutEventDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(LogoutEvent other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    return delta;
+  }
 }
 
 mixin _$EqualsOnlyModelEqualsAndHashCode {
@@ -1958,24 +1892,6 @@ Map<String, dynamic> accountToDebugMap(
   'acc_type': accountTypeToValue(instance.type),
   'loginCount': instance.loginCount,
 };
-Map<String, dynamic> accountDiff(
-  Account current,
-  Account other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.id != other.id) {
-    delta['id'] = other.id;
-  }
-  if (current.type != other.type) {
-    delta['acc_type'] = accountTypeToValue(other.type);
-  }
-  if (current.loginCount != other.loginCount) {
-    delta['loginCount'] = other.loginCount;
-  }
-  return delta;
-}
 
 extension AccountToMapExtension on Account {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -1984,8 +1900,20 @@ extension AccountToMapExtension on Account {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       accountToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Account other, {bool deep = true}) =>
-      accountDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Account other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = other.id;
+    }
+    if (this.type != other.type) {
+      delta['acc_type'] = accountTypeToValue(other.type);
+    }
+    if (this.loginCount != other.loginCount) {
+      delta['loginCount'] = other.loginCount;
+    }
+    return delta;
+  }
 }
 
 mixin _$AccountEqualsAndHashCode {
@@ -2126,24 +2054,6 @@ Map<String, dynamic> addressToDebugMap(
     'apt': instance.apt == null ? null : instance.apt,
   'city': instance.city,
 };
-Map<String, dynamic> addressDiff(
-  Address current,
-  Address other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.street != other.street) {
-    delta['street'] = other.street;
-  }
-  if (current.apt != other.apt) {
-    delta['apt'] = other.apt;
-  }
-  if (current.city != other.city) {
-    delta['city'] = other.city;
-  }
-  return delta;
-}
 
 extension AddressToMapExtension on Address {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -2152,8 +2062,20 @@ extension AddressToMapExtension on Address {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       addressToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Address other, {bool deep = true}) =>
-      addressDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Address other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.street != other.street) {
+      delta['street'] = other.street;
+    }
+    if (this.apt != other.apt) {
+      delta['apt'] = other.apt;
+    }
+    if (this.city != other.city) {
+      delta['city'] = other.city;
+    }
+    return delta;
+  }
 }
 
 mixin _$AddressEqualsAndHashCode {
@@ -2297,28 +2219,6 @@ Map<String, dynamic> orderToDebugMap(
   ).entries)
     'shipping_${entry.key}': entry.value,
 };
-Map<String, dynamic> orderDiff(Order current, Order other, {bool deep = true}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.id != other.id) {
-    delta['id'] = other.id;
-  }
-  if (current.status != other.status) {
-    delta['order_status'] = paymentStatusToValue(other.status);
-  }
-  if (current.notes != other.notes) {
-    delta['notes'] = other.notes;
-  }
-  final childDiff = addressDiff(
-    current.shippingAddress,
-    other.shippingAddress,
-    deep: deep,
-  );
-  for (final entry in childDiff.entries) {
-    delta['shipping_${entry.key}'] = entry.value;
-  }
-  return delta;
-}
 
 extension OrderToMapExtension on Order {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -2327,8 +2227,27 @@ extension OrderToMapExtension on Order {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       orderToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Order other, {bool deep = true}) =>
-      orderDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Order other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = other.id;
+    }
+    if (this.status != other.status) {
+      delta['order_status'] = paymentStatusToValue(other.status);
+    }
+    if (this.notes != other.notes) {
+      delta['notes'] = other.notes;
+    }
+    final childDiff = this.shippingAddress.diff(
+      other.shippingAddress,
+      deep: deep,
+    );
+    for (final entry in childDiff.entries) {
+      delta['shipping_${entry.key}'] = entry.value;
+    }
+    return delta;
+  }
 }
 
 mixin _$OrderEqualsAndHashCode {
@@ -2500,26 +2419,6 @@ Map<String, dynamic> userProfileToDebugMap(
         ? null
         : userIdToMap(instance.backupId!),
 };
-Map<String, dynamic> userProfileDiff(
-  UserProfile current,
-  UserProfile other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.id != other.id) {
-    delta['id'] = userIdToMap(other.id);
-  }
-  if (current.score != other.score) {
-    delta['score'] = scoreToMap(other.score);
-  }
-  if (current.backupId != other.backupId) {
-    delta['backupId'] = (other.backupId == null
-        ? null
-        : userIdToMap(other.backupId!));
-  }
-  return delta;
-}
 
 extension UserProfileToMapExtension on UserProfile {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -2528,8 +2427,22 @@ extension UserProfileToMapExtension on UserProfile {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       userProfileToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(UserProfile other, {bool deep = true}) =>
-      userProfileDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(UserProfile other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.id != other.id) {
+      delta['id'] = userIdToMap(other.id);
+    }
+    if (this.score != other.score) {
+      delta['score'] = scoreToMap(other.score);
+    }
+    if (this.backupId != other.backupId) {
+      delta['backupId'] = (other.backupId == null
+          ? null
+          : userIdToMap(other.backupId!));
+    }
+    return delta;
+  }
 }
 
 RecordContainer recordContainerFromMap(Map<String, dynamic> json) {
@@ -2628,32 +2541,6 @@ Map<String, dynamic> recordContainerToDebugMap(
         ? null
         : [instance.grid!.$1, instance.grid!.$2],
 };
-Map<String, dynamic> recordContainerDiff(
-  RecordContainer current,
-  RecordContainer other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.user != other.user) {
-    delta['user'] = userInfoRecordToMap(other.user);
-  }
-  if (current.coords != other.coords) {
-    delta['coords'] = geoCoordsRecordToList(other.coords);
-  }
-  if (current.inlineAddress != other.inlineAddress) {
-    delta['inlineAddress'] = {
-      'city': other.inlineAddress.city,
-      'zip': other.inlineAddress.zip,
-    };
-  }
-  if (current.grid != other.grid) {
-    delta['grid'] = (other.grid == null
-        ? null
-        : [other.grid!.$1, other.grid!.$2]);
-  }
-  return delta;
-}
 
 extension RecordContainerToMapExtension on RecordContainer {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -2662,8 +2549,28 @@ extension RecordContainerToMapExtension on RecordContainer {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       recordContainerToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(RecordContainer other, {bool deep = true}) =>
-      recordContainerDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(RecordContainer other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.user != other.user) {
+      delta['user'] = userInfoRecordToMap(other.user);
+    }
+    if (this.coords != other.coords) {
+      delta['coords'] = geoCoordsRecordToList(other.coords);
+    }
+    if (this.inlineAddress != other.inlineAddress) {
+      delta['inlineAddress'] = {
+        'city': other.inlineAddress.city,
+        'zip': other.inlineAddress.zip,
+      };
+    }
+    if (this.grid != other.grid) {
+      delta['grid'] = (other.grid == null
+          ? null
+          : [other.grid!.$1, other.grid!.$2]);
+    }
+    return delta;
+  }
 }
 
 SecretProfile secretProfileFromMap(Map<String, dynamic> json) {
@@ -2809,39 +2716,6 @@ Map<String, dynamic> secretProfileToDebugMap(
       : <dynamic>['[REDACTED]'],
   'tokens': '[REDACTED]',
 };
-Map<String, dynamic> secretProfileDiff(
-  SecretProfile current,
-  SecretProfile other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.publicUsername != other.publicUsername) {
-    delta['publicUsername'] = other.publicUsername;
-  }
-  if (current.secretToken != other.secretToken) {
-    delta['secretToken'] = other.secretToken;
-  }
-  if (current.rawPassword != other.rawPassword) {
-    delta['rawPassword'] = other.rawPassword;
-  }
-  if (current.optionalPin != other.optionalPin) {
-    delta['optionalPin'] = other.optionalPin;
-  }
-  if (current.nullablePreserved != other.nullablePreserved) {
-    delta['nullablePreserved'] = other.nullablePreserved;
-  }
-  if (!$listEquals(current.creditCards, other.creditCards)) {
-    delta['creditCards'] = other.creditCards;
-  }
-  if (!$setEquals(current.recoveryCodes, other.recoveryCodes)) {
-    delta['recoveryCodes'] = other.recoveryCodes.toList();
-  }
-  if (!$mapEquals(current.tokens, other.tokens)) {
-    delta['tokens'] = other.tokens;
-  }
-  return delta;
-}
 
 extension SecretProfileToMapExtension on SecretProfile {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -2850,8 +2724,35 @@ extension SecretProfileToMapExtension on SecretProfile {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       secretProfileToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(SecretProfile other, {bool deep = true}) =>
-      secretProfileDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(SecretProfile other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.publicUsername != other.publicUsername) {
+      delta['publicUsername'] = other.publicUsername;
+    }
+    if (this.secretToken != other.secretToken) {
+      delta['secretToken'] = other.secretToken;
+    }
+    if (this.rawPassword != other.rawPassword) {
+      delta['rawPassword'] = other.rawPassword;
+    }
+    if (this.optionalPin != other.optionalPin) {
+      delta['optionalPin'] = other.optionalPin;
+    }
+    if (this.nullablePreserved != other.nullablePreserved) {
+      delta['nullablePreserved'] = other.nullablePreserved;
+    }
+    if (!$listEquals(this.creditCards, other.creditCards)) {
+      delta['creditCards'] = other.creditCards;
+    }
+    if (!$setEquals(this.recoveryCodes, other.recoveryCodes)) {
+      delta['recoveryCodes'] = other.recoveryCodes.toList();
+    }
+    if (!$mapEquals(this.tokens, other.tokens)) {
+      delta['tokens'] = other.tokens;
+    }
+    return delta;
+  }
 }
 
 mixin _$SecretProfileEqualsAndHashCode {
@@ -3015,58 +2916,6 @@ Map<String, dynamic> accountCredentialsToDebugMap(
   ),
   'wholesaleRedactedProfile': '[REDACTED]',
 };
-Map<String, dynamic> accountCredentialsDiff(
-  AccountCredentials current,
-  AccountCredentials other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  final delta = <String, dynamic>{};
-  if (current.accountId != other.accountId) {
-    delta['accountId'] = other.accountId;
-  }
-  if (deep) {
-    final childDiff = secretProfileDiff(
-      current.profile,
-      other.profile,
-      deep: true,
-    );
-    if (childDiff.isNotEmpty) {
-      delta['profile'] = childDiff;
-    }
-  } else {
-    final childDiff = secretProfileDiff(
-      current.profile,
-      other.profile,
-      deep: false,
-    );
-    if (childDiff.isNotEmpty) {
-      delta['profile'] = secretProfileToMap(other.profile);
-    }
-  }
-  if (deep) {
-    final childDiff = secretProfileDiff(
-      current.wholesaleRedactedProfile,
-      other.wholesaleRedactedProfile,
-      deep: true,
-    );
-    if (childDiff.isNotEmpty) {
-      delta['wholesaleRedactedProfile'] = childDiff;
-    }
-  } else {
-    final childDiff = secretProfileDiff(
-      current.wholesaleRedactedProfile,
-      other.wholesaleRedactedProfile,
-      deep: false,
-    );
-    if (childDiff.isNotEmpty) {
-      delta['wholesaleRedactedProfile'] = secretProfileToMap(
-        other.wholesaleRedactedProfile,
-      );
-    }
-  }
-  return delta;
-}
 
 extension AccountCredentialsToMapExtension on AccountCredentials {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
@@ -3075,8 +2924,44 @@ extension AccountCredentialsToMapExtension on AccountCredentials {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       accountCredentialsToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(AccountCredentials other, {bool deep = true}) =>
-      accountCredentialsDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(AccountCredentials other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    final delta = <String, dynamic>{};
+    if (this.accountId != other.accountId) {
+      delta['accountId'] = other.accountId;
+    }
+    if (deep) {
+      final childDiff = this.profile.diff(other.profile, deep: true);
+      if (childDiff.isNotEmpty) {
+        delta['profile'] = childDiff;
+      }
+    } else {
+      final childDiff = this.profile.diff(other.profile, deep: false);
+      if (childDiff.isNotEmpty) {
+        delta['profile'] = secretProfileToMap(other.profile);
+      }
+    }
+    if (deep) {
+      final childDiff = this.wholesaleRedactedProfile.diff(
+        other.wholesaleRedactedProfile,
+        deep: true,
+      );
+      if (childDiff.isNotEmpty) {
+        delta['wholesaleRedactedProfile'] = childDiff;
+      }
+    } else {
+      final childDiff = this.wholesaleRedactedProfile.diff(
+        other.wholesaleRedactedProfile,
+        deep: false,
+      );
+      if (childDiff.isNotEmpty) {
+        delta['wholesaleRedactedProfile'] = secretProfileToMap(
+          other.wholesaleRedactedProfile,
+        );
+      }
+    }
+    return delta;
+  }
 }
 
 mixin _$AccountCredentialsEqualsAndHashCode {
@@ -3190,15 +3075,6 @@ Map<String, dynamic> shapeToDebugMap(
   };
 }
 
-Map<String, dynamic> shapeDiff(Shape current, Shape other, {bool deep = true}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  return switch ((current, other)) {
-    (final Circle c, final Circle o) => circleDiff(c, o, deep: deep),
-    (final Square c, final Square o) => squareDiff(c, o, deep: deep),
-    _ => other.toMap(),
-  };
-}
-
 extension ShapeToMapExtension on Shape {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       shapeToMap(this, excludeNull: excludeNull);
@@ -3206,8 +3082,14 @@ extension ShapeToMapExtension on Shape {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       shapeToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Shape other, {bool deep = true}) =>
-      shapeDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Shape other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    return switch ((this, other)) {
+      (final Circle c, final Circle o) => c.diff(o, deep: deep),
+      (final Square c, final Square o) => c.diff(o, deep: deep),
+      _ => other.toMap(),
+    };
+  }
 }
 
 Vehicle vehicleFromMap(Map<String, dynamic> json) {
@@ -3261,19 +3143,6 @@ Map<String, dynamic> vehicleToDebugMap(
   };
 }
 
-Map<String, dynamic> vehicleDiff(
-  Vehicle current,
-  Vehicle other, {
-  bool deep = true,
-}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  return switch ((current, other)) {
-    (final Car c, final Car o) => carDiff(c, o, deep: deep),
-    (final Bike c, final Bike o) => bikeDiff(c, o, deep: deep),
-    _ => other.toMap(),
-  };
-}
-
 extension VehicleToMapExtension on Vehicle {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       vehicleToMap(this, excludeNull: excludeNull);
@@ -3281,8 +3150,14 @@ extension VehicleToMapExtension on Vehicle {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       vehicleToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Vehicle other, {bool deep = true}) =>
-      vehicleDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Vehicle other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    return switch ((this, other)) {
+      (final Car c, final Car o) => c.diff(o, deep: deep),
+      (final Bike c, final Bike o) => c.diff(o, deep: deep),
+      _ => other.toMap(),
+    };
+  }
 }
 
 Event eventFromMap(Map<String, dynamic> json) {
@@ -3333,23 +3208,6 @@ Map<String, dynamic> eventToDebugMap(
   };
 }
 
-Map<String, dynamic> eventDiff(Event current, Event other, {bool deep = true}) {
-  if (identical(current, other)) return const <String, dynamic>{};
-  return switch ((current, other)) {
-    (final LoginEvent c, final LoginEvent o) => loginEventDiff(
-      c,
-      o,
-      deep: deep,
-    ),
-    (final LogoutEvent c, final LogoutEvent o) => logoutEventDiff(
-      c,
-      o,
-      deep: deep,
-    ),
-    _ => other.toMap(),
-  };
-}
-
 extension EventToMapExtension on Event {
   Map<String, dynamic> toMap({bool excludeNull = false}) =>
       eventToMap(this, excludeNull: excludeNull);
@@ -3357,8 +3215,14 @@ extension EventToMapExtension on Event {
   Map<String, dynamic> toDebugMap({bool excludeNull = false}) =>
       eventToDebugMap(this, excludeNull: excludeNull);
 
-  Map<String, dynamic> diff(Event other, {bool deep = true}) =>
-      eventDiff(this, other, deep: deep);
+  Map<String, dynamic> diff(Event other, {bool deep = true}) {
+    if (identical(this, other)) return const <String, dynamic>{};
+    return switch ((this, other)) {
+      (final LoginEvent c, final LoginEvent o) => c.diff(o, deep: deep),
+      (final LogoutEvent c, final LogoutEvent o) => c.diff(o, deep: deep),
+      _ => other.toMap(),
+    };
+  }
 }
 
 Object? _daxleResolveKey(

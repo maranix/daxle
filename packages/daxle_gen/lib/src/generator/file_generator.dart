@@ -132,7 +132,6 @@ class FileGenerator {
       if (shouldSer) {
         specs.add(classGen.buildToMap(clazz));
         specs.add(classGen.buildToDebugMap(clazz));
-        specs.add(diffGen.buildDiff(clazz));
         final camelName = TypeHelper.toCamelCase(clazz.name);
         specs.add(
           Extension(
@@ -176,31 +175,7 @@ class FileGenerator {
                       '${camelName}ToDebugMap(this, excludeNull: excludeNull)',
                     ),
                 ),
-                Method(
-                  (m) => m
-                    ..name = 'diff'
-                    ..returns = refer('Map<String, dynamic>')
-                    ..requiredParameters.add(
-                      Parameter(
-                        (p) => p
-                          ..name = 'other'
-                          ..type = refer(clazz.name),
-                      ),
-                    )
-                    ..optionalParameters.add(
-                      Parameter(
-                        (p) => p
-                          ..name = 'deep'
-                          ..type = refer('bool')
-                          ..named = true
-                          ..defaultTo = const Code('true'),
-                      ),
-                    )
-                    ..lambda = true
-                    ..body = Code(
-                      '${camelName}Diff(this, other, deep: deep)',
-                    ),
-                ),
+                diffGen.buildDiffMethod(clazz),
               ]),
           ),
         );
@@ -248,7 +223,6 @@ class FileGenerator {
       if (sc.shouldSerialize) {
         specs.add(sealedGen.buildToMap(sc, subs));
         specs.add(sealedGen.buildToDebugMap(sc, subs));
-        specs.add(sealedGen.buildDiff(sc, subs));
         final camelName = TypeHelper.toCamelCase(sc.name);
         specs.add(
           Extension(
@@ -292,31 +266,7 @@ class FileGenerator {
                       '${camelName}ToDebugMap(this, excludeNull: excludeNull)',
                     ),
                 ),
-                Method(
-                  (m) => m
-                    ..name = 'diff'
-                    ..returns = refer('Map<String, dynamic>')
-                    ..requiredParameters.add(
-                      Parameter(
-                        (p) => p
-                          ..name = 'other'
-                          ..type = refer(sc.name),
-                      ),
-                    )
-                    ..optionalParameters.add(
-                      Parameter(
-                        (p) => p
-                          ..name = 'deep'
-                          ..type = refer('bool')
-                          ..named = true
-                          ..defaultTo = const Code('true'),
-                      ),
-                    )
-                    ..lambda = true
-                    ..body = Code(
-                      '${camelName}Diff(this, other, deep: deep)',
-                    ),
-                ),
+                sealedGen.buildDiffMethod(sc, subs),
               ]),
           ),
         );

@@ -11,14 +11,13 @@ class DiffGenerator {
   DiffGenerator(this.typeHelper)
       : _emitter = DartEmitter(useNullSafetySyntax: true);
 
-  /// Builds the `${camelName}Diff` top-level [Method] specification.
-  Method buildDiff(ParsedClass clazz) {
-    final camelName = TypeHelper.toCamelCase(clazz.name);
+  /// Builds the `diff` extension [Method] specification.
+  Method buildDiffMethod(ParsedClass clazz) {
     final caseStyle = clazz.serialize?.caseStyle;
 
     final buffer = StringBuffer();
     buffer.writeln(
-      'if (identical(current, other)) return const <String, dynamic>{};',
+      'if (identical(this, other)) return const <String, dynamic>{};',
     );
     buffer.writeln('final delta = <String, dynamic>{};');
 
@@ -26,15 +25,14 @@ class DiffGenerator {
       if (field.isIgnoredForSerialize(clazz.serialize)) continue;
 
       final key = field.resolvedSerializeKey(caseStyle);
-      final currentExpr = 'current.${field.name}';
+      final currentExpr = 'this.${field.name}';
       final otherExpr = 'other.${field.name}';
 
       if (field.config.isFlattened) {
-        final childCamel = TypeHelper.toCamelCase(field.type.baseName);
         final prefix = field.config.flattenPrefix;
         if (field.type.isNullable) {
           buffer.writeln('if ($currentExpr == null && $otherExpr != null) {');
-          buffer.writeln('  final added = ${childCamel}ToMap($otherExpr!);');
+          buffer.writeln('  final added = $otherExpr!.toMap();');
           buffer.writeln('  for (final entry in added.entries) {');
           buffer.writeln("    delta['$prefix\${entry.key}'] = entry.value;");
           buffer.writeln('  }');
@@ -42,7 +40,7 @@ class DiffGenerator {
             '} else if ($currentExpr != null && $otherExpr == null) {',
           );
           buffer.writeln(
-            '  final removed = ${childCamel}ToMap($currentExpr!);',
+            '  final removed = $currentExpr!.toMap();',
           );
           buffer.writeln('  for (final entry in removed.entries) {');
           buffer.writeln("    delta['$prefix\${entry.key}'] = null;");
@@ -51,7 +49,7 @@ class DiffGenerator {
             '} else if ($currentExpr != null && $otherExpr != null) {',
           );
           buffer.writeln(
-            '  final childDiff = ${childCamel}Diff($currentExpr!, $otherExpr!, deep: deep);',
+            '  final childDiff = $currentExpr!.diff($otherExpr!, deep: deep);',
           );
           buffer.writeln('  for (final entry in childDiff.entries) {');
           buffer.writeln("    delta['$prefix\${entry.key}'] = entry.value;");
@@ -59,7 +57,7 @@ class DiffGenerator {
           buffer.writeln('}');
         } else {
           buffer.writeln(
-            'final childDiff = ${childCamel}Diff($currentExpr, $otherExpr, deep: deep);',
+            'final childDiff = $currentExpr.diff($otherExpr, deep: deep);',
           );
           buffer.writeln('for (final entry in childDiff.entries) {');
           buffer.writeln("  delta['$prefix\${entry.key}'] = entry.value;");
@@ -69,7 +67,6 @@ class DiffGenerator {
       }
 
       if (typeHelper.knownClasses.contains(field.type.baseName)) {
-        final childCamel = TypeHelper.toCamelCase(field.type.baseName);
         final childSerializeExpr = typeHelper.generateSerialize(
           field.type,
           otherExpr,
@@ -89,14 +86,14 @@ class DiffGenerator {
           );
           buffer.writeln('  if (deep) {');
           buffer.writeln(
-            '    final childDiff = ${childCamel}Diff($currentExpr!, $otherExpr!, deep: true);',
+            '    final childDiff = $currentExpr!.diff($otherExpr!, deep: true);',
           );
           buffer.writeln('    if (childDiff.isNotEmpty) {');
           buffer.writeln("      delta['$key'] = childDiff;");
           buffer.writeln('    }');
           buffer.writeln('  } else {');
           buffer.writeln(
-            '    final childDiff = ${childCamel}Diff($currentExpr!, $otherExpr!, deep: false);',
+            '    final childDiff = $currentExpr!.diff($otherExpr!, deep: false);',
           );
           buffer.writeln('    if (childDiff.isNotEmpty) {');
           buffer.writeln("      delta['$key'] = $childSerializeExpr;");
@@ -106,14 +103,14 @@ class DiffGenerator {
         } else {
           buffer.writeln('if (deep) {');
           buffer.writeln(
-            '  final childDiff = ${childCamel}Diff($currentExpr, $otherExpr, deep: true);',
+            '  final childDiff = $currentExpr.diff($otherExpr, deep: true);',
           );
           buffer.writeln('  if (childDiff.isNotEmpty) {');
           buffer.writeln("    delta['$key'] = childDiff;");
           buffer.writeln('  }');
           buffer.writeln('} else {');
           buffer.writeln(
-            '  final childDiff = ${childCamel}Diff($currentExpr, $otherExpr, deep: false);',
+            '  final childDiff = $currentExpr.diff($otherExpr, deep: false);',
           );
           buffer.writeln('  if (childDiff.isNotEmpty) {');
           buffer.writeln("    delta['$key'] = $childSerializeExpr;");
@@ -163,20 +160,15 @@ class DiffGenerator {
 
     return Method(
       (b) => b
-        ..name = '${camelName}Diff'
+        ..name = 'diff'
         ..returns = refer('Map<String, dynamic>')
-        ..requiredParameters.addAll([
-          Parameter(
-            (p) => p
-              ..name = 'current'
-              ..type = refer(clazz.name),
-          ),
+        ..requiredParameters.add(
           Parameter(
             (p) => p
               ..name = 'other'
               ..type = refer(clazz.name),
           ),
-        ])
+        )
         ..optionalParameters.add(
           Parameter(
             (p) => p
@@ -190,8 +182,8 @@ class DiffGenerator {
     );
   }
 
-  /// Generates the `${camelName}Diff` function as code string.
-  String generateDiff(ParsedClass clazz) {
-    return buildDiff(clazz).accept(_emitter).toString();
+  /// Generates the `diff` method as code string.
+  String generateDiffMethod(ParsedClass clazz) {
+    return buildDiffMethod(clazz).accept(_emitter).toString();
   }
 }

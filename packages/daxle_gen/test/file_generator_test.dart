@@ -403,10 +403,6 @@ class ApiKeyCredentials(
       generated,
       contains('apiKeyCredentialsToDebugMap('),
     );
-    expect(
-      generated,
-      contains('apiKeyCredentialsDiff('),
-    );
     expect(generated, contains("'secretKey': '[REDACTED]'"));
     expect(
       generated,

@@ -193,23 +193,21 @@ class SealedGenerator {
     return buildToDebugMap(sealedClass, subclasses).accept(_emitter).toString();
   }
 
-  /// Builds the polymorphic `Diff` [Method] specification.
-  Method buildDiff(
+  /// Builds the polymorphic `diff` extension [Method] specification.
+  Method buildDiffMethod(
     ParsedClass sealedClass,
     List<ParsedClass> subclasses,
   ) {
-    final camelName = TypeHelper.toCamelCase(sealedClass.name);
     final buffer = StringBuffer();
     buffer.writeln(
-      'if (identical(current, other)) return const <String, dynamic>{};',
+      'if (identical(this, other)) return const <String, dynamic>{};',
     );
-    buffer.writeln('return switch ((current, other)) {');
+    buffer.writeln('return switch ((this, other)) {');
 
     for (final sub in subclasses) {
       final subName = sub.name;
-      final subCamel = TypeHelper.toCamelCase(subName);
       buffer.writeln(
-        '  (final $subName c, final $subName o) => ${subCamel}Diff(c, o, deep: deep),',
+        '  (final $subName c, final $subName o) => c.diff(o, deep: deep),',
       );
     }
 
@@ -218,20 +216,15 @@ class SealedGenerator {
 
     return Method(
       (b) => b
-        ..name = '${camelName}Diff'
+        ..name = 'diff'
         ..returns = refer('Map<String, dynamic>')
-        ..requiredParameters.addAll([
-          Parameter(
-            (p) => p
-              ..name = 'current'
-              ..type = refer(sealedClass.name),
-          ),
+        ..requiredParameters.add(
           Parameter(
             (p) => p
               ..name = 'other'
               ..type = refer(sealedClass.name),
           ),
-        ])
+        )
         ..optionalParameters.add(
           Parameter(
             (p) => p
@@ -245,11 +238,11 @@ class SealedGenerator {
     );
   }
 
-  /// Generates the `diff` function as code string.
-  String generateDiff(
+  /// Generates the `diff` method as code string.
+  String generateDiffMethod(
     ParsedClass sealedClass,
     List<ParsedClass> subclasses,
   ) {
-    return buildDiff(sealedClass, subclasses).accept(_emitter).toString();
+    return buildDiffMethod(sealedClass, subclasses).accept(_emitter).toString();
   }
 }
