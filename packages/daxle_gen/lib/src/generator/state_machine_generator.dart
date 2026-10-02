@@ -157,7 +157,7 @@ class StateMachineGenerator {
         final handler = _deriveHandlerName(to, hostClassName);
         buffer.writeln('  case ($from(), final $eventType e):');
         buffer.writeln('    final epoch = ++_daxleEpoch;');
-        buffer.writeln('    var activeState = $toInstantiation;');
+        buffer.writeln('    $baseState activeState = $toInstantiation;');
         buffer.writeln('    emit(activeState);');
         buffer.writeln('    final scope = TransitionScope<$baseState>(');
         buffer.writeln('      getActiveState: () => activeState,');

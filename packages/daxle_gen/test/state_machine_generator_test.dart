@@ -105,7 +105,7 @@ final class StartupService with _\$StartupServiceMachine {}
     // Async flow switch case
     expect(output, contains('case (StartupIdle(), final StartEngine e):'));
     expect(output, contains('final epoch = ++_daxleEpoch;'));
-    expect(output, contains('var activeState = const StartupBooting();'));
+    expect(output, contains('StartupState activeState = const StartupBooting();'));
     expect(output, contains('emit(activeState);'));
     expect(output, contains('await onBooting(scope, e);'));
 
