@@ -4,6 +4,8 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import '../models/annotation_info.dart';
 import '../models/parsed_element.dart';
 import '../models/parsed_type.dart';
+import '../models/state_machine_info.dart';
+
 import 'annotations/annotation_registry.dart';
 import 'annotations/member_annotation_handlers.dart';
 import 'generation_error.dart';
@@ -128,6 +130,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     EqualsAndHashCodeInfo? equalsAndHashCodeInfo;
     StringifyInfo? stringifyInfo;
     CopyWithInfo? copyWithInfo;
+    StateMachineInfo? stateMachineInfo;
     String? customDiscriminatorName;
 
     for (final (name, arguments) in registry.resolveAnnotations(
@@ -161,6 +164,12 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
           );
         case 'CopyWith' || 'copyWith':
           copyWithInfo = registry.parseAnnotation<CopyWithInfo>(
+            name: name,
+            arguments: arguments,
+            memberName: className,
+          );
+        case 'StateMachine' || 'stateMachine':
+          stateMachineInfo = registry.parseAnnotation<StateMachineInfo>(
             name: name,
             arguments: arguments,
             memberName: className,
@@ -391,6 +400,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
         equalsAndHashCode: equalsAndHashCodeInfo,
         stringify: stringifyInfo,
         copyWith: copyWithInfo,
+        stateMachine: stateMachineInfo,
         customDiscriminatorName: customDiscriminatorName,
         fields: fields,
         constructorParams: constructorParams,

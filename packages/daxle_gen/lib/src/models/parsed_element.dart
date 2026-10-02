@@ -2,6 +2,8 @@ import 'case_style.dart';
 
 import 'annotation_info.dart';
 import 'parsed_type.dart';
+import 'state_machine_info.dart';
+
 
 /// Represents a class field.
 class ParsedField {
@@ -119,6 +121,7 @@ class ParsedClass {
   final EqualsAndHashCodeInfo? equalsAndHashCode;
   final StringifyInfo? stringify;
   final CopyWithInfo? copyWith;
+  final StateMachineInfo? stateMachine;
   final String? customDiscriminatorName;
   final List<ParsedField> fields;
   final List<ParsedConstructorParam> constructorParams;
@@ -135,6 +138,7 @@ class ParsedClass {
     this.equalsAndHashCode,
     this.stringify,
     this.copyWith,
+    this.stateMachine,
     this.customDiscriminatorName,
     required this.fields,
     required this.constructorParams,
@@ -147,6 +151,7 @@ class ParsedClass {
   bool get shouldEqualsAndHashCode => equalsAndHashCode != null;
   bool get shouldStringify => stringify != null;
   bool get shouldCopyWith => copyWith != null;
+  bool get shouldGenerateStateMachine => stateMachine != null;
 
   bool isSubclassOf(String parentName) =>
       superclass == parentName || interfaces.contains(parentName);
@@ -290,7 +295,8 @@ class ParsedFile {
             c.shouldDeserialize ||
             c.shouldEqualsAndHashCode ||
             c.shouldStringify ||
-            c.shouldCopyWith,
+            c.shouldCopyWith ||
+            c.shouldGenerateStateMachine,
       ) ||
       enums.any(
         (e) => e.shouldSerialize || e.shouldDeserialize || e.shouldStringify,

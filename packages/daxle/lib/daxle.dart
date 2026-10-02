@@ -132,5 +132,9 @@
 library;
 
 export 'src/annotations/codegen.dart';
+export 'src/state_machine/exceptions.dart';
+export 'src/state_machine/flow.dart';
+export 'src/state_machine/transition_scope.dart';
 export 'src/util/equality.dart';
 export 'src/util/query_map.dart';
+
