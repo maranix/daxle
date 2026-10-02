@@ -1,4 +1,4 @@
-## 5.0.0
+## 5.1.0
 
 - **BREAKING CHANGES**:
   - Completely removed functional types: `Option`, `Either`, `Task`, `TaskEither`, and `Unit`.

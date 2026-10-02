@@ -46,7 +46,7 @@ Add Daxle to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^5.0.0
+  daxle: ^5.1.0
 
 # Optional: Add daxle_gen to dev_dependencies for code generation
 dev_dependencies:

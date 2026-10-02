@@ -1,6 +1,6 @@
 name: daxle
 description: High-performance data modeling, zero-cost map querying, concurrency control, and stream transformations for Dart.
-version: 5.0.0+3-beta
+version: 5.1.0
 homepage: https://github.com/maranix/daxle/tree/main/packages/daxle
 repository: https://github.com/maranix/daxle/tree/main/packages/daxle
 issues: https://github.com/maranix/daxle/issues?q=state%3Aopen%20label%3Adaxle
