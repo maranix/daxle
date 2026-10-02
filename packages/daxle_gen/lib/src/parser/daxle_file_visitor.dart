@@ -115,6 +115,10 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     final className = node.namePart.typeName.lexeme;
     final isSealed = node.sealedKeyword != null;
     final superclass = node.extendsClause?.superclass.name.lexeme;
+    final superclassTypeArguments = <String>[
+      if (node.extendsClause?.superclass.typeArguments case final args?)
+        for (final arg in args.arguments) arg.toSource(),
+    ];
 
     final interfaces = <String>[
       if (node.implementsClause != null)
@@ -133,7 +137,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     StateMachineInfo? stateMachineInfo;
     String? customDiscriminatorName;
 
-    for (final (name, arguments) in registry.resolveAnnotations(
+    for (final (name, arguments, typeArguments) in registry.resolveAnnotations(
       node.metadata,
       bundleMap,
     )) {
@@ -142,36 +146,42 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
           serializeInfo = registry.parseAnnotation<SerializeInfo>(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
         case 'Deserialize' || 'deserialize':
           deserializeInfo = registry.parseAnnotation<DeserializeInfo>(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
         case 'EqualsAndHashCode' || 'equalsAndHashCode':
           equalsAndHashCodeInfo = registry.parseAnnotation<EqualsAndHashCodeInfo>(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
         case 'Stringify' || 'stringify':
           stringifyInfo = registry.parseAnnotation<StringifyInfo>(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
         case 'CopyWith' || 'copyWith':
           copyWithInfo = registry.parseAnnotation<CopyWithInfo>(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
         case 'StateMachine' || 'stateMachine':
           stateMachineInfo = registry.parseAnnotation<StateMachineInfo>(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
         case 'SerializedValue':
@@ -185,6 +195,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
           registry.parseAnnotation(
             name: name,
             arguments: arguments,
+            typeArguments: typeArguments,
             memberName: className,
           );
       }
@@ -394,6 +405,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
         name: className,
         isSealed: isSealed,
         superclass: superclass,
+        superclassTypeArguments: superclassTypeArguments,
         interfaces: interfaces,
         serialize: serializeInfo,
         deserialize: deserializeInfo,
@@ -419,7 +431,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     StringifyInfo? stringifyInfo;
     String? fallbackCaseCode;
 
-    for (final (name, arguments) in registry.resolveAnnotations(
+    for (final (name, arguments, _) in registry.resolveAnnotations(
       node.metadata,
       bundleMap,
     )) {
@@ -454,6 +466,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
           final code = const FallbackAnnotationHandler().parse((
             name: name,
             arguments: arguments,
+            typeArguments: null,
             memberName: enumName,
           ));
           if (code != null) {
@@ -619,7 +632,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     SerializeInfo? serializeInfo;
     DeserializeInfo? deserializeInfo;
 
-    for (final (annotName, arguments) in registry.resolveAnnotations(
+    for (final (annotName, arguments, _) in registry.resolveAnnotations(
       node.metadata,
       bundleMap,
     )) {
@@ -667,7 +680,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     SerializeInfo? serializeInfo;
     DeserializeInfo? deserializeInfo;
 
-    for (final (annotName, arguments) in registry.resolveAnnotations(
+    for (final (annotName, arguments, _) in registry.resolveAnnotations(
       node.metadata,
       bundleMap,
     )) {

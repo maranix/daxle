@@ -115,6 +115,7 @@ class ParsedClass {
   final String name;
   final bool isSealed;
   final String? superclass;
+  final List<String> superclassTypeArguments;
   final List<String> interfaces;
   final SerializeInfo? serialize;
   final DeserializeInfo? deserialize;
@@ -132,6 +133,7 @@ class ParsedClass {
     required this.name,
     required this.isSealed,
     this.superclass,
+    this.superclassTypeArguments = const [],
     this.interfaces = const [],
     this.serialize,
     this.deserialize,

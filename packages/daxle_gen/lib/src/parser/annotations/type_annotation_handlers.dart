@@ -191,6 +191,18 @@ final class StateMachineAnnotationHandler
   StateMachineInfo parse(AnnotationContext context) {
     final flows = <ParsedFlow>[];
 
+    String? explicitStateType;
+    String? explicitEventType;
+
+    if (context.typeArguments case final TypeArgumentList typeArgs) {
+      if (typeArgs.arguments.isNotEmpty) {
+        explicitStateType = typeArgs.arguments[0].toSource();
+      }
+      if (typeArgs.arguments.length > 1) {
+        explicitEventType = typeArgs.arguments[1].toSource();
+      }
+    }
+
     if (context.arguments case final ArgumentList args) {
       if (args.arguments.isNotEmpty) {
         final firstArg = args.arguments.first;
@@ -214,7 +226,11 @@ final class StateMachineAnnotationHandler
       }
     }
 
-    return StateMachineInfo(flows: flows);
+    return StateMachineInfo(
+      flows: flows,
+      explicitStateType: explicitStateType,
+      explicitEventType: explicitEventType,
+    );
   }
 
   ParsedFlow? _parseFlow(Expression expr) {
@@ -253,7 +269,11 @@ final class StateMachineAnnotationHandler
     }
 
     if (from != null && to != null) {
-      return ParsedFlow(from: from, to: to, using: using);
+      return ParsedFlow(
+        from: from,
+        to: to,
+        using: using,
+      );
     }
     return null;
   }

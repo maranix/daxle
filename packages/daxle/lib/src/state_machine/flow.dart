@@ -2,7 +2,7 @@
 library;
 
 /// Declarative annotation marking a class or mixin for state machine generation.
-final class StateMachine {
+final class StateMachine<TState, TEvent> {
   /// Declared state flow transitions.
   final List<Flow> flows;
 
