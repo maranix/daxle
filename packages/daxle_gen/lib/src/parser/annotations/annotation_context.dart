@@ -6,6 +6,7 @@ import '../../models/case_style.dart';
 typedef AnnotationContext = ({
   String name,
   ArgumentList? arguments,
+  TypeArgumentList? typeArguments,
   String memberName,
 });
 

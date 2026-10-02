@@ -55,7 +55,7 @@ class StateMachineGenerator {
 
       if (!generatedHandlerSignatures.contains(signatureKey)) {
         generatedHandlerSignatures.add(signatureKey);
-        final returnType = flow.isExplicitAsync ? 'Future<void>' : 'FutureOr<void>';
+        const returnType = 'FutureOr<void>';
         final isTrivial = _isTrivial(flow, info, parsedFile);
 
         methods.add(
@@ -140,7 +140,6 @@ class StateMachineGenerator {
     if (targetClass != null && targetClass.constructorParams.isNotEmpty) {
       return false;
     }
-    if (flow.isExplicitAsync) return false;
     return true;
   }
 
@@ -245,15 +244,6 @@ class StateMachineGenerator {
     if (clazz.stateMachine?.explicitStateType != null) {
       return clazz.stateMachine!.explicitStateType!;
     }
-    if (clazz.superclass == 'Bloc' && clazz.superclassTypeArguments.length >= 2) {
-      return clazz.superclassTypeArguments[1];
-    }
-    if ((clazz.superclass == 'ValueNotifier' ||
-            clazz.superclass == 'Notifier' ||
-            clazz.superclass == 'AsyncNotifier') &&
-        clazz.superclassTypeArguments.isNotEmpty) {
-      return clazz.superclassTypeArguments[0];
-    }
 
     final actualStates = allStates.difference(allEvents);
     if (actualStates.isEmpty) return 'dynamic';
@@ -278,9 +268,7 @@ class StateMachineGenerator {
     if (clazz.stateMachine?.explicitEventType != null) {
       return clazz.stateMachine!.explicitEventType!;
     }
-    if (clazz.superclass == 'Bloc' && clazz.superclassTypeArguments.isNotEmpty) {
-      return clazz.superclassTypeArguments[0];
-    }
+
     if (allEvents.isEmpty) return 'dynamic';
     final superclasses = <String>{};
     for (final e in allEvents) {

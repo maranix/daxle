@@ -120,8 +120,8 @@ final class StartupService with _\$StartupServiceMachine {}
     expect(output, contains('attempted: event.runtimeType'));
   });
 
-  test('resolves Bloc generic types, self-loops, and explicit Async marker', () {
-    const blocSource = '''
+  test('resolves explicit generic StateMachine<TState, TEvent> and self-loops', () {
+    const machineSource = '''
 import 'package:daxle/daxle.dart';
 
 part 'onboarding_bloc.daxle.dart';
@@ -137,7 +137,7 @@ sealed class OnboardingEvent {}
 final class OnboardingVariantSelected extends OnboardingEvent {}
 final class OnboardingCompleted extends OnboardingEvent {}
 
-@StateMachine([
+@StateMachine<OnboardingState, OnboardingEvent>([
   Flow(from: OnboardingReady, to: OnboardingSelectVariants),
   Flow(
     from: OnboardingSelectVariants,
@@ -147,32 +147,30 @@ final class OnboardingCompleted extends OnboardingEvent {}
   Flow(
     from: OnboardingSelectVariants,
     to: OnboardingCompleting,
-    using: Async<OnboardingCompleted>,
+    using: OnboardingCompleted,
   ),
   Flow(from: OnboardingCompleting, to: OnboardingComplete),
   Flow(from: OnboardingCompleting, to: OnboardingError),
 ])
-final class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> with _\$OnboardingBlocMachine {}
+final class OnboardingMachine with _\$OnboardingMachineMachine {}
 ''';
 
-    final parsedFile = parser.parseContent(blocSource, filePath: 'lib/onboarding_bloc.dart');
+    final parsedFile = parser.parseContent(machineSource, filePath: 'lib/onboarding_machine.dart');
     final output = generator.generate(parsedFile);
 
     expect(output, isNotNull);
-    expect(output, contains('mixin _\$OnboardingBlocMachine {'));
+    expect(output, contains('mixin _\$OnboardingMachineMachine {'));
 
-    // Inherited from Bloc<OnboardingEvent, OnboardingState>
+    // Inherited from @StateMachine<OnboardingState, OnboardingEvent>
     expect(output, contains('TransitionScope<OnboardingState> scope'));
     expect(output, contains('OnboardingState currentState'));
     expect(output, contains('OnboardingEvent event'));
     expect(output, isNot(contains('TransitionScope<dynamic>')));
 
-    // Self-loop handler generated as FutureOr<void>
+    // Handlers generated as FutureOr<void>
     expect(output, contains('FutureOr<void> onSelectVariants('));
     expect(output, contains('OnboardingVariantSelected event'));
-
-    // Explicit Async<T> generates Future<void>
-    expect(output, contains('Future<void> onCompleting('));
+    expect(output, contains('FutureOr<void> onCompleting('));
     expect(output, contains('OnboardingCompleted event'));
 
     // Self-loop retains currentState

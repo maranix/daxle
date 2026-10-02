@@ -42,7 +42,8 @@ final class AnnotationRegistry {
   }
 
   /// Resolves annotations, recursively expanding any [AnnotationBundle] constants.
-  Iterable<(String name, ArgumentList? arguments)> resolveAnnotations(
+  Iterable<(String name, ArgumentList? arguments, TypeArgumentList? typeArguments)>
+  resolveAnnotations(
     NodeList<Annotation> metadata,
     Map<String, List<BundledAnnotation>> bundleMap,
   ) sync* {
@@ -51,10 +52,10 @@ final class AnnotationRegistry {
       final constituents = bundleMap[name];
       if (constituents != null) {
         for (final c in constituents) {
-          yield (c.name, c.argumentList ?? annotation.arguments);
+          yield (c.name, c.argumentList ?? annotation.arguments, annotation.typeArguments);
         }
       } else {
-        yield (name, annotation.arguments);
+        yield (name, annotation.arguments, annotation.typeArguments);
       }
     }
   }
@@ -63,6 +64,7 @@ final class AnnotationRegistry {
   T? parseAnnotation<T>({
     required String name,
     required ArgumentList? arguments,
+    TypeArgumentList? typeArguments,
     String memberName = '',
   }) {
     final handler = _handlers[name];
@@ -70,6 +72,7 @@ final class AnnotationRegistry {
       return handler.parse((
         name: name,
         arguments: arguments,
+        typeArguments: typeArguments,
         memberName: memberName,
       ));
     }
@@ -93,8 +96,8 @@ final class AnnotationRegistry {
     var hasFallback = false;
     RedactConfig? redactConfig;
 
-    for (final (name, arguments) in resolveAnnotations(metadata, bundleMap)) {
-      final context = (name: name, arguments: arguments, memberName: memberName);
+    for (final (name, arguments, typeArguments) in resolveAnnotations(metadata, bundleMap)) {
+      final context = (name: name, arguments: arguments, typeArguments: typeArguments, memberName: memberName);
       switch (name) {
         case 'ignore' || 'Ignore':
           isIgnored = true;

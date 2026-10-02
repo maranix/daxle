@@ -3,13 +3,11 @@ class ParsedFlow {
   final String from;
   final String to;
   final String? using;
-  final bool isExplicitAsync;
 
   const ParsedFlow({
     required this.from,
     required this.to,
     this.using,
-    this.isExplicitAsync = false,
   });
 
   bool get isAutonomous => using == null;

@@ -9,11 +9,6 @@ final class StateMachine<TState, TEvent> {
   const StateMachine(this.flows);
 }
 
-/// Marker type to explicitly specify an asynchronous event trigger in a [Flow].
-final class Async<T> {
-  const Async();
-}
-
 /// Defines a directed edge between states in a [StateMachine].
 final class Flow {
   /// Source state type.

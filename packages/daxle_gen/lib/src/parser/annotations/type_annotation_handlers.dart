@@ -191,6 +191,18 @@ final class StateMachineAnnotationHandler
   StateMachineInfo parse(AnnotationContext context) {
     final flows = <ParsedFlow>[];
 
+    String? explicitStateType;
+    String? explicitEventType;
+
+    if (context.typeArguments case final TypeArgumentList typeArgs) {
+      if (typeArgs.arguments.isNotEmpty) {
+        explicitStateType = typeArgs.arguments[0].toSource();
+      }
+      if (typeArgs.arguments.length > 1) {
+        explicitEventType = typeArgs.arguments[1].toSource();
+      }
+    }
+
     if (context.arguments case final ArgumentList args) {
       if (args.arguments.isNotEmpty) {
         final firstArg = args.arguments.first;
@@ -214,7 +226,11 @@ final class StateMachineAnnotationHandler
       }
     }
 
-    return StateMachineInfo(flows: flows);
+    return StateMachineInfo(
+      flows: flows,
+      explicitStateType: explicitStateType,
+      explicitEventType: explicitEventType,
+    );
   }
 
   ParsedFlow? _parseFlow(Expression expr) {
@@ -238,7 +254,6 @@ final class StateMachineAnnotationHandler
     String? from;
     String? to;
     String? using;
-    var isExplicitAsync = false;
 
     for (final arg in argList.arguments) {
       if (arg case NamedArgument(:final name, :final argumentExpression)) {
@@ -248,13 +263,7 @@ final class StateMachineAnnotationHandler
           case 'to':
             to = _extractIdentifier(argumentExpression);
           case 'using':
-            final raw = _extractIdentifier(argumentExpression);
-            if (raw.startsWith('Async<') && raw.endsWith('>')) {
-              isExplicitAsync = true;
-              using = raw.substring(6, raw.length - 1).trim();
-            } else {
-              using = raw;
-            }
+            using = _extractIdentifier(argumentExpression);
         }
       }
     }
@@ -264,7 +273,6 @@ final class StateMachineAnnotationHandler
         from: from,
         to: to,
         using: using,
-        isExplicitAsync: isExplicitAsync,
       );
     }
     return null;
