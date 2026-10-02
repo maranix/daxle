@@ -1,9 +1,13 @@
 /// Scope passed to asynchronous flow handlers in a StateMachine.
 library;
 
+import 'package:meta/meta.dart';
 import 'exceptions.dart';
 
 /// Provides safe, validated state transitions and liveness tracking for active asynchronous flows.
+///
+/// > **Preview & Experimental**: This API is experimental and subject to change.
+@experimental
 final class TransitionScope<TState> {
   final TState Function() getActiveState;
   final void Function(TState) setActiveState;

@@ -1,8 +1,8 @@
-/// Build predictable, high-performance Dart applications with zero-overhead data modeling and map querying.
+/// Build predictable Dart applications with data modeling and map querying.
 ///
 /// `package:daxle/daxle.dart` is the primary entrypoint for:
-/// - **Compile-Time Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for pure AST code generation.
-/// - [QueryMap]: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
+/// - **Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for pure AST code generation.
+/// - [QueryMap]: Extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
 /// - **Structural Equality Utilities**: Collection-aware deep equality checks ([$deepEquals], [$listEquals], [$setEquals], [$mapEquals]) and hash code calculators ([$deepHashCode]).
 ///
 /// For asynchronous and reactive stream utilities (`Concurrency`, `Pool`, `stream_transform`, `FutureGroup`, `AsyncCache`),
@@ -17,8 +17,8 @@
 /// ## `QueryMap`
 ///
 /// Safely extract nested properties from structured [Map]s and their embedded lists.
-/// `QueryMap` is a zero-cost extension type erased at compile-time that replaces
-/// fragile manual map cast chains with type-safe path queries.
+/// `QueryMap` is an extension type that replaces
+/// fragile manual map cast chains with path queries.
 ///
 /// ### Supported Query Notations:
 ///
@@ -83,10 +83,10 @@
 ///
 /// ## Codegen Annotations & Data Classes
 ///
-/// `daxle` provides compile-time annotations that define functional serialization,
+/// `daxle` provides annotations that define functional serialization,
 /// deep immutable copy lenses, structural equality, and string representations.
-/// The annotations introduce zero runtime overhead or reflective dependencies. Code is
-/// synthesized at compile time by adding `package:daxle_gen` to your `dev_dependencies`:
+/// The annotations introduce no reflective dependencies. Code is
+/// synthesized by adding `package:daxle_gen` to your `dev_dependencies`:
 ///
 /// ### Core Annotations:
 /// - [Serialize] / [serialize]: Marks a class, enum, or extension type for functional serialization (`toMap` / `toValue`).
@@ -101,6 +101,7 @@
 /// - [Fallback]: Injects default fallback values for null or missing fields, or designates fallback enum cases.
 /// - [Flatten] / [flatten]: Inlines child object properties directly into the parent JSON map.
 /// - [Ignore] / [ignore]: Excludes a field completely from all generated logic.
+/// - [Redact] / [redact]: Masks sensitive fields (tokens, secrets, PII) in `toString()` and diagnostic maps (`toDebugMap()`).
 /// - [CaseStyle]: Controls bidirectional naming conventions (such as `snakeCase`, `kebabCase`, `camelCase`).
 ///
 /// ### Example:
@@ -125,9 +126,61 @@
 ///   final String name,
 ///   @Fallback('user')
 ///   final String role,
+///   @redact
+///   final String apiKey,
 ///   @ignore
 ///   final String cachedToken,
 /// ) with _$User;
+/// ```
+///
+/// ---
+///
+/// ## State Machine & Workflows (Preview & Experimental)
+///
+/// > **Warning**: [StateMachine] and its related workflow primitives ([Flow], [TransitionScope], [InvalidFlowException])
+/// > are currently in **preview and experimental**. The APIs and code generation conventions may evolve based on community feedback.
+///
+/// Declarative state machines with validated transition graphs,
+/// asynchronous flow handlers, epoch-based stale flow cancellation, and fail-fast guarantees.
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'dart:async';
+/// import 'package:daxle/daxle.dart';
+///
+/// part 'auth.daxle.dart';
+///
+/// sealed class AuthState { const AuthState(); }
+/// final class AuthUnauthenticated extends AuthState { const AuthUnauthenticated(); }
+/// final class AuthAuthenticating extends AuthState { const AuthAuthenticating(); }
+/// final class AuthAuthenticated extends AuthState { final String token; const AuthAuthenticated(this.token); }
+/// final class AuthFailed extends AuthState { final String error; const AuthFailed(this.error); }
+///
+/// sealed class AuthEvent { const AuthEvent(); }
+/// final class LoginSubmitted extends AuthEvent { final String user; final String pass; const LoginSubmitted(this.user, this.pass); }
+/// final class ResetRequested extends AuthEvent { const ResetRequested(); }
+///
+/// @StateMachine([
+///   Flow(from: AuthUnauthenticated, to: AuthAuthenticating, using: LoginSubmitted),
+///   Flow(from: AuthAuthenticating, to: AuthAuthenticated),
+///   Flow(from: AuthAuthenticating, to: AuthFailed),
+///   Flow(from: AuthFailed, to: AuthUnauthenticated, using: ResetRequested),
+/// ])
+/// final class AuthService with _$AuthServiceMachine {
+///   @override
+///   AuthState activeState = const AuthUnauthenticated();
+///
+///   @override
+///   FutureOr<void> onAuthenticating(TransitionScope<AuthState> scope, LoginSubmitted event) async {
+///     try {
+///       final token = await performLogin(event.user, event.pass);
+///       scope.transit(AuthAuthenticated(token));
+///     } catch (e) {
+///       scope.transit(AuthFailed(e.toString()));
+///     }
+///   }
+/// }
 /// ```
 library;
 

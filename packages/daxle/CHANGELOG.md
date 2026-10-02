@@ -8,8 +8,16 @@
   - Re-exported complete reactive stream operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
   - Added dependency on `package:pool` and re-exported `Pool` and `PoolResource`.
   - Added `Concurrency.createPool()` method to construct a `Pool` corresponding to the concurrency strategy.
+  - **State Machine & Workflows (Preview & Experimental)**:
+    - Added `@StateMachine([Flow(...)])` declarative annotation marking classes for compile-time validated state machine synthesis.
+    - Added `Flow(from: ..., to: ..., using: ...)` to model directed state transitions and external event triggers.
+    - Added `TransitionScope<TState>` passed to async flow handlers providing active state inspection (`getActiveState`), flow liveness detection (`isCurrent`), and safe transition emission (`transit(nextState)`).
+    - Added `InvalidFlowException` for illegal transition attempts or unauthorized event dispatches.
+    - *Note*: `StateMachine` and related workflow primitives are designated as **preview and experimental**; public APIs and generated mixin contracts are subject to iteration.
+  - **Sensitive Field Redaction (`@redact` / `Redact`)**:
+    - Added `@redact` and `Redact(mask: '...', preserveLength: bool)` annotations to sanitize sensitive data (API keys, secrets, PII) in string representations (`toString()`) and debug maps (`toDebugMap()`) without altering wire-format serialization (`toMap()`).
   - **Structured Library Architecture**:
-    - `package:daxle/daxle.dart`: Focused entrypoint for core annotations, data classes, and zero-cost data access (`QueryMap`). Keeps IDE auto-complete clean.
+    - `package:daxle/daxle.dart`: Focused entrypoint for core annotations, data classes, zero-cost data access (`QueryMap`), and preview state machine primitives. Keeps IDE auto-complete clean.
     - `package:daxle/async.dart`: Curated asynchronous & reactive toolkit (`Concurrency`, `Pool`, `stream_transform`, `FutureGroup`, `AsyncCache`, `StreamQueue`, etc.).
 
 - **INTERNAL IMPROVEMENTS**:

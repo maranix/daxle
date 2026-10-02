@@ -4,7 +4,7 @@
 [![Pub Points](https://img.shields.io/pub/points/daxle.svg)](https://pub.dev/packages/daxle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Daxle is a lightweight, zero-overhead Dart 3+ toolkit providing zero-cost map querying (`QueryMap`), flexible sliding-window concurrency (`Concurrency`), deep collection equality, stream transformation operators, and declarative compile-time code generation annotations.
+Daxle is a lightweight Dart 3+ toolkit providing nested map querying (`QueryMap`), flexible sliding-window concurrency (`Concurrency`), deep collection equality, stream transformation operators, declarative code generation annotations, and preview state machine workflows.
 
 **[📚 Read the Official Documentation](https://daxle.maranix.in)**
 
@@ -12,13 +12,14 @@ Daxle is a lightweight, zero-overhead Dart 3+ toolkit providing zero-cost map qu
 
 ## Core Capabilities
 
-- **Zero-Cost Nested Map Traversal (`QueryMap`)**: Zero-overhead compile-time extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key support. Safely returns `null` on missing paths or type mismatches without exceptions.
+- **Nested Map Traversal (`QueryMap`)**: Extension type over `Map` with dot notation, bracket indexing for embedded lists, and non-string key support. Safely returns `null` on missing paths or type mismatches without throwing exceptions.
 - **Sliding-Window Worker Pool (`Concurrency`)**: Manage asynchronous workload throughput using `.sequential`, `.unbounded`, or `.bounded(poolSize)` modes backed by `package:pool`, with early termination abort protection via `shouldStop`.
 - **Resource Pooling (`Pool`)**: Re-exports `Pool` and `PoolResource` from `package:pool` for robust asynchronous throttling and resource management.
 - **Deep Structural Equality (`$deepEquals`, `$deepHashCode`)**: Multi-tiered equality comparisons for nested maps, sets, lists, and records.
 - **Stream Transformation Operators**: Re-exports all operators from `package:stream_transform` (`debounce`, `throttle`, `audit`, `buffer`, `combineLatest`, `merge`, `switchMap`, `scan`, `tap`, `whereType`).
 - **Async Flow Utilities**: Re-exports key utilities from `package:async` (`FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, `StreamGroup`, `StreamSplitter`).
-- **Zero-Overhead Data Class Annotations**: Declarative annotations (`@serialize`, `@deserialize`, `@copyWith`, `@equalsAndHashCode`, `@stringify`, `@AnnotationBundle`) paired with `daxle_gen` in `dev_dependencies` for pure AST code generation.
+- **Data Class Annotations**: Declarative annotations (`@serialize`, `@deserialize`, `@copyWith`, `@equalsAndHashCode`, `@stringify`, `@redact`, `@AnnotationBundle`) paired with `daxle_gen` in `dev_dependencies` for AST-based code generation.
+- **State Machine & Workflows (Preview & Experimental)**: Declarative annotations (`@StateMachine`, `Flow`, `TransitionScope`, `InvalidFlowException`) for validated state transition graphs, async flow handlers, and epoch-based stale flow cancellation.
 
 ---
 
@@ -26,11 +27,11 @@ Daxle is a lightweight, zero-overhead Dart 3+ toolkit providing zero-cost map qu
 
 To keep auto-complete clean and imports focused, Daxle organizes its exports into dedicated libraries:
 
-- **`package:daxle/daxle.dart`**: Core annotations, data classes, structural equality (`$deepEquals`), and zero-cost map querying (`QueryMap`).
+- **`package:daxle/daxle.dart`**: Core annotations, data classes, structural equality (`$deepEquals`), map querying (`QueryMap`), and preview state machine primitives (`StateMachine`, `Flow`, `TransitionScope`, `InvalidFlowException`).
 - **`package:daxle/async.dart`**: Curated asynchronous & reactive toolkit (`Concurrency`, `Pool`, `package:stream_transform` operators, `FutureGroup`, `AsyncCache`, `AsyncMemoizer`, `StreamZip`, `StreamQueue`, etc.).
 
 ```dart
-// Data modeling & querying
+// Data modeling, querying & state machine workflows
 import 'package:daxle/daxle.dart';
 
 // Async concurrency & reactive streams
@@ -45,9 +46,9 @@ Add Daxle to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^4.0.0
+  daxle: ^5.0.0
 
-# Optional: Add daxle_gen to dev_dependencies for compile-time code generation
+# Optional: Add daxle_gen to dev_dependencies for code generation
 dev_dependencies:
   daxle_gen: ^0.3.0
 ```
@@ -64,7 +65,7 @@ dart pub get
 
 ### 1. Safely Query Nested Maps & Embedded Lists (`QueryMap`)
 
-Wrap any `Map` at zero runtime cost to query deeply nested properties, embedded lists, and multi-dimensional matrices using dot notation, bracket indexing, or key lists.
+Wrap any `Map` with `QueryMap` to query nested properties, embedded lists, and multi-dimensional matrices using dot notation, bracket indexing, or key lists.
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -163,9 +164,9 @@ void main() async {
 
 ---
 
-## Data Classes & Compile-Time Codegen (`daxle_gen`)
+## Data Classes & Code Generation (`daxle_gen`)
 
-`daxle` provides zero-overhead compile-time annotations. When combined with [`daxle_gen`](https://pub.dev/packages/daxle_gen) in `dev_dependencies`, code generation synthesizes type-safe, functional serialization, deep immutable lenses, structural equality, and clean string representations.
+`daxle` provides declarative annotations for models. When combined with [`daxle_gen`](https://pub.dev/packages/daxle_gen) in `dev_dependencies`, code generation synthesizes type-safe, functional serialization, deep immutable lenses, structural equality, and clean string representations.
 
 ### 1. Bundle Annotations with `AnnotationBundle`
 
@@ -251,6 +252,103 @@ Event eventFromMap(Map<String, dynamic> json) => switch (json) {
   }(),
 };
 ```
+
+### 4. Sensitive Field Redaction (`@redact`)
+
+Prevent sensitive data (passwords, tokens, PII) from leaking into logs by annotating fields with `@redact` / `Redact()`:
+
+```dart
+@serialize
+@stringify
+class ApiConfig(
+  final String host,
+  @redact
+  final String secretKey,
+  @Redact(mask: '***', preserveLength: true)
+  final String authToken,
+) with _$ApiConfigStringify;
+
+void main() {
+  final config = ApiConfig('api.domain.com', 'sk_live_9999', 'token_secret');
+
+  // Logs and debug representations mask sensitive fields:
+  print(config); // ApiConfig(host: api.domain.com, secretKey: [REDACTED], authToken: ************)
+  print(config.toDebugMap()); // {'host': 'api.domain.com', 'secretKey': '[REDACTED]', 'authToken': '************'}
+
+  // Wire serialization remains completely unaltered:
+  print(config.toMap()); // {'host': 'api.domain.com', 'secretKey': 'sk_live_9999', 'authToken': 'token_secret'}
+}
+```
+
+---
+
+## State Machines & Workflows (Preview & Experimental)
+
+> [!WARNING]
+> **Preview & Experimental**: `StateMachine` and related workflow primitives (`Flow`, `TransitionScope`, `InvalidFlowException`) are currently in preview and under active experimental development. Public APIs and generated code conventions may evolve in subsequent releases.
+
+Daxle provides declarative state machines with validated transition graphs, epoch-based stale flow cancellation, and async transition scopes.
+
+When combined with `daxle_gen`, classes annotated with `@StateMachine` synthesize a `_$ClassNameMachine` mixin that enforces valid state transitions and guarantees safe asynchronous flow lifecycles.
+
+```dart
+import 'dart:async';
+import 'package:daxle/daxle.dart';
+
+part 'order_machine.daxle.dart';
+
+// States
+sealed class OrderState { const OrderState(); }
+final class OrderIdle extends OrderState { const OrderIdle(); }
+final class OrderSubmitting extends OrderState { const OrderSubmitting(); }
+final class OrderPlaced extends OrderState { final String orderId; const OrderPlaced(this.orderId); }
+final class OrderFailed extends OrderState { final String reason; const OrderFailed(this.reason); }
+
+// Events
+sealed class OrderEvent { const OrderEvent(); }
+final class SubmitOrder extends OrderEvent { final String item; const SubmitOrder(this.item); }
+final class RetryOrder extends OrderEvent { const RetryOrder(); }
+
+@StateMachine([
+  Flow(from: OrderIdle, to: OrderSubmitting, using: SubmitOrder),
+  Flow(from: OrderSubmitting, to: OrderPlaced),
+  Flow(from: OrderSubmitting, to: OrderFailed),
+  Flow(from: OrderFailed, to: OrderSubmitting, using: RetryOrder),
+])
+final class OrderService with _$OrderServiceMachine {
+  @override
+  OrderState activeState = const OrderIdle();
+
+  // Async flow handler for transition into OrderSubmitting
+  @override
+  FutureOr<void> onSubmitting(TransitionScope<OrderState> scope, OrderEvent event) async {
+    try {
+      final orderId = await submitToBackend();
+      // Safe transition - checks active status and validates transition table:
+      scope.transit(OrderPlaced(orderId));
+    } catch (e) {
+      scope.transit(OrderFailed(e.toString()));
+    }
+  }
+}
+
+void main() {
+  final service = OrderService();
+
+  // Dispatch events to drive transitions:
+  service.dispatch(SubmitOrder('laptop'));
+
+  // Invalid transitions throw InvalidFlowException immediately:
+  // service.dispatch(RetryOrder()); // Throws: transition from OrderSubmitting via RetryOrder is not permitted
+}
+```
+
+### Key Workflow Concepts:
+
+- **`Flow(from: StateA, to: StateB, using: EventX)`**: Declares directed edges. `using` indicates an external event trigger. When omitted, the edge represents an internal autonomous transition within an async flow.
+- **`TransitionScope<TState>`**: Passed to asynchronous flow handlers. Exposes `scope.transit(nextState)`, `scope.getActiveState()`, and `scope.isCurrent` to prevent race conditions.
+- **Stale Flow Protection (`_daxleEpoch`)**: Monotonically increments an internal epoch when new events arrive. If an asynchronous flow completes after a subsequent event has transitioned the machine, calls to `scope.transit()` are safely ignored.
+- **Fail-Fast Validation (`InvalidFlowException`)**: Any attempt to transition to an unlisted target state or dispatch an event not valid for the active state throws `InvalidFlowException` detailing the source state, attempted target, and permitted transitions.
 
 ---
 
