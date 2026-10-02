@@ -6,7 +6,7 @@ Compile-time functional code generator and AST inspection pipeline for Dart 3+.
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Dart SDK](https://img.shields.io/badge/Dart-3.13+-0175C2.svg)](https://dart.dev)
 
-`daxle_gen` provides pure, deterministic, and type-safe code generation targeting modern Dart 3 features: primary constructors, switch pattern matching, record types, extension types, and sealed class hierarchies. It generates top-level functional serialization (`toMap`, `fromMap`, `toList`, `fromList`), deep proxied immutable update lenses (`copyWith`, `copyWithNull`), tiered structural value equality (`operator ==`, `hashCode`), and clean string formatting (`toString`).
+`daxle_gen` provides pure, deterministic, and type-safe code generation targeting modern Dart 3 features: primary constructors, switch pattern matching, record types, extension types, sealed class hierarchies, sensitive field redaction, and preview state machines. It generates top-level functional serialization (`toMap`, `fromMap`, `toList`, `fromList`), deep proxied immutable update lenses (`copyWith`, `copyWithNull`), tiered structural value equality (`operator ==`, `hashCode`), clean string formatting (`toString`), sensitive field masking (`toDebugMap`), and state machine workflow mixins (`_$ClassNameMachine`).
 
 ---
 
@@ -29,6 +29,8 @@ Compile-time functional code generator and AST inspection pipeline for Dart 3+.
   - [8. Sealed Class Polymorphism](#8-sealed-class-polymorphism)
   - [9. Extension Types](#9-extension-types)
   - [10. Part-File Support](#10-part-file-support)
+  - [11. State Machine Workflows (Preview & Experimental)](#11-state-machine-workflows-preview--experimental)
+  - [12. Sensitive Field Redaction (`@redact`)](#12-sensitive-field-redaction-redact)
 - [Error Diagnostics & Fail-Fast Guarantees](#error-diagnostics--fail-fast-guarantees)
 - [Architecture & Design](#architecture--design)
 - [License](#license)
@@ -43,20 +45,29 @@ Compile-time functional code generator and AST inspection pipeline for Dart 3+.
 - **Deep Proxied `copyWith`**: Fluent nested updates (`user.copyWith.address.city(name: 'NYC')`) returning the root type, identity checks avoiding redundant allocations, and explicit nullification (`copyWithNull`).
 - **Collection-Aware Deep Equality**: Tiered structural equality sorting cheap primitives first, nested objects second, and deep collections (`$listEquals`, `$setEquals`, `$mapEquals`, `$deepEquals`) last.
 - **Clean `toString` Mixins**: Readable string representations for classes and enums.
+- **Sensitive Field Redaction**: Automatic value masking in `toString()` and synthesized `toDebugMap()` to prevent secrets and PII from leaking into logs.
 - **Annotation Bundling**: Group multiple annotations into reusable constants via `AnnotationBundle` (e.g. `@DataClass`).
 - **Granular Member Control**: Field renaming, backwards-compatible wire aliases, default value fallback injection, nested map flattening, and field exclusion.
 - **Sealed Class Polymorphism**: Automatic switch dispatch with default (`'type'`) or custom discriminators and subclass tags.
+- **State Machine Workflows (Preview & Experimental)**: Synthesizes `_$ClassNameMachine` mixin with strict transition graphs, async flow root stubs, default concrete sync transitions, epoch-based stale cancellation, and typed event dispatching.
 - **High-Performance AST Tooling**: Analyzes syntax trees with `DaxleFileVisitor` without running slow builder cascades, featuring SHA-256 incremental caching and debounced watching.
 
 ---
 
 ## Installation & Setup
 
-Add `daxle` and `daxle_gen` to your `pubspec.yaml`:
+Add `daxle` and `daxle_gen` to your project:
+
+```sh
+dart pub add daxle
+dart pub add dev:daxle_gen
+```
+
+Or declare them directly in your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^4.0.0
+  daxle: ^5.0.0
 
 dev_dependencies:
   daxle_gen: ^0.3.0
@@ -363,6 +374,7 @@ Fine-tune serialization and model behavior using member-level annotations:
 | `@SerializedValue('wire_key', {aliases, converter})` | Field / Enum | Overrides JSON key name, defines fallback wire aliases, or binds a custom `DaxleJsonConverter`. |
 | `@Fallback(value)` | Field / Enum | Injects a default value when incoming JSON is null/missing, or designates the fallback case for unrecognized enum values. |
 | `@Flatten({prefix})` | Field | Inlines nested object fields directly into the parent JSON map, with an optional key prefix. |
+| `@Redact({mask, preserveLength})` / `@redact` | Field | Masks sensitive values (passwords, tokens, PII) in `toString()` and synthesizes `toDebugMap()`. |
 | `@Ignore()` / `@ignore` | Field / Enum | Completely strips the member from serialization, deserialization, equality, hashCode, copyWith, and stringify. |
 
 #### Comprehensive Member Example:
@@ -483,6 +495,168 @@ bloc/
 ```
 
 When `auth_state.dart` is annotated, `daxle_gen` traverses up to the owning library root (`auth_bloc.dart`) and correctly generates `auth_bloc.daxle.dart` attached to the primary library.
+
+---
+
+### 11. State Machine Workflows (Preview & Experimental)
+
+> [!WARNING]
+> **Preview & Experimental**: State Machine generation (`@StateMachine`) is currently in preview and under active experimental development. Generated mixin signatures and API conventions may change based on developer feedback.
+
+Annotate classes or services with `@StateMachine([Flow(...)])` to synthesize a typed state machine mixin named `_$ClassNameMachine`.
+
+```dart
+import 'dart:async';
+import 'package:daxle/daxle.dart';
+
+part 'startup_service.daxle.dart';
+
+sealed class StartupState {
+  const StartupState();
+}
+final class StartupIdle extends StartupState {
+  const StartupIdle();
+}
+final class StartupBooting extends StartupState {
+  const StartupBooting();
+}
+final class StartupProgress extends StartupState {
+  final String step;
+  const StartupProgress(this.step);
+}
+final class StartupReady extends StartupState {
+  const StartupReady();
+}
+final class StartupFailure extends StartupState {
+  final String error;
+  const StartupFailure(this.error);
+}
+
+sealed class StartupEvent {
+  const StartupEvent();
+}
+final class StartEngine extends StartupEvent {
+  final String environment;
+  const StartEngine(this.environment);
+}
+final class ResetRequested extends StartupEvent {
+  const ResetRequested();
+}
+
+@StateMachine([
+  Flow(from: StartupIdle, to: StartupBooting, using: StartEngine),
+  Flow(from: StartupBooting, to: StartupProgress),
+  Flow(from: StartupBooting, to: StartupReady),
+  Flow(from: StartupBooting, to: StartupFailure),
+  Flow(from: StartupProgress, to: StartupProgress),
+  Flow(from: StartupProgress, to: StartupReady),
+  Flow(from: StartupProgress, to: StartupFailure),
+  Flow(from: StartupFailure, to: StartupIdle, using: ResetRequested),
+])
+final class StartupService with _$StartupServiceMachine {
+  @override
+  StartupState activeState = const StartupIdle();
+
+  // Async flow handlers generated as FutureOr<void> stubs for async flow roots:
+  @override
+  FutureOr<void> onBooting(TransitionScope<StartupState> scope, StartEngine event) async {
+    scope.transit(const StartupProgress('loading configuration'));
+    try {
+      await initializeEngine(event.environment);
+      scope.transit(const StartupReady());
+    } catch (e) {
+      scope.transit(StartupFailure(e.toString()));
+    }
+  }
+
+  // Trivial/sync transitions (e.g. StartupFailure -> StartupIdle via ResetRequested)
+  // receive concrete default implementations in the mixin and can be optionally overridden.
+}
+```
+
+#### What `daxle_gen` Synthesizes:
+
+1. **Static Transition Table (`_$transitions`)**:
+   Enforces compile-time transition verification via an immutable lookup table:
+   ```dart
+   static const Map<Type, Set<Type>> _$transitions = {
+     StartupIdle: {StartupBooting},
+     StartupBooting: {StartupProgress, StartupReady, StartupFailure},
+     StartupProgress: {StartupProgress, StartupReady, StartupFailure},
+     StartupFailure: {StartupIdle},
+   };
+   ```
+
+2. **Flow Handlers (`on<State>`)**:
+   Generates `FutureOr<void> on<State>(TransitionScope<State> scope, Event event)` handler stubs. States that are async flow roots (have outgoing edges without triggers) generate handler stubs for you to implement. Simple terminal or single-edge sync transitions generate default concrete methods.
+
+3. **Epoch-Based Stale Flow Cancellation (`_daxleEpoch`)**:
+   Maintains a monotonically increasing epoch counter. Whenever `dispatch` processes an event, `_daxleEpoch` increments. Asynchronous operations inside `on<State>` check `scope.isCurrent` to guarantee that stale operations cannot overwrite subsequent state.
+
+4. **Type-Safe Dispatch (`dispatch`)**:
+   Exhaustive pattern matching dispatches events based on the active state:
+   ```dart
+   void dispatch(StartupEvent event) {
+     final current = activeState;
+     switch (current) {
+       case StartupIdle():
+         if (event is StartEngine) {
+           _transitInternal(const StartupBooting(), event);
+           return;
+         }
+       case StartupFailure():
+         if (event is ResetRequested) {
+           _transitInternal(const StartupIdle(), event);
+           return;
+         }
+       default:
+         break;
+     }
+     throw InvalidFlowException(
+       from: current.runtimeType,
+       attempted: event.runtimeType,
+       allowed: _$transitions[current.runtimeType] ?? const {},
+     );
+   }
+   ```
+
+5. **Flexible Generic Typing**:
+   Supports explicit generics (`@StateMachine<MyState, MyEvent>([Flow(...)])`) as well as auto-inference from declared `Flow` arguments or class supertypes (e.g., `Bloc<Event, State>`).
+
+---
+
+### 12. Sensitive Field Redaction (`@redact`)
+
+Annotate fields containing secrets, authentication tokens, or personally identifiable information (PII) with `@redact` or `@Redact()`:
+
+```dart
+@serialize
+@stringify
+class UserSession(
+  final String userId,
+  @redact
+  final String authToken,
+  @Redact(mask: '***', preserveLength: true)
+  final String secretPin,
+) with _$UserSession;
+```
+
+#### Generated Behavior:
+
+- **Clean `toString()`**: Redacted values are masked (`[REDACTED]` or custom mask) in string output, protecting production logs and debug consoles:
+  ```dart
+  print(session); // UserSession(userId: u_1, authToken: [REDACTED], secretPin: ****)
+  ```
+- **Diagnostic Debug Map (`toDebugMap()`)**: Generates a dedicated debugging serialization method where sensitive fields are masked while preserving non-sensitive data:
+  ```dart
+  final debugJson = session.toDebugMap();
+  // {'userId': 'u_1', 'authToken': '[REDACTED]', 'secretPin': '****'}
+  ```
+- **Uncompromised Wire Serialization (`toMap()`)**: The standard `toMap()` method remains completely unredacted for correct network and storage serialization:
+  ```dart
+  final wireJson = session.toMap();
+  // {'userId': 'u_1', 'authToken': 'jwt_real_token', 'secretPin': '1234'}
+  ```
 
 ---
 

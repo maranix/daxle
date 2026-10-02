@@ -1,7 +1,12 @@
 /// State machine exceptions.
 library;
 
+import 'package:meta/meta.dart';
+
 /// Thrown when an invalid state transition or event dispatch is attempted in a StateMachine.
+///
+/// > **Preview & Experimental**: This API is experimental and subject to change.
+@experimental
 final class InvalidFlowException implements Exception {
   /// Source state type where transition was attempted.
   final Type from;

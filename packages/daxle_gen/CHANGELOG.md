@@ -1,3 +1,23 @@
+## 0.3.1 (Preview)
+
+- **NEW FEATURES (PREVIEW & EXPERIMENTAL)**:
+  - **State Machine Generation (`@StateMachine`)**:
+    - Synthesizes `_$ClassNameMachine` mixin for declarative, compile-time verified state machine workflows.
+    - Generates compile-time verified static transition table (`_$transitions`) restricting valid transitions.
+    - Synthesizes `FutureOr<void> on<State>(TransitionScope<State> scope, Event event)` flow handler stubs for async flow roots.
+    - Provides concrete default implementations for synchronous, trivial, or single-target transitions.
+    - Implements epoch-based cancellation (`_daxleEpoch`) to invalidate stale asynchronous transition scopes when newer events arrive.
+    - Generates pattern-matching `dispatch(Event event)` with fail-fast `InvalidFlowException` validation against illegal transitions.
+    - Supports explicit generics (`@StateMachine<TState, TEvent>`) and automatic type inference from declared flows or `Bloc` supertypes.
+    - Supports self-loop state transitions (`Flow(from: State, to: State)`).
+  - **Sensitive Field Redaction (`@redact` / `Redact`)**:
+    - Generates sanitized `toString()` representations preventing secrets, passwords, tokens, and PII from leaking into logs.
+    - Synthesizes dedicated `toDebugMap()` method with configurable masks (`mask`, `preserveLength`), while keeping standard wire-format `toMap()` unmodified.
+
+- **DOCUMENTATION**:
+  - Marked `StateMachine` generation as **preview and experimental** across documentation and guides.
+  - Documented setup instructions, CLI commands, state machine workflow patterns, and sensitive field redaction in `README.md`.
+
 ## 0.3.0 (2026-09-30)
 
 - **BREAKING CHANGES**:
