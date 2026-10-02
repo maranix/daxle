@@ -91,10 +91,14 @@ final class StartupService with _\$StartupServiceMachine {}
 
     expect(output, contains('int _daxleEpoch = 0;'));
 
-    // Abstract async handler
-    expect(output, contains('Future<void> onBooting('));
+    // FutureOr handler for async flow root
+    expect(output, contains('FutureOr<void> onBooting('));
     expect(output, contains('TransitionScope<StartupState> scope'));
     expect(output, contains('StartEngine event'));
+
+    // Default concrete implementation for trivial reset
+    expect(output, contains('FutureOr<void> onIdle('));
+    expect(output, contains('ResetRequested event'));
 
     // dispatch method
     expect(output, contains('Future<void> dispatch('));
@@ -107,16 +111,71 @@ final class StartupService with _\$StartupServiceMachine {}
     expect(output, contains('final epoch = ++_daxleEpoch;'));
     expect(output, contains('StartupState activeState = const StartupBooting();'));
     expect(output, contains('emit(activeState);'));
-    expect(output, contains('await onBooting(scope, e);'));
-
-    // Instant transition switch case
-    expect(output, contains('case (StartupFailure(), final ResetRequested _):'));
-    expect(output, contains('_daxleEpoch++;'));
-    expect(output, contains('emit(const StartupIdle());'));
+    expect(output, contains('final result = onBooting(scope, e);'));
+    expect(output, contains('if (result is Future) await result;'));
 
     // Default error throwing
     expect(output, contains('throw InvalidFlowException('));
     expect(output, contains('from: currentState.runtimeType'));
     expect(output, contains('attempted: event.runtimeType'));
+  });
+
+  test('resolves Bloc generic types, self-loops, and explicit Async marker', () {
+    const blocSource = '''
+import 'package:daxle/daxle.dart';
+
+part 'onboarding_bloc.daxle.dart';
+
+sealed class OnboardingState {}
+final class OnboardingReady extends OnboardingState {}
+final class OnboardingSelectVariants extends OnboardingState {}
+final class OnboardingCompleting extends OnboardingState {}
+final class OnboardingComplete extends OnboardingState {}
+final class OnboardingError extends OnboardingState {}
+
+sealed class OnboardingEvent {}
+final class OnboardingVariantSelected extends OnboardingEvent {}
+final class OnboardingCompleted extends OnboardingEvent {}
+
+@StateMachine([
+  Flow(from: OnboardingReady, to: OnboardingSelectVariants),
+  Flow(
+    from: OnboardingSelectVariants,
+    to: OnboardingSelectVariants,
+    using: OnboardingVariantSelected,
+  ),
+  Flow(
+    from: OnboardingSelectVariants,
+    to: OnboardingCompleting,
+    using: Async<OnboardingCompleted>,
+  ),
+  Flow(from: OnboardingCompleting, to: OnboardingComplete),
+  Flow(from: OnboardingCompleting, to: OnboardingError),
+])
+final class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> with _\$OnboardingBlocMachine {}
+''';
+
+    final parsedFile = parser.parseContent(blocSource, filePath: 'lib/onboarding_bloc.dart');
+    final output = generator.generate(parsedFile);
+
+    expect(output, isNotNull);
+    expect(output, contains('mixin _\$OnboardingBlocMachine {'));
+
+    // Inherited from Bloc<OnboardingEvent, OnboardingState>
+    expect(output, contains('TransitionScope<OnboardingState> scope'));
+    expect(output, contains('OnboardingState currentState'));
+    expect(output, contains('OnboardingEvent event'));
+    expect(output, isNot(contains('TransitionScope<dynamic>')));
+
+    // Self-loop handler generated as FutureOr<void>
+    expect(output, contains('FutureOr<void> onSelectVariants('));
+    expect(output, contains('OnboardingVariantSelected event'));
+
+    // Explicit Async<T> generates Future<void>
+    expect(output, contains('Future<void> onCompleting('));
+    expect(output, contains('OnboardingCompleted event'));
+
+    // Self-loop retains currentState
+    expect(output, contains('OnboardingState activeState = currentState;'));
   });
 }

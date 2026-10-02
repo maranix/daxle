@@ -115,6 +115,10 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
     final className = node.namePart.typeName.lexeme;
     final isSealed = node.sealedKeyword != null;
     final superclass = node.extendsClause?.superclass.name.lexeme;
+    final superclassTypeArguments = <String>[
+      if (node.extendsClause?.superclass.typeArguments case final args?)
+        for (final arg in args.arguments) arg.toSource(),
+    ];
 
     final interfaces = <String>[
       if (node.implementsClause != null)
@@ -394,6 +398,7 @@ final class DaxleFileVisitor extends RecursiveAstVisitor<void> {
         name: className,
         isSealed: isSealed,
         superclass: superclass,
+        superclassTypeArguments: superclassTypeArguments,
         interfaces: interfaces,
         serialize: serializeInfo,
         deserialize: deserializeInfo,

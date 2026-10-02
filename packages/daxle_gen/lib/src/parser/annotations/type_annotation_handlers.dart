@@ -238,6 +238,7 @@ final class StateMachineAnnotationHandler
     String? from;
     String? to;
     String? using;
+    var isExplicitAsync = false;
 
     for (final arg in argList.arguments) {
       if (arg case NamedArgument(:final name, :final argumentExpression)) {
@@ -247,13 +248,24 @@ final class StateMachineAnnotationHandler
           case 'to':
             to = _extractIdentifier(argumentExpression);
           case 'using':
-            using = _extractIdentifier(argumentExpression);
+            final raw = _extractIdentifier(argumentExpression);
+            if (raw.startsWith('Async<') && raw.endsWith('>')) {
+              isExplicitAsync = true;
+              using = raw.substring(6, raw.length - 1).trim();
+            } else {
+              using = raw;
+            }
         }
       }
     }
 
     if (from != null && to != null) {
-      return ParsedFlow(from: from, to: to, using: using);
+      return ParsedFlow(
+        from: from,
+        to: to,
+        using: using,
+        isExplicitAsync: isExplicitAsync,
+      );
     }
     return null;
   }

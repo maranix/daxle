@@ -2,11 +2,16 @@
 library;
 
 /// Declarative annotation marking a class or mixin for state machine generation.
-final class StateMachine {
+final class StateMachine<TState, TEvent> {
   /// Declared state flow transitions.
   final List<Flow> flows;
 
   const StateMachine(this.flows);
+}
+
+/// Marker type to explicitly specify an asynchronous event trigger in a [Flow].
+final class Async<T> {
+  const Async();
 }
 
 /// Defines a directed edge between states in a [StateMachine].

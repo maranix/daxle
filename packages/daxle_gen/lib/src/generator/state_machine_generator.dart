@@ -1,6 +1,7 @@
 import 'package:code_builder/code_builder.dart';
 
 import '../models/parsed_element.dart';
+import '../models/state_machine_info.dart';
 
 /// Generates the `_$ClassNameMachine` mixin for `@StateMachine` annotated classes.
 class StateMachineGenerator {
@@ -14,8 +15,8 @@ class StateMachineGenerator {
     }
 
     final mixinName = '_\$${clazz.name}Machine';
-    final baseState = _inferBaseState(info.allStates, parsedFile);
-    final baseEvent = _inferBaseEvent(info.allEvents, parsedFile);
+    final baseState = _inferBaseState(clazz, info.allStates, info.allEvents, parsedFile);
+    final baseEvent = _inferBaseEvent(clazz, info.allEvents, parsedFile);
 
     final methods = <Method>[];
     final fields = <Field>[];
@@ -45,21 +46,24 @@ class StateMachineGenerator {
       ),
     );
 
-    // 3. Abstract handler methods for async flow roots
+    // 3. Handler methods for all event-driven transitions
     final generatedHandlerSignatures = <String>{};
     for (final flow in info.eventFlows) {
-      if (info.isAsyncFlowRoot(flow.to)) {
-        final handlerName = _deriveHandlerName(flow.to, clazz.name);
-        final eventType = flow.using ?? 'dynamic';
-        final signatureKey = '$handlerName($eventType)';
+      final handlerName = _deriveHandlerName(flow.to, clazz.name);
+      final eventType = flow.using ?? 'dynamic';
+      final signatureKey = '$handlerName($eventType)';
 
-        if (!generatedHandlerSignatures.contains(signatureKey)) {
-          generatedHandlerSignatures.add(signatureKey);
-          methods.add(
-            Method(
-              (m) => m
+      if (!generatedHandlerSignatures.contains(signatureKey)) {
+        generatedHandlerSignatures.add(signatureKey);
+        final returnType = flow.isExplicitAsync ? 'Future<void>' : 'FutureOr<void>';
+        final isTrivial = _isTrivial(flow, info, parsedFile);
+
+        methods.add(
+          Method(
+            (m) {
+              m
                 ..name = handlerName
-                ..returns = refer('Future<void>')
+                ..returns = refer(returnType)
                 ..requiredParameters.addAll([
                   Parameter(
                     (p) => p
@@ -73,12 +77,14 @@ class StateMachineGenerator {
                   ),
                 ])
                 ..docs.add(
-                  '/// Entry point for async flow: ${flow.from} -> ${flow.to} via $eventType.\n'
-                  '/// Generated because ${flow.to} has autonomous (non-using) outgoing flows.',
-                ),
-            ),
-          );
-        }
+                  '/// Handler for transition: ${flow.from} -> ${flow.to} via $eventType.',
+                );
+              if (isTrivial) {
+                m.body = const Code(''); // Default empty body for trivial instant transitions
+              }
+            },
+          ),
+        );
       }
     }
 
@@ -125,6 +131,19 @@ class StateMachineGenerator {
     );
   }
 
+  bool _isTrivial(ParsedFlow flow, dynamic info, ParsedFile parsedFile) {
+    if (flow.from == flow.to) return false;
+    if (info.isAsyncFlowRoot(flow.to)) return false;
+    final targetClass = parsedFile.classes
+        .where((c) => c.name == flow.to)
+        .firstOrNull;
+    if (targetClass != null && targetClass.constructorParams.isNotEmpty) {
+      return false;
+    }
+    if (flow.isExplicitAsync) return false;
+    return true;
+  }
+
   String _buildTransitionsMapCode(dynamic info) {
     final buffer = StringBuffer('{\n');
     for (final state in info.allStates) {
@@ -150,28 +169,26 @@ class StateMachineGenerator {
       final from = flow.from;
       final to = flow.to;
       final eventType = flow.using!;
-      final isAsync = info.isAsyncFlowRoot(to);
       final toInstantiation = _buildStateInstantiation(to, parsedFile);
+      final handler = _deriveHandlerName(to, hostClassName);
 
-      if (isAsync) {
-        final handler = _deriveHandlerName(to, hostClassName);
-        buffer.writeln('  case ($from(), final $eventType e):');
-        buffer.writeln('    final epoch = ++_daxleEpoch;');
+      buffer.writeln('  case ($from(), final $eventType e):');
+      buffer.writeln('    final epoch = ++_daxleEpoch;');
+      if (from == to) {
+        buffer.writeln('    $baseState activeState = currentState;');
+      } else {
         buffer.writeln('    $baseState activeState = $toInstantiation;');
         buffer.writeln('    emit(activeState);');
-        buffer.writeln('    final scope = TransitionScope<$baseState>(');
-        buffer.writeln('      getActiveState: () => activeState,');
-        buffer.writeln('      setActiveState: (next) => activeState = next,');
-        buffer.writeln('      isStillActive: () => epoch == _daxleEpoch,');
-        buffer.writeln('      allowedTransitions: _\$transitions,');
-        buffer.writeln('      emit: emit,');
-        buffer.writeln('    );');
-        buffer.writeln('    await $handler(scope, e);');
-      } else {
-        buffer.writeln('  case ($from(), final $eventType _):');
-        buffer.writeln('    _daxleEpoch++;');
-        buffer.writeln('    emit($toInstantiation);');
       }
+      buffer.writeln('    final scope = TransitionScope<$baseState>(');
+      buffer.writeln('      getActiveState: () => activeState,');
+      buffer.writeln('      setActiveState: (next) => activeState = next,');
+      buffer.writeln('      isStillActive: () => epoch == _daxleEpoch,');
+      buffer.writeln('      allowedTransitions: _\$transitions,');
+      buffer.writeln('      emit: emit,');
+      buffer.writeln('    );');
+      buffer.writeln('    final result = $handler(scope, e);');
+      buffer.writeln('    if (result is Future) await result;');
     }
 
     buffer.writeln('  default:');
@@ -219,10 +236,29 @@ class StateMachineGenerator {
     return a.substring(0, i);
   }
 
-  String _inferBaseState(Set<String> allStates, ParsedFile parsedFile) {
-    if (allStates.isEmpty) return 'dynamic';
+  String _inferBaseState(
+    ParsedClass clazz,
+    Set<String> allStates,
+    Set<String> allEvents,
+    ParsedFile parsedFile,
+  ) {
+    if (clazz.stateMachine?.explicitStateType != null) {
+      return clazz.stateMachine!.explicitStateType!;
+    }
+    if (clazz.superclass == 'Bloc' && clazz.superclassTypeArguments.length >= 2) {
+      return clazz.superclassTypeArguments[1];
+    }
+    if ((clazz.superclass == 'ValueNotifier' ||
+            clazz.superclass == 'Notifier' ||
+            clazz.superclass == 'AsyncNotifier') &&
+        clazz.superclassTypeArguments.isNotEmpty) {
+      return clazz.superclassTypeArguments[0];
+    }
+
+    final actualStates = allStates.difference(allEvents);
+    if (actualStates.isEmpty) return 'dynamic';
     final superclasses = <String>{};
-    for (final s in allStates) {
+    for (final s in actualStates) {
       final c = parsedFile.classes.where((cl) => cl.name == s).firstOrNull;
       if (c?.superclass != null && c!.superclass != 'Object') {
         superclasses.add(c.superclass!);
@@ -234,7 +270,17 @@ class StateMachineGenerator {
     return 'dynamic';
   }
 
-  String _inferBaseEvent(Set<String> allEvents, ParsedFile parsedFile) {
+  String _inferBaseEvent(
+    ParsedClass clazz,
+    Set<String> allEvents,
+    ParsedFile parsedFile,
+  ) {
+    if (clazz.stateMachine?.explicitEventType != null) {
+      return clazz.stateMachine!.explicitEventType!;
+    }
+    if (clazz.superclass == 'Bloc' && clazz.superclassTypeArguments.isNotEmpty) {
+      return clazz.superclassTypeArguments[0];
+    }
     if (allEvents.isEmpty) return 'dynamic';
     final superclasses = <String>{};
     for (final e in allEvents) {
