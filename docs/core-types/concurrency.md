@@ -11,18 +11,21 @@ Fine-grained worker pool concurrency and early-abort failure protection for asyn
 
 `Concurrency` is a lightweight `extension type` that defines how collections of asynchronous operations are scheduled and executed across the Dart event loop.
 
-You can use `Concurrency` as a **standalone worker pool runner** for any custom asynchronous closures (`Future<T> Function()`), or seamlessly with `Task` and `TaskEither`.
+You can use `Concurrency` as a worker pool runner for any custom asynchronous operations via `dispatch` or `process`.
 
 Instead of running unbounded parallel futures that flood downstream APIs or sequential loops that crawl slowly, `Concurrency` lets you specify exact worker pool limits with clean, expressive syntax.
 
 ```dart
-// Standalone: Process raw async functions with a worker pool of 4
-final results = await const Concurrency.bounded(4).process(
-  urls.map((url) => () => http.get(Uri.parse(url))),
+import 'package:daxle/async.dart';
+
+// Process items with a worker pool of 4
+final results = await const Concurrency.bounded(4).dispatch(
+  urls,
+  (url) => http.get(Uri.parse(url)),
 );
 
-// Or pass directly to Task / TaskEither using dot-shorthand syntax
-final taskResults = await TaskEither.sequence(tasks, mode: .bounded(3)).run();
+// Or process raw async closures with sequential execution
+final outputs = await Concurrency.sequential.process(tasks);
 ```
 
 
@@ -57,25 +60,22 @@ As soon as any worker completes its task, it immediately pulls the next pending 
 final imageIds = List.generate(50, (i) => 'img_$i');
 
 // Process 50 images with 4 active worker slots:
-final TaskEither<DownloadError, List<ImageFile>> downloadBatch = TaskEither.traverse(
+final List<ImageFile> results = await const Concurrency.bounded(4).dispatch(
   imageIds,
-  (id) => downloadImageSafe(id),
-  mode: .bounded(4),
+  (id) => downloadImage(id),
 );
-
-final result = await downloadBatch.run();
 ```
 
 ### 2. Early Failure Abort (Resource Protection)
-In `TaskEither.sequence` and `TaskEither.traverse`, if any task fails and resolves to a `Left`, the worker queue **locks immediately**. 
+With `shouldStop`, if any task result triggers the stop condition, the worker queue **locks immediately**. 
 
-Unstarted pending tasks in the queue are canceled and never dispatched to the network or event loop. In-flight workers finish gracefully, and the failure is returned promptly.
+Unstarted pending tasks in the queue are canceled and never dispatched to the network or event loop. In-flight workers finish gracefully, and all collected results are returned promptly.
 
 ```mermaid
 graph LR
     subgraph "Worker Pool (Limit: 2)"
         W1["Worker 1: Task A (OK)"]
-        W2["Worker 2: Task B (FAILED!)"]
+        W2["Worker 2: Task B (FAILED / STOP!)"]
     end
     
     W2 -->|"Early Failure Abort"| STOP["Halt Queue Consumption"]
@@ -87,18 +87,18 @@ graph LR
 Regardless of task completion timing (even if Task 3 finishes before Task 1), results are always collected and returned in the **exact original order** of the input collection.
 
 ### 4. Dart Dot-Shorthand Syntax
-Leverage Dart's constructor tear-off and dot-shorthand syntax for clean, legible calls:
+Leverage Dart's constructor and static instances for clean, legible calls:
 
 ```dart
-Task.sequence(tasks, mode: .sequential);
-Task.sequence(tasks, mode: .bounded(5));
-Task.sequence(tasks, mode: .unbounded);
+await Concurrency.sequential.dispatch(items, worker);
+await const Concurrency.bounded(5).dispatch(items, worker);
+await Concurrency.unbounded.dispatch(items, worker);
 ```
 
 
 ## Standalone Usage: `dispatch` and `process`
 
-You don't have to use `Task` or `TaskEither` to benefit from `Concurrency`. It provides two standalone methods to run asynchronous workflows:
+`Concurrency` provides two primary methods to run asynchronous workflows:
 
 * **`concurrency.dispatch(items, worker)`**: Best when you have a collection of raw data items and an async worker function. Eliminates nested closure boilerplate and supports direct function tear-offs.
 * **`concurrency.process(thunks)`**: Best when you already have a list of zero-argument async task functions `Iterable<Future<T> Function()>`.
@@ -144,5 +144,5 @@ void main() async {
 
 ## Related Types
 
-* [Task](task) - Lazy asynchronous computations with concurrency controls.
-* [TaskEither](task-either) - Fallible lazy async operations with sliding-window worker pools and early failure short-circuiting.
+* [QueryMap](./query-map) - Safely query nested maps, embedded lists, and multi-dimensional matrices at zero runtime cost.
+* [FutureGroup](/utilities/future-group) - Collection of asynchronous operations that run together and complete as a unit.

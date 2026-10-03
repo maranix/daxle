@@ -156,5 +156,5 @@ You just built a type-safe, error-proof pipeline. You used `Option` to eliminate
 
 Here's how to level up:
 
-* **[Master Core Types](/core-types/option)**: Learn the full power of `Option` and `Either`.
-* **[Control Async Logic](/core-types/task)**: Design lazy, composable asynchronous pipelines using `Task` and `TaskEither`.
+* **[Query Nested Data](/core-types/query-map)**: Safely query nested maps and embedded lists with `QueryMap`.
+* **[Control Async Concurrency](/core-types/concurrency)**: Manage worker pools and async execution limits with `Concurrency`.

@@ -126,9 +126,9 @@ query.has('services.cache'); // false (key does not exist)
 ```
 
 
-## Seamless Composition with Option
+## Safe Fallbacks and Defaults
 
-`QueryMap` pairs naturally with Daxle's `Option` type for expressive, default-fallback chaining:
+Because `QueryMap.get<T>()` returns `null` on missing paths or type mismatches instead of throwing exceptions, you can use standard Dart null-coalescing (`??`) for clean default fallbacks:
 
 ```dart
 import 'package:daxle/daxle.dart';
@@ -142,9 +142,8 @@ void main() {
 
   final query = QueryMap(payload);
 
-  // Wrap query.get in Option to establish default fallbacks
-  final host = Option(query.get<String>('services.server.host'))
-      .getOrElse(() => 'https://fallback.internal');
+  // Use null-coalescing operator for default fallbacks
+  final host = query.get<String>('services.server.host') ?? 'https://fallback.internal';
 
   print('Target server: $host'); // Prints: Target server: https://api.internal
 }
@@ -154,11 +153,10 @@ void main() {
 ## Best Practices
 
 * **Wrap API Boundaries**: Instantiate `QueryMap` immediately when receiving JSON data from HTTP responses or configuration files.
-* **Combine with Option**: Use `Option(query.get<T>(path))` when you need declarative fallbacks (`getOrElse`) or conditional validation (`filter`).
+* **Leverage Null-Coalescing**: Combine `query.get<T>(path) ?? fallback` for safe, declarative fallback values without boilerplate null checks.
 * **Use Key Lists for Dynamic Keys**: When map keys are variables or non-strings, use the list format `query.get<T>([keyA, keyB])` instead of string interpolation.
 
 
 ## Related Types
 
-* [Option](option) - Wrap `query.get` results in `Option` for functional chaining and fallbacks.
-* [Either](either) - Convert missing query values into typed domain errors using `Either.fromNullable` patterns or `Option.fold`.
+* [Concurrency](./concurrency) - Fine-grained worker pool concurrency and early-abort failure protection for asynchronous task workflows.
