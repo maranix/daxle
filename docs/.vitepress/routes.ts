@@ -18,26 +18,6 @@ export const Routes = {
     },
   },
   coreTypes: {
-    unit: {
-      text: 'Unit',
-      link: '/core-types/unit',
-    },
-    option: {
-      text: 'Option',
-      link: '/core-types/option',
-    },
-    either: {
-      text: 'Either',
-      link: '/core-types/either',
-    },
-    task: {
-      text: 'Task',
-      link: '/core-types/task',
-    },
-    taskEither: {
-      text: 'TaskEither',
-      link: '/core-types/task-either',
-    },
     queryMap: {
       text: 'QueryMap',
       link: '/core-types/query-map',

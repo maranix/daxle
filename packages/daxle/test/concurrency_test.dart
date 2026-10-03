@@ -1,4 +1,4 @@
-import 'package:daxle/daxle.dart';
+import 'package:daxle/async.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -31,6 +31,17 @@ void main() {
       test('negative poolSize throws ArgumentError in process', () {
         const mode = Concurrency.bounded(-1);
         expect(() => mode.process([]), throwsArgumentError);
+      });
+
+      test('createPool returns Pool or null for unbounded', () {
+        final seqPool = Concurrency.sequential.createPool();
+        expect(seqPool, isA<Pool>());
+
+        final boundPool = const Concurrency.bounded(5).createPool();
+        expect(boundPool, isA<Pool>());
+
+        final unbPool = Concurrency.unbounded.createPool();
+        expect(unbPool, isNull);
       });
     });
 
@@ -201,10 +212,8 @@ void main() {
           },
         ];
 
-        final task = Task(() => const Concurrency.bounded(1).process(tasks));
-        expect(log, isEmpty); // lazy before run()
-
-        final results = await task.run();
+        expect(log, isEmpty);
+        final results = await const Concurrency.bounded(1).process(tasks);
         expect(results, equals([1, 2]));
         expect(
           log,
@@ -324,4 +333,3 @@ void main() {
     });
   });
 }
-

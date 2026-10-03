@@ -1,0 +1,450 @@
+import 'package:daxle_gen/src/generator/file_generator.dart';
+import 'package:daxle_gen/src/parser/daxle_ast_parser.dart';
+import 'package:test/test.dart';
+
+void main() {
+  const parser = DaxleAstParser();
+  final generator = FileGenerator();
+
+  test(
+    'generates preamble, fromJson and toMap for primary constructor model',
+    () {
+      const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'user.daxle.dart';
+
+@serialize
+@deserialize
+class User(
+  @SerializedValue('user_id')
+  final String id,
+  final String name,
+  final DateTime createdAt,
+  final String? nickname, {
+  final int age = 18,
+});
+''';
+
+      final parsedFile = parser.parseContent(code, filePath: 'lib/user.dart');
+      final generated = generator.generate(parsedFile);
+
+      expect(generated, isNotNull);
+      expect(generated, contains('// coverage:ignore-file'));
+      expect(generated, contains('// GENERATED CODE - DO NOT MODIFY BY HAND'));
+      expect(generated, contains("part of 'user.dart';"));
+      expect(
+        generated,
+        contains('User userFromMap(Map<String, dynamic> json)'),
+      );
+      expect(
+        generated,
+        contains(
+          'Map<String, dynamic> userToMap(User instance, {bool excludeNull = false})',
+        ),
+      );
+      expect(generated, contains('extension UserToMapExtension on User'));
+      expect(generated, contains("'user_id': instance.id"));
+      expect(generated, contains("'user_id': final String idRaw"));
+      expect(generated, contains('createdAt.toIso8601String()'));
+    },
+  );
+
+  test('generates enum mappings and conversions', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'status.daxle.dart';
+
+@serialize
+@deserialize
+enum Status { pending, active, completed }
+
+@Serialize(valueField: 'code')
+@Deserialize(valueField: 'code')
+enum const Priority(final int code) {
+  low(10),
+  high(20);
+}
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/status.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains('const _statusEnumMap ='));
+    expect(generated, contains('Status statusFromValue(Object? value)'));
+    expect(generated, contains('dynamic statusToValue(Status instance)'));
+    expect(generated, contains('const _priorityEnumMap ='));
+    expect(generated, contains('Priority.low: 10'));
+    expect(generated, contains('Priority.high: 20'));
+  });
+
+  test('generates sealed class polymorphism', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'shape.daxle.dart';
+
+@Serialize(discriminator: 'kind')
+@Deserialize(discriminator: 'kind')
+sealed class Shape {}
+
+class Circle extends Shape {
+  final double radius;
+  Circle(this.radius);
+}
+
+class Square extends Shape {
+  final double side;
+  Square(this.side);
+}
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/shape.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(
+      generated,
+      contains('Shape shapeFromMap(Map<String, dynamic> json)'),
+    );
+    expect(generated, contains("{'kind': 'Circle'} => circleFromMap(json)"));
+    expect(generated, contains("{'kind': 'Square'} => squareFromMap(json)"));
+    expect(
+      generated,
+      contains(
+        'Map<String, dynamic> shapeToMap(Shape instance, {bool excludeNull = false})',
+      ),
+    );
+    expect(generated, contains('extension ShapeToMapExtension on Shape'));
+    expect(
+      generated,
+      contains(
+        "circleToMap(\n      circle,\n      excludeNull: excludeNull,\n    )..['kind'] = 'Circle'",
+      ),
+    );
+  });
+
+  test('generates case conversion and ignores fields', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'member.daxle.dart';
+
+@Serialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalToken'])
+@Deserialize(caseStyle: CaseStyle.snakeCase, ignoreFields: ['internalToken'])
+class Member(
+  final String memberName,
+  final int loginCount,
+  final String internalToken,
+);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/member.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains("'member_name': instance.memberName"));
+    expect(generated, contains("'login_count': instance.loginCount"));
+    expect(generated, isNot(contains('internalToken')));
+    expect(generated, isNot(contains('internal_token')));
+  });
+
+  test('generates enum mappings with fallback custom values and always throws on unknown', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'state.daxle.dart';
+
+@serialize
+@deserialize
+enum TaskState {
+  @SerializedValue('in_progress')
+  inProgress,
+  @SerializedValue(101)
+  codeEntry,
+  unknown,
+}
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/state.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains("TaskState.inProgress: 'in_progress'"));
+    expect(generated, contains("TaskState.codeEntry: 101"));
+    expect(generated, contains("TaskState.unknown: 'unknown'"));
+    expect(generated, contains("'in_progress' => TaskState.inProgress"));
+    expect(generated, contains("101 => TaskState.codeEntry"));
+    expect(generated, contains("'unknown' => TaskState.unknown"));
+    expect(
+      generated,
+      contains("_ => throw ArgumentError('Unknown TaskState value: \$value')"),
+    );
+    expect(generated, isNot(contains("_ => TaskState.unknown")));
+    expect(generated, isNot(contains("_ => TaskState.inProgress")));
+  });
+
+  test('generates fallback for missing or null value in fromJson', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'user.daxle.dart';
+
+@Serialize()
+@Deserialize()
+class Profile(
+  final String id,
+  @Fallback('guest')
+  final String? role,
+  @Fallback(0)
+  final int? loginCount,
+);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/user.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(
+      generated,
+      contains("json['role'] == null ? 'guest' : (json['role'] as String?)"),
+    );
+    expect(
+      generated,
+      contains(
+        "json['loginCount'] == null ? 0 : ((json['loginCount'] as num?)?.toInt())",
+      ),
+    );
+  });
+
+  test('generates enum mappings with @Fallback on enum declaration and @ignore on enum cases', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'single.daxle.dart';
+
+@Fallback(SingleConfig.fallbackCase)
+@serialize
+@deserialize
+enum SingleConfig {
+  @SerializedValue('std')
+  standard,
+
+  @SerializedValue(202)
+  numericCase,
+
+  @ignore
+  ignoredCase,
+
+  fallbackCase,
+}
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/single.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(generated, contains("SingleConfig.standard: 'std'"));
+    expect(generated, contains("'std' => SingleConfig.standard"));
+    expect(generated, contains("SingleConfig.numericCase: 202"));
+    expect(generated, contains("202 => SingleConfig.numericCase"));
+    expect(generated, isNot(contains("ignoredCase")));
+    expect(generated, contains("_ => SingleConfig.fallbackCase"));
+  });
+
+  test('generates map with enum key serialization and deserialization', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'guild.daxle.dart';
+
+@serialize
+@deserialize
+enum HeroRole { warrior, mage, rogue }
+
+@serialize
+@deserialize
+extension type ArtifactId(String id) {}
+
+@serialize
+@deserialize
+class GuildConfig({
+  final Map<HeroRole, ArtifactId> loadouts = const {},
+  final int vaultCoins = 0,
+});
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/guild.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(
+      generated,
+      contains(
+        'heroRoleFromValue(k)',
+      ),
+    );
+    expect(
+      generated,
+      contains(
+        'artifactIdFromMap(v',
+      ),
+    );
+    expect(
+      generated,
+      contains(
+        'heroRoleToValue(k).toString()',
+      ),
+    );
+    expect(
+      generated,
+      contains(
+        'artifactIdToMap(v)',
+      ),
+    );
+  });
+
+  test('generates serialization and deserialization for record typedefs', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'records.daxle.dart';
+
+@serialize
+@deserialize
+typedef UserInfo = ({String name, int age});
+
+@serialize
+@deserialize
+typedef LatLng = (double lat, double lng);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/records.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    // Named record
+    expect(generated, contains('Map<String, dynamic> userInfoToMap(UserInfo instance)'));
+    expect(generated, contains("'name': instance.name"));
+    expect(generated, contains("'age': instance.age"));
+    expect(generated, contains('UserInfo userInfoFromMap(Map<String, dynamic> map)'));
+    expect(generated, contains('name: (map[\'name\'] as String)'));
+    expect(generated, contains('extension UserInfoToMapExtension on UserInfo'));
+    expect(generated, contains('extension UserInfoMapExtension on Map<String, dynamic>'));
+
+    // Positional record
+    expect(generated, contains('List<dynamic> latLngToList(LatLng instance)'));
+    expect(generated, contains('[instance.\$1, instance.\$2]'));
+    expect(generated, contains('LatLng latLngFromList(List<dynamic> list)'));
+    expect(generated, contains('((list[0] as num).toDouble()), ((list[1] as num).toDouble())'));
+    expect(generated, contains('extension LatLngToListExtension on LatLng'));
+    expect(generated, contains('extension LatLngListExtension on List<dynamic>'));
+  });
+
+
+  test('generates code for class with inline record fields and record typedefs', () {
+    const code = '''
+import 'package:daxle/daxle.dart';
+
+part 'geo.daxle.dart';
+
+@serialize
+@deserialize
+typedef Coords = (double, double);
+
+@serialize
+@deserialize
+class GeoLocation(
+  final String title,
+  final Coords coords,
+  final ({String street, int zip}) address,
+  final (int, int)? grid,
+);
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/geo.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    // Uses coordsToList for the known record alias field
+    expect(generated, contains('coordsToList(instance.coords)'));
+    expect(generated, contains('coordsFromList('));
+    // Uses inline map serialization for named record
+    expect(generated, contains("'street': instance.address.street"));
+    expect(generated, contains("'zip': instance.address.zip"));
+    // Uses inline list serialization for positional record
+    expect(generated, contains('[instance.grid!.\$1, instance.grid!.\$2]'));
+  });
+
+  test('generates toDebugMap, diff, and toString masking for @redact models', () {
+    const code = r'''
+import 'package:daxle/daxle.dart';
+
+part 'secret.daxle.dart';
+
+@serialize
+@stringify
+class ApiKeyCredentials(
+  final String clientId,
+  @redact
+  final String secretKey,
+  @Redact(mask: '*', preserveLength: true)
+  final String rawPin,
+) with _$ApiKeyCredentials;
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/secret.dart');
+    final generated = generator.generate(parsedFile);
+
+    expect(generated, isNotNull);
+    expect(
+      generated,
+      contains('apiKeyCredentialsToDebugMap('),
+    );
+    expect(generated, contains("'secretKey': '[REDACTED]'"));
+    expect(
+      generated,
+      contains(
+        "'rawPin': ('*'.isNotEmpty ? '*'[0] * instance.rawPin.length : '')",
+      ),
+    );
+    expect(generated, contains('toDebugMap({bool excludeNull = false})'));
+    expect(generated, contains('diff(ApiKeyCredentials other, {bool deep = true})'));
+    expect(generated, contains("secretKey: [REDACTED]"));
+  });
+
+  test('extension type in model uses toMap in toDebugMap without expecting toDebugMap', () {
+    const code = r'''
+import 'package:daxle/daxle.dart';
+
+const serde = AnnotationBundle([const Serialize(), const Deserialize()]);
+
+@serde
+extension type const VariantId(String key) implements String;
+
+@serde
+class ModelSettings(
+  final Map<String, VariantId> selectedVariants,
+) with _$ModelSettings;
+''';
+
+    final parsedFile = parser.parseContent(code, filePath: 'lib/settings.dart');
+    final generated = generator.generate(
+      parsedFile,
+      projectExtensionTypes: {'VariantId'},
+    );
+
+    expect(generated, isNotNull);
+    // In toMap: uses variantIdToMap
+    expect(generated, contains('variantIdToMap(v)'));
+    // In toDebugMap: uses variantIdToMap (NOT variantIdToDebugMap)
+    expect(generated, contains('variantIdToMap(v)'));
+    expect(generated, isNot(contains('variantIdToDebugMap')));
+    // In fromMap: uses variantIdFromMap(v) (NOT v as Map<String, dynamic>)
+    expect(generated, contains('variantIdFromMap(v)'));
+    expect(generated, isNot(contains('variantIdFromMap(v as Map<String, dynamic>)')));
+  });
+}
+

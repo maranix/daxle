@@ -6,3 +6,4 @@ environment:
 
 workspace:
   - packages/daxle
+  - packages/daxle_gen

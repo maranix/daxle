@@ -1,183 +1,15 @@
-/// Build predictable, composable Dart applications.
+/// Build predictable Dart applications with data modeling and map querying.
 ///
-/// `daxle` is a lightweight functional programming toolkit that replaces
-/// imperative state checks and nested try/catch blocks with clean,
-/// declarative pipelines. Inspired by languages like Rust and Haskell,
-/// it brings robust functional primitives to modern Dart.
+/// `package:daxle/daxle.dart` is the primary entrypoint for:
+/// - **Codegen Annotations**: Declarative annotations ([Serialize], [Deserialize], [CopyWith], [EqualsAndHashCode], [Stringify], [AnnotationBundle], [SerializedValue], [Fallback], [Flatten], [Ignore], and [CaseStyle]) paired with `package:daxle_gen` in `dev_dependencies` for pure AST code generation.
+/// - [QueryMap]: Extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
+/// - **Structural Equality Utilities**: Collection-aware deep equality checks ([$deepEquals], [$listEquals], [$setEquals], [$mapEquals]) and hash code calculators ([$deepHashCode]).
 ///
-/// This library exports six core types, concurrency controls, and essential async utilities:
-///
-/// - [Option]: For composing optional values without imperative state checks.
-/// - [Either]: For explicit, type-safe error handling and branching.
-/// - [Task]: For composing lazy, asynchronous workflows with controlled concurrency.
-/// - [TaskEither]: For chaining asynchronous operations that can fail, with automatic short-circuiting and controlled concurrency.
-/// - [Unit]: For representing the absence of a meaningful value.
-/// - [QueryMap]: Zero-cost extension type for type-safe nested querying over maps with support for embedded lists and non-string keys.
-/// - [Concurrency]: Extension type for fine-grained async worker pool limits (`sequential`, `unbounded`, `bounded(limit)`).
-/// - **Async Utilities**: Re-exports of key utilities from `package:async` (like [FutureGroup], [AsyncCache], [AsyncMemoizer], [StreamZip], [StreamQueue], [StreamGroup], and [StreamSplitter]) for advanced asynchronous flow control.
-///
-/// ---
-///
-/// ## `Option<T extends Object>`
-///
-/// Compose optional non-nullable values functionally. An instance of [Option] is either `Some`
-/// (containing a value) or `None` (indicating absence). It allows you to chain
-/// operations and handle missing data declaratively, avoiding messy `if` checks.
-///
-/// ### Example:
-///
+/// For asynchronous and reactive stream utilities (`Concurrency`, `Pool`, `stream_transform`, `FutureGroup`, `AsyncCache`),
+/// import `package:daxle/async.dart`:
 /// ```dart
 /// import 'package:daxle/daxle.dart';
-///
-/// Option<String> findUser(String id) {
-///   if (id == '123') {
-///     return .some('Alice');
-///   }
-///   return const .none();
-/// }
-///
-/// void main() {
-///   // Smart constructor converts null to None() and non-null to Some(value):
-///   final user = Option(findUser('123').toNullable());
-///   final userName = user.getOrElse(() => 'Guest');
-///   print('User: $userName'); // Prints: User: Alice
-///
-///   // Construct using predicate:
-///   final validAge = .fromPredicate(20, (a) => a >= 18); // Some(20)
-///
-///   // Filter values conditionally:
-///   final filtered = validAge.filter((a) => a > 30); // None
-///
-///   // Pattern matching:
-///   final message = switch (user) {
-///     Some(value: final name) => 'Hello, $name',
-///     None() => 'Welcome, guest!',
-///   };
-/// }
-/// ```
-///
-/// ---
-///
-/// ## `Either<L, R>`
-///
-/// Make failures an explicit part of your function signatures. [Either] holds a
-/// value of one of two types: `Left` or `Right`. By convention, `Right` represents
-/// success and `Left` represents an error, forcing you to handle both states at compile-time.
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// Either<String, int> parseNumber(String text) {
-///   final val = int.tryParse(text);
-///   if (val == null) {
-///     return const .left('Invalid number format');
-///   }
-///   return .right(val);
-/// }
-///
-/// void main() {
-///   final result = parseNumber('123');
-///
-///   // Construct using boolean condition:
-///   final auth = .cond(true, 'Authorized User', 'Access Denied');
-///
-///   result.fold(
-///     (error) => print('Error: $error'),
-///     (value) => print('Value: $value'), // Prints: Value: 123
-///   );
-/// }
-/// ```
-///
-/// ---
-///
-/// ## `Task<T>`
-///
-/// Compose deferred asynchronous workflows. Unlike a `Future`, a [Task] is lazy
-/// and won't execute until you call `.run()`. This allows you to construct
-/// complex async pipelines before execution begins.
-///
-/// Execute collections of tasks with controlled worker limits via `Task.sequence` or `Task.traverse`:
-///
-/// ```dart
-/// final tasks = [fetchA(), fetchB(), fetchC()];
-///
-/// // Process concurrently with a worker pool limit of 2:
-/// final batch = Task.sequence(tasks, mode: .bounded(2));
-/// final results = await batch.run();
-/// ```
-///
-/// **Note**: [Task] does not provide explicit failure handling. If the underlying computation throws,
-/// the exception propagates naturally. For explicit failure handling, use [TaskEither].
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// void main() async {
-///   final task = Task(() async {
-///     print('Executing...');
-///     return 42;
-///   }).map((x) => x * 2);
-///
-///   // The task hasn't executed yet.
-///   final result = await task.run(); // Now it executes.
-///   print('Result: $result');
-/// }
-/// ```
-///
-/// ---
-///
-/// ## `TaskEither<L, R>`
-///
-/// Chain async operations safely without nesting. [TaskEither] represents a lazy,
-/// asynchronous computation that can fail (`Future<Either<L, R>>`), offering four major advantages:
-///
-/// 1. **Lazy Execution**: Unlike eager Futures, [TaskEither] only runs when `.run()`
-///    is called, allowing you to easily build retries or fallbacks.
-/// 2. **Short-Circuiting & Early Failure Abort**: It embeds the [Either] state at each step.
-///    In chained pipelines or concurrent collections (`sequence`/`traverse`), any failure ([Left])
-///    stops execution immediately and cancels unstarted pending tasks to save resources.
-/// 3. **Dynamic Sliding-Window Concurrency**: Run concurrent task collections using a worker
-///    pool (`.bounded(poolSize)`), strictly one-by-one (`.sequential`), or in parallel (`.unbounded`).
-/// 4. **Exception Guarding**: `TaskEither.fromFuture` automatically catches
-///    runtime exceptions and maps them to a safe [Left] value.
-///
-/// ### Example:
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// TaskEither<String, String> fetchUser(int id) => .fromFuture(
-///   () async => 'User #$id',
-///   (err, _) => 'User not found',
-/// );
-///
-/// TaskEither<String, String> fetchConfig(String role) => .fromFuture(
-///   () async => 'Config for $role',
-///   (err, _) => 'Config not found',
-/// );
-///
-/// void main() async {
-///   // Chain dependent async computations without nested awaits or try-catch blocks:
-///   final result = await fetchUser(42)
-///       .flatMap(fetchConfig) // Clean tear-off composition
-///       .run();
-///
-///   result.fold(
-///     (error) => print('Failed: $error'),
-///     (config) => print('Success: $config'),
-///   );
-///
-///   // Execute tasks concurrently with a sliding-window worker pool of 3.
-///   // If any task yields a Left, remaining queued tasks are aborted immediately:
-///   final batchResult = await TaskEither.sequence(
-///     [fetchUser(1), fetchUser(2), fetchUser(3)],
-///     mode: .bounded(3),
-///   ).run();
-/// }
+/// import 'package:daxle/async.dart';
 /// ```
 ///
 /// ---
@@ -185,8 +17,8 @@
 /// ## `QueryMap`
 ///
 /// Safely extract nested properties from structured [Map]s and their embedded lists.
-/// `QueryMap` is a zero-cost extension type erased at compile-time that replaces
-/// fragile manual map cast chains with type-safe path queries.
+/// `QueryMap` is an extension type that replaces
+/// fragile manual map cast chains with path queries.
 ///
 /// ### Supported Query Notations:
 ///
@@ -242,101 +74,122 @@
 ///   final outOfBounds = query.get<String>('users[99].name'); // null
 ///
 ///   // 5. Presence checking (distinguishes explicit null from missing keys):
-///   query.has('services.database'); // true (key exists with null value)
-///   query.has('services.cache'); // false (key does not exist)
-///
-///   // 6. Seamless composition with Option:
-///   final serverHost = Option(query.get<String>('services.server.host'))
-///       .getOrElse(() => 'https://fallback.internal');
+///   final hasDb = query.has('services.database'); // true (key exists with null value)
+///   final hasCache = query.has('services.cache'); // false (key does not exist)
 /// }
 /// ```
 ///
 /// ---
 ///
-/// ## `Concurrency`
+/// ## Codegen Annotations & Data Classes
 ///
-/// Fine-grained control over asynchronous worker scheduling across the event loop:
+/// `daxle` provides annotations that define functional serialization,
+/// deep immutable copy lenses, structural equality, and string representations.
+/// The annotations introduce no reflective dependencies. Code is
+/// synthesized by adding `package:daxle_gen` to your `dev_dependencies`:
 ///
-/// - `Concurrency.sequential` (or `.sequential`): Runs tasks 1 by 1 in strict sequence.
-/// - `Concurrency.unbounded` (or `.unbounded`): Dispatches all tasks simultaneously in parallel without limits.
-/// - `Concurrency.bounded(int poolSize)` (or `.bounded(3)`): Executes tasks using a **sliding-window worker pool**.
-///   Fast tasks never wait for slow tasks; available workers immediately pull the next task from the queue.
-/// - **Standalone `dispatch` & `process`**: Use `concurrency.dispatch(items, worker)` to process raw collections without `Task`/`TaskEither` boilerplate, or `concurrency.process(thunks)` for zero-arg task closures.
-/// - **Early Termination (`shouldStop`)**: Halts worker queue consumption as soon as a stop condition is met,
-///   protecting your system from running redundant operations when a failure or target state is reached.
+/// ### Core Annotations:
+/// - [Serialize] / [serialize]: Marks a class, enum, or extension type for functional serialization (`toMap` / `toValue`).
+/// - [Deserialize] / [deserialize]: Marks a class, enum, or extension type for functional deserialization (`fromJson` / `fromMap` / `fromValue`).
+/// - [CopyWith] / [copyWith]: Generates typed immutable copy proxies supporting chained deep mutations (such as `user.copyWith.address.city(name: 'NYC')`) returning the root type, and `copyWithNull` for explicit nullification.
+/// - [EqualsAndHashCode] / [equalsAndHashCode]: Generates tiered collection-aware `operator ==` and `hashCode` implementations.
+/// - [Stringify] / [stringify]: Generates clean `toString` representations for classes and enums.
+/// - [AnnotationBundle]: Combines multiple annotations into reusable named constants (e.g. `@DataClass`).
 ///
-/// ---
-///
-/// ## `Unit`
-///
-/// A singleton type containing exactly one value: `unit`. Used in functional programming to represent the absence of a meaningful value in generic constructs (like returning `Either<String, Unit>`).
-///
-/// ```dart
-/// import 'package:daxle/daxle.dart';
-///
-/// Either<String, Unit> saveRecord(String data) {
-///   try {
-///     // Save logic...
-///     return const .right(unit);
-///   } catch (e) {
-///     return .left('Failed to save: $e');
-///   }
-/// }
-/// ```
-///
-/// ---
-///
-/// ## Async Utilities
-///
-/// This package re-exports several powerful primitives from `package:async` to simplify asynchronous control flow and stream manipulation:
-///
-/// - **Future Utilities**:
-///   - [FutureGroup]: Collects futures and fires when all are complete, allowing dynamic addition of futures.
-///   - [AsyncCache]: Caches the results of asynchronous operations.
-///   - [AsyncMemoizer]: Runs an asynchronous block once and caches the result for future calls.
-///
-/// - **Stream Utilities**:
-///   - [StreamZip]: Combines multiple streams into a single stream of zipped values.
-///   - [StreamQueue]: Simplifies stream consumption with pull-based operations.
-///   - [StreamGroup]: Merges multiple streams into a single output stream.
-///   - [StreamSplitter]: Splits a single stream into multiple identical, independent streams.
+/// ### Member & Field Annotations:
+/// - [SerializedValue]: Customizes the wire key name, binds alternative aliases (`aliases: [...]`), or supplies a custom [DaxleJsonConverter].
+/// - [Fallback]: Injects default fallback values for null or missing fields, or designates fallback enum cases.
+/// - [Flatten] / [flatten]: Inlines child object properties directly into the parent JSON map.
+/// - [Ignore] / [ignore]: Excludes a field completely from all generated logic.
+/// - [Redact] / [redact]: Masks sensitive fields (tokens, secrets, PII) in `toString()` and diagnostic maps (`toDebugMap()`).
+/// - [CaseStyle]: Controls bidirectional naming conventions (such as `snakeCase`, `kebabCase`, `camelCase`).
 ///
 /// ### Example:
 ///
 /// ```dart
 /// import 'package:daxle/daxle.dart';
 ///
-/// void main() async {
-///   // Combine multiple streams concurrently
-///   final streamA = Stream.fromIterable([1, 2, 3]);
-///   final streamB = Stream.fromIterable(['A', 'B', 'C']);
-///   final zipped = StreamZip([streamA, streamB]);
+/// part 'user.daxle.dart';
 ///
-///   await for (final pair in zipped) {
-///     print(pair); // [1, 'A'], [2, 'B'], [3, 'C']
+/// const DataClass = AnnotationBundle([
+///   Serialize(),
+///   Deserialize(),
+///   CopyWith(),
+///   EqualsAndHashCode(),
+///   Stringify(),
+/// ]);
+///
+/// @DataClass
+/// class User(
+///   @SerializedValue('user_id', aliases: ['id'])
+///   final String id,
+///   final String name,
+///   @Fallback('user')
+///   final String role,
+///   @redact
+///   final String apiKey,
+///   @ignore
+///   final String cachedToken,
+/// ) with _$User;
+/// ```
+///
+/// ---
+///
+/// ## State Machine & Workflows (Preview & Experimental)
+///
+/// > **Warning**: [StateMachine] and its related workflow primitives ([Flow], [TransitionScope], [InvalidFlowException])
+/// > are currently in **preview and experimental**. The APIs and code generation conventions may evolve based on community feedback.
+///
+/// Declarative state machines with validated transition graphs,
+/// asynchronous flow handlers, epoch-based stale flow cancellation, and fail-fast guarantees.
+///
+/// ### Example:
+///
+/// ```dart
+/// import 'dart:async';
+/// import 'package:daxle/daxle.dart';
+///
+/// part 'auth.daxle.dart';
+///
+/// sealed class AuthState { const AuthState(); }
+/// final class AuthUnauthenticated extends AuthState { const AuthUnauthenticated(); }
+/// final class AuthAuthenticating extends AuthState { const AuthAuthenticating(); }
+/// final class AuthAuthenticated extends AuthState { final String token; const AuthAuthenticated(this.token); }
+/// final class AuthFailed extends AuthState { final String error; const AuthFailed(this.error); }
+///
+/// sealed class AuthEvent { const AuthEvent(); }
+/// final class LoginSubmitted extends AuthEvent { final String user; final String pass; const LoginSubmitted(this.user, this.pass); }
+/// final class ResetRequested extends AuthEvent { const ResetRequested(); }
+///
+/// @StateMachine([
+///   Flow(from: AuthUnauthenticated, to: AuthAuthenticating, using: LoginSubmitted),
+///   Flow(from: AuthAuthenticating, to: AuthAuthenticated),
+///   Flow(from: AuthAuthenticating, to: AuthFailed),
+///   Flow(from: AuthFailed, to: AuthUnauthenticated, using: ResetRequested),
+/// ])
+/// final class AuthService with _$AuthServiceMachine {
+///   @override
+///   AuthState activeState = const AuthUnauthenticated();
+///
+///   @override
+///   FutureOr<void> onAuthenticating(TransitionScope<AuthState> scope, LoginSubmitted event) async {
+///     try {
+///       final token = await performLogin(event.user, event.pass);
+///       scope.transit(AuthAuthenticated(token));
+///     } catch (e) {
+///       scope.transit(AuthFailed(e.toString()));
+///     }
 ///   }
 /// }
 /// ```
 library;
 
-export 'src/types/either.dart';
-export 'src/types/option.dart';
-export 'src/types/task.dart';
-export 'src/types/task_either.dart';
-export 'src/types/unit.dart';
-export 'src/util/concurrency.dart';
+export 'dart:async' show FutureOr;
+export 'src/annotations/codegen.dart';
+export 'src/state_machine/exceptions.dart';
+export 'src/state_machine/flow.dart';
+export 'src/state_machine/transition_scope.dart';
+export 'src/util/equality.dart';
 export 'src/util/query_map.dart';
 
-// Export some useful utilities from `async` package
-export 'package:async/async.dart'
-    show
-        // Future
-        FutureGroup,
-        // Async
-        AsyncCache,
-        AsyncMemoizer,
-        // Stream
-        StreamZip,
-        StreamQueue,
-        StreamGroup,
-        StreamSplitter;
+

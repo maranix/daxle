@@ -1,12 +1,13 @@
 import 'dart:collection';
 
 import 'package:meta/meta.dart';
+import 'package:pool/pool.dart';
 
 /// {@template concurrency}
 /// Defines the concurrency execution strategy for asynchronous tasks.
 ///
-/// `Concurrency` controls how collections of deferred tasks (such as [Task]
-/// or [TaskEither]) are scheduled and executed across the event loop:
+/// `Concurrency` controls how collections of asynchronous operations
+/// are scheduled and executed across the event loop via [dispatch] or [process]:
 ///
 /// - [Concurrency.sequential]: Executes tasks strictly one after another (1 active task).
 /// - [Concurrency.unbounded]: Executes all tasks simultaneously in parallel without limits.
@@ -14,14 +15,11 @@ import 'package:meta/meta.dart';
 ///
 /// ### Examples using Dot-Shorthand Syntax:
 /// ```dart
-/// // Unbounded parallel (default)
-/// Task.sequence(tasks, mode: .unbounded);
+/// // Worker pool of 5 concurrent tasks
+/// await Concurrency.bounded(5).dispatch(urls, fetchUrl);
 ///
 /// // Strictly sequential
-/// Task.sequence(tasks, mode: .sequential);
-///
-/// // Worker pool of 10 concurrent tasks
-/// Task.sequence(tasks, mode: .bounded(10));
+/// await Concurrency.sequential.process(taskThunks);
 /// ```
 /// {@endtemplate}
 @immutable
@@ -47,6 +45,15 @@ extension type const Concurrency._(int poolSize) {
 
   /// Whether execution is bounded with a worker pool poolSize (poolSize >= 2).
   bool get isBounded => poolSize > 1;
+
+  /// Creates a new [Pool] corresponding to this concurrency strategy.
+  ///
+  /// Returns `null` if [isUnbounded].
+  Pool? createPool() {
+    _validateLimit();
+    if (isUnbounded) return null;
+    return Pool(poolSize);
+  }
 
   /// Executes [items] according to this concurrency strategy and returns the collected results.
   ///
@@ -105,7 +112,10 @@ extension type const Concurrency._(int poolSize) {
     Future<R> Function(T item) worker, {
     bool Function(R)? shouldStop,
   }) => process(
-    items.map((item) => () => worker(item)),
+    items.map(
+      (item) =>
+          () => worker(item),
+    ),
     shouldStop: shouldStop,
   );
 
@@ -135,26 +145,30 @@ extension type const Concurrency._(int poolSize) {
     bool Function(R)? shouldStop,
   }) async {
     final SplayTreeMap<int, R> jobResults = .new();
-
+    final pool = Pool(poolSize);
     final iter = jobs.indexed.iterator;
     var isStopped = false;
 
-    await Future.wait(
-      .generate(poolSize, (_) async {
-        while (!isStopped && iter.moveNext()) {
-          final (index, job) = iter.current;
+    try {
+      await Future.wait(
+        .generate(poolSize, (_) async {
+          while (!isStopped) {
+            if (isStopped || !iter.moveNext()) return;
+            final (index, job) = iter.current;
+            final result = await pool.withResource(job);
+            jobResults.putIfAbsent(index, () => result);
 
-          final result = await job();
-          jobResults.putIfAbsent(index, () => result);
-
-          if (shouldStop?.call(result) ?? false) {
-            isStopped = true;
-            break;
+            if (shouldStop?.call(result) ?? false) {
+              isStopped = true;
+              break;
+            }
           }
-        }
-      }),
-      eagerError: true,
-    );
+        }),
+        eagerError: true,
+      );
+    } finally {
+      await pool.close();
+    }
 
     return jobResults.values.toList();
   }

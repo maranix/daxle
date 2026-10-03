@@ -1,0 +1,162 @@
+import 'package:analyzer/dart/ast/ast.dart';
+
+import 'case_style.dart';
+
+import '../parser/generation_error.dart';
+
+/// Parsed metadata for `@Serialize`.
+class SerializeInfo {
+  final String? discriminator;
+  final String? valueField;
+  final CaseStyle? caseStyle;
+  final Set<String> ignoreFields;
+
+  const SerializeInfo({
+    this.discriminator,
+    this.valueField,
+    this.caseStyle,
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@Deserialize`.
+class DeserializeInfo {
+  final String? discriminator;
+  final String? valueField;
+  final CaseStyle? caseStyle;
+  final Set<String> ignoreFields;
+
+  const DeserializeInfo({
+    this.discriminator,
+    this.valueField,
+    this.caseStyle,
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@EqualsAndHashCode`.
+class EqualsAndHashCodeInfo {
+  final Set<String> ignoreFields;
+
+  const EqualsAndHashCodeInfo({
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@Stringify`.
+class StringifyInfo {
+  final Set<String> ignoreFields;
+
+  const StringifyInfo({
+    this.ignoreFields = const {},
+  });
+}
+
+/// Parsed metadata for `@CopyWith`.
+class CopyWithInfo {
+  final Set<String> ignoreFields;
+
+  const CopyWithInfo({
+    this.ignoreFields = const {},
+  });
+}
+
+/// Configuration for sensitive field redaction from `@Redact` or `@redact`.
+class RedactConfig {
+  final String mask;
+  final bool preserveLength;
+
+  const RedactConfig({
+    this.mask = '[REDACTED]',
+    this.preserveLength = false,
+  });
+}
+
+/// Field-level or parameter-level configuration from `@SerializedValue`, `@Fallback`, `@Flatten`, `@Redact`, and `@ignore`.
+class FieldConfig {
+  final String? serializedKey;
+  final List<String> aliases;
+  final String? fallbackCode;
+  final String? converterCode;
+  final bool isFlattened;
+  final String flattenPrefix;
+  final bool isIgnored;
+  final RedactConfig? redactConfig;
+
+  const FieldConfig({
+    this.serializedKey,
+    this.aliases = const [],
+    this.fallbackCode,
+    this.converterCode,
+    this.isFlattened = false,
+    this.flattenPrefix = '',
+    this.isIgnored = false,
+    this.redactConfig,
+  });
+
+  String? get effectiveSerializeKey => serializedKey;
+  String? get effectiveDeserializeKey => serializedKey;
+  String? get effectiveSerializeConverter => converterCode;
+  String? get effectiveDeserializeConverter => converterCode;
+  bool get ignoreSerialize => isIgnored;
+  bool get ignoreDeserialize => isIgnored;
+  bool get isRedacted => redactConfig != null;
+
+  /// Returns true if this configuration has any explicit member annotation or configuration.
+  bool get hasAnyAnnotation =>
+      isIgnored ||
+      isFlattened ||
+      serializedKey != null ||
+      fallbackCode != null ||
+      converterCode != null ||
+      redactConfig != null ||
+      aliases.isNotEmpty;
+
+  FieldConfig merge(FieldConfig other, [String memberName = 'member']) {
+    final mergedIgnored = isIgnored || other.isIgnored;
+    final mergedKey = other.serializedKey ?? serializedKey;
+    final mergedAliases = other.aliases.isNotEmpty ? other.aliases : aliases;
+    final mergedFallback = other.fallbackCode ?? fallbackCode;
+    final mergedConverter = other.converterCode ?? converterCode;
+    final mergedFlattened = isFlattened || other.isFlattened;
+    final mergedFlattenPrefix = other.flattenPrefix.isNotEmpty
+        ? other.flattenPrefix
+        : flattenPrefix;
+    final mergedRedact = other.redactConfig ?? redactConfig;
+
+    if (mergedIgnored &&
+        (mergedKey != null || mergedFallback != null || mergedFlattened || mergedRedact != null)) {
+      throw InvalidGenerationSourceError(
+        '@ignore cannot coexist with @SerializedValue, @Fallback, @Flatten, or @redact on "$memberName".',
+        todo:
+            'Remove either @ignore or @SerializedValue/@Fallback/@Flatten/@redact from "$memberName".',
+      );
+    }
+
+    if (mergedFlattened && mergedKey != null) {
+      throw InvalidGenerationSourceError(
+        '@Flatten cannot coexist with @SerializedValue on "$memberName".',
+        todo: 'Remove either @Flatten or @SerializedValue from "$memberName".',
+      );
+    }
+
+    return FieldConfig(
+      serializedKey: mergedKey,
+      aliases: mergedAliases,
+      fallbackCode: mergedFallback,
+      converterCode: mergedConverter,
+      isFlattened: mergedFlattened,
+      flattenPrefix: mergedFlattenPrefix,
+      isIgnored: mergedIgnored,
+      redactConfig: mergedRedact,
+    );
+  }
+}
+
+/// Parsed metadata for `@AnnotationBundle`.
+class BundledAnnotation {
+  final String name;
+  final ArgumentList? argumentList;
+
+  const BundledAnnotation(this.name, [this.argumentList]);
+}
