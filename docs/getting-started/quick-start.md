@@ -4,157 +4,168 @@ outline: deep
 
 # Quick Start
 
-Welcome to the Daxle Quick Start guide. Let's build a production-ready configuration parser. 
+Welcome to the Daxle Quick Start guide. In this tutorial, you will build a robust microservice configuration parser and asynchronous service health checker using modern Daxle 5.
 
-In this tutorial, you will handle optional values, validate inputs, and manage domain errors using Daxle—without throwing a single exception or writing `null`.
+You will learn how to:
+1. Safely parse nested configuration payloads with `QueryMap`.
+2. Model configurations and sanitize sensitive credentials with `@redact`.
+3. Concurrently inspect service endpoints with `Concurrency.bounded`.
+4. Debounce and transform event streams using reactive operators.
 
 
 ## The Scenario
 
-Imagine you need to load a configuration object from environment variables (`Map<String, String>`). 
+Imagine you are loading service configuration from a nested JSON or map structure (`Map<String, dynamic>`) containing server settings, database credentials, and upstream health endpoints.
 
-Your configuration has two rules:
-1. **Port (Optional)**: If provided, it must be an integer between `1024` and `65535`. If missing or invalid, fall back to `8080`.
-2. **Database URL (Required)**: You need a valid connection string. If it's missing or empty, the app must stop and report a clear error.
+Your requirements:
+1. **Server Settings**: Safely retrieve host, nested port (defaulting to `8080`), and replica URLs.
+2. **Security**: Protect database passwords and API tokens from leaking into logs via `toString()`.
+3. **Health Validation**: Concurrently ping upstream services with a bounded concurrency pool (2 workers) and abort early on critical error.
 
-Here is your `AppConfig` class:
+
+## Step 1: Safely Query Nested Data with `QueryMap`
+
+In standard Dart, extracting values from deeply nested maps requires defensive casting and risk of runtime `TypeError`s:
 
 ```dart
-class AppConfig {
+// The Standard Dart Approach: fragile and verbose
+String? host;
+final services = config['services'];
+if (services is Map<String, dynamic>) {
+  final server = services['server'];
+  if (server is Map<String, dynamic> && server['host'] is String) {
+    host = server['host'] as String;
+  }
+}
+```
+
+With Daxle's zero-cost `QueryMap`, you express this with dot notation and bracket indexing. Missing paths or type mismatches safely return `null`:
+
+```dart
+import 'package:daxle/daxle.dart';
+
+class ServiceConfig {
+  final String host;
   final int port;
-  final String databaseUrl;
+  final String firstReplica;
 
-  const AppConfig({required this.port, required this.databaseUrl});
+  ServiceConfig({
+    required this.host,
+    required this.port,
+    required this.firstReplica,
+  });
 
-  @override
-  String toString() => 'AppConfig(port: $port, databaseUrl: $databaseUrl)';
-}
-```
+  factory ServiceConfig.fromMap(Map<String, dynamic> raw) {
+    final query = QueryMap(raw);
 
-
-## Step 1: Handle Optional Values with `Option`
-
-In standard Dart, you extract and validate the optional port using a messy cascade of `if` statements:
-
-```dart
-// The Standard Dart Approach
-int parsePort(Map<String, String> env) {
-  final raw = env['PORT'];
-  if (raw != null) {
-    final parsed = int.tryParse(raw);
-    if (parsed != null && parsed >= 1024 && parsed <= 65535) {
-      return parsed;
-    }
+    return ServiceConfig(
+      // 1. Dot notation:
+      host: query.get<String>('services.server.host') ?? 'localhost',
+      // 2. Safe type casting and fallback:
+      port: query.get<int>('services.server.port') ?? 8080,
+      // 3. Bracket notation for embedded lists:
+      firstReplica: query.get<String>('services.replicas[0]') ?? 'http://replica-0',
+    );
   }
-  return 8080;
-}
-```
-
-This hides your intent behind visual noise. With Daxle, you express this exact logic as a single, readable pipeline using `Option`. 
-
-Watch how Daxle's smart factory constructor (`Option(port)`) effortlessly wraps potential nulls into an `Option`:
-
-```dart
-import 'package:daxle/daxle.dart';
-
-int parsePort(Map<String, String> env) {
-  final port = int.tryParse(env['PORT'] ?? '');
-
-  return Option(port) // Smart constructor automatically converts null -> None()
-      .filter((p) => p >= 1024 && p <= 65535) // Discard invalid ports
-      .getOrElse(8080); // Provide the default fallback
 }
 ```
 
 
-## Step 2: Enforce Required Values with `Either`
+## Step 2: Protect Secrets with `@redact`
 
-Your database URL is required. If it's missing, you want your system to fail gracefully with a clear error message, not crash with a random runtime exception.
-
-You can model this using `Either<String, String>`. In Daxle, `Left` holds your error message, and `Right` holds your valid data.
-
-Return your success or failure states directly using `.left` and `.right`:
+When logging models in production, raw tokens or database credentials easily leak into logging pipelines. Daxle provides `@redact` to automatically sanitize secrets in string and debug representations:
 
 ```dart
 import 'package:daxle/daxle.dart';
 
-Either<String, String> parseDatabaseUrl(Map<String, String> env) {
-  final url = env['DATABASE_URL'];
+part 'auth_credentials.daxle.dart';
 
-  if (url == null || url.isEmpty) {
-    return .left('Critical Error: DATABASE_URL is missing or empty.');
-  }
+@serialize
+@deserialize
+@stringify
+class AuthCredentials {
+  final String username;
 
-  return .right(url);
+  @redact
+  final String apiKey;
+
+  const AuthCredentials({required this.username, required this.apiKey});
 }
-```
-
-
-## Step 3: Compose the Pipeline
-
-Now, bring the pieces together. Your `loadConfig` function will return an `Either<String, AppConfig>`. 
-
-If your database URL validation fails, the pipeline halts and returns the error. If it succeeds, it builds and returns your `AppConfig`.
-
-```dart
-import 'package:daxle/daxle.dart';
-
-Either<String, AppConfig> loadConfig(Map<String, String> env) {
-  final port = parsePort(env);
-
-  return parseDatabaseUrl(env).map(
-    (dbUrl) => AppConfig(
-      port: port,
-      databaseUrl: dbUrl,
-    ),
-  );
-}
-```
-
-
-## Step 4: Execute and Match the Result
-
-With your type-safe pipeline built, you can load your configuration. Because Daxle's `Either` uses Dart's sealed classes, the compiler forces you to handle both success (`Right`) and failure (`Left`) cases. You never forget to handle an error again.
-
-```dart
-import 'package:daxle/daxle.dart';
 
 void main() {
-  // Scenario 1: A Valid Environment
-  final validEnv = {
-    'PORT': '9000',
-    'DATABASE_URL': 'postgres://localhost:5432/mydb',
-  };
+  const creds = AuthCredentials(username: 'admin', apiKey: 'secret_live_token_99');
 
-  final result1 = loadConfig(validEnv);
-  final message1 = switch (result1) {
-    Left(value: final err) => 'Initialization Failed: $err',
-    Right(value: final config) => 'Service started successfully! Config: $config',
-  };
-  print(message1);
-  // Prints: Service started successfully! Config: AppConfig(port: 9000, databaseUrl: postgres://localhost:5432/mydb)
+  // toString() masks apiKey -> AuthCredentials(username: admin, apiKey: ***)
+  print(creds);
 
-  // Scenario 2: Missing Database URL
-  final invalidEnv = {
-    'PORT': 'invalid_port_will_fallback_to_8080',
-  };
+  // toDebugMap() masks apiKey -> {'username': 'admin', 'apiKey': '***'}
+  print(creds.toDebugMap());
 
-  final result2 = loadConfig(invalidEnv);
-  final message2 = switch (result2) {
-    Left(value: final err) => 'Initialization Failed: $err',
-    Right(value: final config) => 'Service started successfully! Config: $config',
-  };
-  print(message2);
-  // Prints: Initialization Failed: Critical Error: DATABASE_URL is missing or empty.
+  // toMap() preserves raw apiKey for wire requests:
+  print(creds.toMap());
+}
+```
+
+
+## Step 3: Run Bounded Concurrent Checks with `Concurrency`
+
+Uncontrolled `Future.wait` calls can overwhelm network interfaces and hit external API rate limits. Daxle's `Concurrency.bounded` limits active workers using a sliding-window pool backed by `package:pool`:
+
+```dart
+import 'package:daxle/async.dart';
+
+Future<bool> checkEndpoint(String url) async {
+  // Simulate network health check
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  return true;
+}
+
+void main() async {
+  final endpoints = [
+    'https://service-a.internal/health',
+    'https://service-b.internal/health',
+    'https://service-c.internal/health',
+    'https://service-d.internal/health',
+  ];
+
+  // Process endpoints with at most 2 concurrent workers:
+  final results = await const Concurrency.bounded(2).dispatch(
+    endpoints,
+    (url) => checkEndpoint(url),
+    // Early-abort if an endpoint check returns false:
+    shouldStop: (isHealthy) => !isHealthy,
+  );
+
+  print('All endpoints checked: $results');
+}
+```
+
+
+## Step 4: Reactive Stream Pipeline with `stream_transform`
+
+Daxle re-exports complete reactive stream operators directly from `package:stream_transform`. You can debounce rapid status inputs, filter events, and switch between streams:
+
+```dart
+import 'dart:async';
+import 'package:daxle/async.dart';
+
+void listenToHealthEvents(Stream<String> rawEvents) {
+  rawEvents
+      // 1. Debounce rapid notifications:
+      .debounce(const Duration(milliseconds: 300))
+      // 2. Filter empty messages:
+      .where((event) => event.isNotEmpty)
+      // 3. Transform:
+      .map((event) => '[ALERT] $event')
+      .listen(print);
 }
 ```
 
 
 ## What's Next?
 
-You just built a type-safe, error-proof pipeline. You used `Option` to eliminate unsafe null checks and `Either` to make errors predictable and safe.
+You just explored modern Daxle's core capabilities. Here is where to dive deeper:
 
-Here's how to level up:
-
-* **[Query Nested Data](/core-types/query-map)**: Safely query nested maps and embedded lists with `QueryMap`.
-* **[Control Async Concurrency](/core-types/concurrency)**: Manage worker pools and async execution limits with `Concurrency`.
+* **[QueryMap Guide](/core-types/query-map)**: Deep dive into path syntax, matrix traversal, and non-string keys.
+* **[Concurrency Guide](/core-types/concurrency)**: Master `.sequential`, `.bounded`, and `.unbounded` pooling.
+* **[Migration Guide (v5.0.0)](/getting-started/migration-v5)**: Upgrading from Daxle v4? Follow our migration instructions.

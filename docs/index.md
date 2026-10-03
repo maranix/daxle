@@ -3,163 +3,56 @@ layout: home
 
 hero:
   name: Daxle
-  text: Build predictable Dart apps without the boilerplate.
-  tagline: Replace defensive null-checks and untracked exceptions with expressive, type-safe functional pipelines that feel native to modern Dart.
+  text: High-Performance Data Modeling, Concurrency & Stream Transformation
+  tagline: Lightweight Dart 3+ toolkit for zero-cost nested map querying, sliding-window worker pool concurrency, reactive stream operators, and compile-time code generation.
   actions:
     - theme: brand
-      text: Start Writing Safer Code
+      text: Get Started
       link: /getting-started/introduction
+    - theme: alt
+      text: v5.0.0 Migration Guide
+      link: /getting-started/migration-v5
     - theme: alt
       text: View on GitHub
       link: https://github.com/maranix/daxle
 
 features:
-  - title: End Defensive Null-Checking
-    details: Stop cluttering your code with repetitive `if (value == null)`. Use `Option` to chain, transform, and filter optional data with zero risk of null-pointer exceptions.
-  - title: Catch Errors at Compile-Time
-    details: Stop relying on untracked exceptions that crash in production. Use `Either` to make failure a first-class value the Dart compiler forces you to handle.
-  - title: Lazy Async Blueprints
-    details: Standard Futures fire immediately. `Task` and `TaskEither` act as deferred blueprints, making it trivial to compose, retry, and safely recover from network failures.
-  - title: Sliding-Window Concurrency
-    details: Control parallel workers with `Concurrency` (`.bounded`, `.sequential`, `.unbounded`). Available workers pull tasks dynamically, and early failures immediately abort unstarted queued tasks.
   - title: Zero-Cost Map & JSON Queries
-    details: Traverse deeply nested maps, embedded arrays, and matrices using `QueryMap`. Get type-safe dot and bracket notation with zero runtime overhead.
-  - title: Built for Modern Dart
-    details: Built specifically for Dart 3.13+. Leverage sealed classes, exhaustive pattern matching, and constructor dot-shorthand syntax for code that feels completely native.
+    details: Traverse deeply nested maps, embedded arrays, and matrices using QueryMap with dot notation and bracket indexing. Safely returns null on missing paths without runtime exceptions.
+  - title: Sliding-Window Concurrency
+    details: Control asynchronous execution limits with Concurrency (.bounded, .sequential, .unbounded) backed by package:pool, with automatic early termination abort protection.
+  - title: Reactive Stream Transformations
+    details: Curated re-exports of package:stream_transform operators (debounce, throttle, audit, buffer, switchMap, combineLatest, merge) for declarative event pipelines.
+  - title: Compile-Time Code Generation
+    details: Fast AST-based generator via daxle_gen. Automates serialization, deep copyWith proxies, structural equality, and field redaction without build_runner lag.
+  - title: State Machine & Workflows (Preview)
+    details: Declarative @StateMachine workflows with compile-time verified transition tables, async flow handlers, and epoch-based stale event cancellation.
+  - title: Deep Structural Equality
+    details: Multi-tiered structural equality ($deepEquals, $deepHashCode) supporting nested collections, sets, maps, and Dart 3 record hierarchies.
 ---
 
 ## Why Daxle?
 
-Dart's modern type system is capable, but as apps grow, critical business logic gets buried beneath defensive noise.
+Modern Dart features like pattern matching, sealed classes, and records provide an incredible foundation. However, building real-world applications and cloud services still introduces repetitive boilerplate and defensive noise:
 
-Are you tired of:
-- Guessing which functions might throw untracked exceptions at runtime?
-- Writing repetitive null checks and type casts across nested JSON payloads?
-- Unbounded `Future.wait` calls overloading your backend APIs or rate limits?
-- Eager asynchronous operations that are hard to delay, compose, or retry?
+- **Fragile Map & JSON Traversal**: Manually navigating untyped nested maps leads to runtime `TypeError`s, `RangeError`s, and defensive null assertions.
+- **Uncontrolled Concurrency**: Unbounded `Future.wait` calls can overwhelm network bandwidth, exceed backend rate limits, or consume excess memory.
+- **Data Class Boilerplate**: Manually writing serialization, deep `copyWith`, and multi-collection equality checks is time-consuming and error-prone.
+- **Accidental Secret Leaks**: Logging configuration models often leaks API keys, passwords, or PII into system stdout or monitoring services.
 
-**Daxle fixes this.** It provides clean, practical functional building blocks without confusing academic jargon. By modeling errors, optional values, and deferred workflows as explicit values, Daxle helps you build unbreakable Dart and Flutter applications.
+**Daxle solves this.** It provides practical, high-performance tools engineered specifically for Dart 3+ that eliminate defensive boilerplate without academic jargon or runtime overhead.
 
 
 ## See it in Action
 
-Here is how Daxle transforms fragile, error-prone Dart patterns into elegant, type-safe pipelines.
+Here is how Daxle streamlines everyday Dart workflows:
 
-### 1. Safe Optional Chaining
+### 1. Zero-Cost Nested Map & JSON Querying
 
-Standard Dart relies on early returns, intermediate variables, and repetitive null-checking when transforming optional values. Daxle's `Option` lets you express your logic as a single, readable pipeline.
-
-::: code-group
-```dart [Daxle]
-import 'package:daxle/daxle.dart';
-
-// Clean, declarative, and focused entirely on domain intent
-Option<int> parseValidPort(Map<String, String> env) {
-  final port = int.tryParse(env['PORT'] ?? '');
-
-  return Option(port)
-      .filter((p) => p >= 1024 && p <= 65535);
-}
-```
-
-```dart [Standard Dart]
-// Visually noisy with defensive conditions and multiple returns
-int? parseValidPort(Map<String, String> env) {
-  final raw = env['PORT'];
-  if (raw == null) return null;
-  
-  final port = int.tryParse(raw);
-  if (port == null || port < 1024 || port > 65535) {
-    return null;
-  }
-  
-  return port;
-}
-```
-:::
-
-### 2. Explicit Error Handling
-
-Instead of throwing untracked exceptions that can crash your app, Daxle uses `Either` to return errors as values. This guarantees at compile-time that both success and failure cases are handled.
+Traverse deeply nested maps, embedded lists, and multi-dimensional matrices using `QueryMap`. Dot and bracket paths safely return `null` on missing paths or type mismatches instead of throwing `TypeError` or `RangeError`.
 
 ::: code-group
-```dart [Daxle]
-import 'package:daxle/daxle.dart';
-
-Either<String, double> safeDivide(double a, double b) {
-  // Lazy callbacks prevent premature division evaluation
-  return .cond(b != 0.0, () => a / b, () => 'Division by zero');
-}
-
-void main() {
-  final result = safeDivide(10, 0);
-
-  // The compiler ensures both cases are handled exhaustively
-  final message = switch (result) {
-    Left(value: final error) => 'Failed: $error',
-    Right(value: final value) => 'Success: $value',
-  };
-}
-```
-
-```dart [Standard Dart]
-double safeDivide(double a, double b) {
-  if (b == 0.0) throw ArgumentError('Division by zero');
-  return a / b;
-}
-
-void main() {
-  // Easy to forget the try-catch, potentially causing runtime crashes
-  try {
-    final result = safeDivide(10, 0);
-    print('Success: $result');
-  } on ArgumentError catch (e) {
-    print('Failed: ${e.message}');
-  }
-}
-```
-:::
-
-### 3. Resilient Async Pipelines & Controlled Concurrency
-
-Standard `Future`s execute eagerly the moment they are instantiated. Daxle's `TaskEither` acts as a lazy blueprint with built-in worker pool concurrency controls (`.bounded(limit)`, `.sequential`, `.unbounded`) and early-abort protection.
-
-```dart
-import 'package:daxle/daxle.dart';
-
-TaskEither<String, String> fetchHtml(String url) {
-  return TaskEither.fromFuture(
-    () => httpClient.read(Uri.parse(url)),
-    (error, _) => 'Network request failed: $error',
-  );
-}
-
-void main() async {
-  // 1. Compose a lazy single-task pipeline
-  final pipeline = fetchHtml('https://dart.dev')
-      .map((html) => extractTitle(html))
-      .tap((title) => print('Fetched Title: $title'))
-      .orElse((err) => TaskEither.right('Fallback Title'));
-
-  // The asynchronous work only begins here
-  final result = await pipeline.run();
-
-  // 2. Process batches of tasks with a sliding-window worker pool of 3.
-  // If any task fails, unstarted queued tasks abort immediately:
-  final urls = ['https://dart.dev', 'https://flutter.dev', 'https://pub.dev'];
-  final batchResult = await TaskEither.traverse(
-    urls,
-    (url) => fetchHtml(url),
-    mode: .bounded(3),
-  ).run();
-}
-```
-
-### 4. Zero-Cost Nested Map & JSON Querying
-
-Manually traversing nested maps and embedded lists with standard casts (`as String?`) causes runtime `TypeError`s and `RangeError`s. `QueryMap` provides compile-time zero-cost dot notation, bracket indexing, and non-string key queries that safely return `null` on missing paths or type mismatches.
-
-```dart
+```dart [Daxle (QueryMap)]
 import 'package:daxle/daxle.dart';
 
 void main() {
@@ -170,6 +63,9 @@ void main() {
     'users': [
       {'name': 'Alice', 'roles': ['admin', 'dev']},
     ],
+    'cluster': {
+      101: {'status': 'healthy'},
+    },
   };
 
   final query = QueryMap(payload);
@@ -180,22 +76,167 @@ void main() {
   // 2. Bracket indexing on embedded lists:
   final role = query.get<String>('users[0].roles[0]'); // 'admin'
 
-  // 3. Type safety (returns null instead of throwing TypeError):
-  final wrongType = query.get<int>('services.server.host'); // null
+  // 3. Non-string map keys:
+  final status = query.get<String>(['cluster', 101, 'status']); // 'healthy'
 
-  // 4. Effortless composition with Option:
-  final serverHost = Option(query.get<String>('services.server.host'))
-      .getOrElse(() => 'https://fallback.internal');
+  // 4. Type safety (returns null instead of throwing TypeError):
+  final port = query.get<String>('services.server.port'); // null (value is an int)
+}
+```
+
+```dart [Standard Dart]
+void main() {
+  final payload = <String, dynamic>{/* ... */};
+
+  // Verbose, defensive casting vulnerable to runtime TypeErrors and RangeErrors
+  String? host;
+  final services = payload['services'];
+  if (services is Map<String, dynamic>) {
+    final server = services['server'];
+    if (server is Map<String, dynamic> && server['host'] is String) {
+      host = server['host'] as String;
+    }
+  }
+
+  String? role;
+  final users = payload['users'];
+  if (users is List && users.isNotEmpty) {
+    final first = users[0];
+    if (first is Map && first['roles'] is List && (first['roles'] as List).isNotEmpty) {
+      final r = (first['roles'] as List)[0];
+      if (r is String) role = r;
+    }
+  }
+}
+```
+:::
+
+### 2. Controlled Asynchronous Concurrency
+
+Prevent resource exhaustion and rate limits. Control worker limits and execute collections directly with sliding-window concurrency backed by `package:pool`:
+
+```dart
+import 'package:daxle/async.dart';
+
+void main() async {
+  final urls = [
+    'https://api.service.com/item/1',
+    'https://api.service.com/item/2',
+    'https://api.service.com/item/3',
+    'https://api.service.com/item/4',
+  ];
+
+  // Process items concurrently with a sliding-window pool of 2 workers:
+  final responses = await const Concurrency.bounded(2).dispatch(
+    urls,
+    (url) async => httpClient.get(Uri.parse(url)),
+    shouldStop: (res) => res.statusCode >= 500, // Early abort on critical failure
+  );
+}
+```
+
+### 3. Declarative Code Generation & Sensitive Redaction
+
+With `daxle_gen`, eliminate boilerplate for models, deep `copyWith` mutation, and equality comparisons. Protect secrets and PII from leaking into logs using `@redact`:
+
+```dart
+import 'package:daxle/daxle.dart';
+
+part 'api_config.daxle.dart';
+
+@serialize
+@deserialize
+@copyWith
+@stringify
+@equalsAndHashCode
+class ApiConfig {
+  final String endpoint;
+
+  @redact
+  final String apiKey;
+
+  const ApiConfig({required this.endpoint, required this.apiKey});
+}
+
+void main() {
+  final config = ApiConfig(endpoint: 'https://api.prod.com', apiKey: 'sk-923847293847');
+
+  // toString() masks apiKey -> ApiConfig(endpoint: https://api.prod.com, apiKey: ***)
+  print(config);
+
+  // toDebugMap() masks apiKey -> {'endpoint': 'https://api.prod.com', 'apiKey': '***'}
+  print(config.toDebugMap());
+
+  // toMap() preserves raw apiKey for wire-format serialization:
+  print(config.toMap());
+}
+```
+
+### 4. Reactive Stream Transformation
+
+Manipulate, debounce, and interleave event streams with reactive operators from `package:stream_transform`:
+
+```dart
+import 'package:daxle/async.dart';
+
+void setupSearch(Stream<String> searchInput) {
+  searchInput
+      .debounce(const Duration(milliseconds: 300))
+      .where((term) => term.trim().isNotEmpty)
+      .switchMap((term) => api.searchStream(term))
+      .listen((results) => updateUi(results));
+}
+```
+
+### 5. State Machine & Workflows (Preview & Experimental)
+
+Model directed state transitions with compile-time validated transition tables, flow handlers, and epoch-based stale event cancellation:
+
+```dart
+import 'package:daxle/daxle.dart';
+
+part 'order_flow.daxle.dart';
+
+@StateMachine<OrderState, OrderEvent>([
+  Flow(from: OrderDraft, to: OrderProcessing, using: SubmitOrder),
+  Flow(from: OrderProcessing, to: OrderCompleted, using: PaymentSucceeded),
+  Flow(from: OrderProcessing, to: OrderFailed, using: PaymentFailed),
+])
+class OrderWorkflow extends _$OrderWorkflowMachine {
+  @override
+  FutureOr<void> onOrderProcessing(
+    TransitionScope<OrderProcessing> scope,
+    SubmitOrder event,
+  ) async {
+    final success = await processPayment(event.orderId);
+    if (scope.isCurrent) {
+      scope.transit(success ? OrderCompleted() : OrderFailed());
+    }
+  }
 }
 ```
 
 
-## Get Started in Seconds
+## Structured Library Architecture
 
-Daxle has **minimal external dependencies** (relying only on official Dart team packages like `async` and `meta`). This makes the library exceptionally stable, resilient to breaking changes, and keeps your application bundle small and production-ready.
+Daxle exports clean, dedicated entrypoints to keep auto-complete focused and imports clean:
+
+- **`package:daxle/daxle.dart`**: Core annotations, structural equality (`$deepEquals`), nested map queries (`QueryMap`), and preview state machine primitives.
+- **`package:daxle/async.dart`**: Curated asynchronous & reactive toolkit (`Concurrency`, `Pool`, `stream_transform` operators, `FutureGroup`, `AsyncCache`, etc.).
+
+
+## Quick Installation
+
+Add Daxle to your project:
 
 ```bash
 dart pub add daxle
 ```
 
-Ready to write cleaner, safer code? Head over to the [Getting Started guide](/getting-started/introduction).
+For compile-time code generation (serialization, deep copyWith, equality, redaction):
+
+```bash
+dart pub add --dev daxle_gen
+```
+
+Ready to get started? Head over to the [Introduction Guide](/getting-started/introduction) or read the [v5.0.0 Migration Guide](/getting-started/migration-v5).

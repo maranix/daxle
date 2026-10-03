@@ -14,40 +14,38 @@ Daxle is actively evolving. This documentation is subject to change depending on
 
 Welcome to **Daxle**. 
 
-Daxle is the missing companion to the Dart standard library. It gives you expressive, type-safe, and composable abstractions that feel like a natural extension of the language you already know. 
+Daxle is a lightweight Dart 3+ toolkit engineered for high-performance data modeling, zero-cost map querying, sliding-window concurrency control, reactive stream transformations, and compile-time code generation.
 
-Think of Daxle as the reliable connector for your app logic. It ties together data flows, error handling, and asynchronous operations so you can build robust Dart apps faster.
-
-
-## The Problem with Modern Dart
-
-Dart is powerful. With null safety, pattern matching, and sealed classes, you can build great software. 
-
-But as your application grows, you often fall back on patterns that make your code fragile and hard to read:
-
-* **Endless Null Checks**: You litter your code with `??`, `?.`, and `if (val != null)`. This hides your actual business logic.
-* **Hidden Exceptions**: Exceptions can throw anywhere. You write defensive `try-catch` blocks, but you never know if you caught every error before runtime.
-* **Runaway Futures**: Dart `Future`s start executing the second you create them. This makes them hard to retry, pass around safely, or compose before they run.
+Think of Daxle as the pragmatic companion to modern Dart. It eliminates defensive casting, simplifies asynchronous throttling, protects sensitive credentials, and automates data class boilerplate.
 
 
-## The Daxle Solution: Practical, Professional Code
+## The Problem in Modern Dart
 
-Daxle isn't about teaching you academic functional programming. You won't read about Category Theory or Monads here. 
+Dart's native type system, pattern matching, and sealed classes provide an excellent foundation. However, building production services and apps often introduces recurring friction:
 
-Daxle focuses on **practical software engineering**. It gives you the tools to write code that is:
+* **Fragile Map & JSON Traversal**: Navigating untyped nested maps leads to runtime `TypeError`s, `RangeError`s, and defensive null assertions.
+* **Unconstrained Concurrency**: Uncontrolled `Future.wait` calls can overwhelm network bandwidth, exceed backend rate limits, or consume excess memory.
+* **Leaking Secrets in Logs**: Accidentally printing configuration models or data structures often outputs raw API tokens or credentials into application logs.
+* **Data Class Boilerplate**: Manually maintaining serialization, deep `copyWith` cloning, and structural equality across multi-collection models is repetitive and error-prone.
 
-* **Inherently Safe**: Catch missing values and errors at compile-time. Stop runtime surprises.
-* **Highly Expressive**: Write clean, declarative pipelines. Reveal the true intent of your logic at a glance.
-* **Easily Composable**: Chain complex operations together without deep nesting or confusing temporary variables.
-* **Completely Predictable**: Take absolute control over when your asynchronous operations run and how they recover from failure.
+
+## The Daxle Solution: Practical, High-Performance Tools
+
+Daxle focuses on **practical software engineering**. It provides tools that are:
+
+* **Zero-Cost**: Extension types like `QueryMap` provide compile-time safe navigation with zero heap allocation overhead.
+* **Controlled & Predictable**: `Concurrency` worker pools allow you to execute tasks sequentially, bounded, or unbounded with built-in early-abort safeguards.
+* **Reactive & Composable**: Full re-export of `package:stream_transform` operators for declarative stream manipulation.
+* **Secure by Design**: `@redact` annotations mask sensitive credentials in string and debug representations automatically.
+* **Compile-Time Synthesized**: `daxle_gen` automates data class generation, record serialization, deep `copyWith` proxies, and preview state machines.
 
 
 ## Where to Go Next
 
-Our documentation guides you from your first steps to advanced mastery:
+Our documentation guides you from your first steps to advanced workflows:
 
-* **[Getting Started](./installation)**: Install Daxle and build your first type-safe pipeline in the Quick Start guide.
-* **[Core Types](/core-types/query-map)**: Learn the motivation and best practices behind `QueryMap` and `Concurrency`.
+* **[Getting Started](./installation)**: Install Daxle and follow the Quick Start guide.
+* **[Migration Guide (v5.0.0)](./migration-v5)**: Upgrade existing projects from legacy Daxle v4.x.
+* **[QueryMap](/core-types/query-map)**: Learn nested map, list, and matrix querying.
+* **[Concurrency](/core-types/concurrency)**: Master sliding-window worker pools and throttled task execution.
 * **[Utilities](/utilities/future-group)**: Discover helpful asynchronous utilities re-exported by Daxle.
-* **[Guides](/guides/error-handling)**: Master advanced error-handling strategies and complex asynchronous composition.
-* **[Cookbook](/cookbook/working-with-optional-values)**: See Daxle in action with real-world recipes for input validation, networking, and state management.

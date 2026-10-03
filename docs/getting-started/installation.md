@@ -6,12 +6,12 @@ outline: deep
 
 Getting started with Daxle takes just a few seconds. 
 
-Because Daxle is lightweight and relies only on official Dart packages (like `async` and `meta`), you get a stable library that resists breaking changes and keeps your app bundle small.
+Because Daxle is lightweight and relies only on official Dart packages (like `async`, `meta`, and `pool`), you get a stable library that resists breaking changes and keeps your app bundle small.
 
 
 ## Prerequisites
 
-Daxle leverages modern Dart features like sealed classes, pattern matching, and dot-shorthand constructors. 
+Daxle leverages modern Dart features like sealed classes, pattern matching, records, extension types, and dot-shorthand constructors. 
 
 To use Daxle, you need:
 * **Dart SDK**: `>= 3.13.0 < 4.0.0`
@@ -36,10 +36,14 @@ Or add it manually to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  daxle: ^4.0.0
+  daxle: ^5.1.0
+
+# Optional: Add daxle_gen to dev_dependencies for compile-time code generation
+dev_dependencies:
+  daxle_gen: ^0.3.1
 ```
 
-Then fetch the package:
+Then fetch the packages:
 
 ```bash
 dart pub get
@@ -48,8 +52,12 @@ dart pub get
 
 ## Import the Library
 
-Add this single import to the top of your file to start using Daxle:
+Daxle organizes its exports into dedicated entrypoints:
 
 ```dart
+// Core data modeling, QueryMap, structural equality, and preview state machine
 import 'package:daxle/daxle.dart';
+
+// Asynchronous concurrency, Pool, stream_transform, and async utilities
+import 'package:daxle/async.dart';
 ```

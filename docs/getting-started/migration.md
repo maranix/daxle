@@ -4,6 +4,10 @@ outline: deep
 
 # Daxle v4 Migration Guide
 
+::: tip 🚀 Upgrading to Daxle v5.0.0?
+Looking to upgrade to Daxle v5.0.0 or v5.1.0? Please check out the [Daxle v5 Migration Guide](/getting-started/migration-v5).
+:::
+
 Daxle v4.0.0 is a major release focused on strict non-nullability, fine-grained concurrency control for asynchronous pipelines, safe conditional evaluation, and performance enhancements. 
 
 This guide outlines breaking changes and migration steps to upgrade your codebase from Daxle v3.x to v4.0.0.
